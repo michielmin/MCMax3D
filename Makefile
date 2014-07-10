@@ -51,7 +51,7 @@ endif
 
 # files to make
 OBJS	      = Modules.o \
-				Main.o
+				MCMax3D.o
 
 # program name and install location
 PROGRAM       = MCMax3D
