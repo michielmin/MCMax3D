@@ -24,6 +24,59 @@ c global setup for MCMax3D
 c=========================================================================================
 	module GlobalSetup
 	IMPLICIT NONE
+	integer nzones,nstars,npart
+	
+	type StarType
+		real*8 x,y,z
+		real*8 L,R,T
+		real*8,allocatable :: F(:)								! dimension nlam
+	end type StarType
+
+	type Cell
+		real*8 T,M,V,E			! Temperature, Mass, Volume, Energy absorbed
+		integer Ni				! statistics
+		real*8,allocatable :: Kabs(:),Ksca(:),Kext(:)			! dimension nlam
+		real*8,allocatable :: dens(:)							! dimension npart
+		real*8,allocatable :: LRFI(:),LRFQ(:),LRFU(:),LRFV(:)	! dimension nlam
+		logical diff,randomwalk
+		real*8 x1,x2,y1,y2,z1,z2	! cell edges
+		real*8 r1,r2,t1,t2,p1,p2	! cell edges
+	end type Cell
+	
+	type Photon
+		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
+		real*8 Sx,Sy,Sz
+		integer,allocatable :: i(:),j(:),k(:)				! dimension nzones
+		logical,allocatable :: inzone(:)					! dimension nzones
+		integer ilam1,ilam2,edgeNr
+		real*8 wl1,wl2
+		logical onEdge,scatt,pol
+	end type Photon
+	
+	type Mueller
+		real*8 F11(180),F12(180),F22(180)
+		real*8 F33(180),F44(180),F34(180)
+		real*8 IF11,IF12
+	end type Mueller
+
+	type Particle
+		real*8 rv,rho
+		real*8,allocatable :: Kabs(:),Ksca(:),Kext(:)		! dimension nlam
+		type(Mueller),allocatable :: F(:)					! dimension nlam
+		real*8,allocatable :: Kp(:)							! dimension nT
+	end type Particle
+	
+	type ZoneType
+		type(Cell),allocatable :: C(:,:,:)					! dimension nx,ny,nz
+		integer nx,ny,nz
+		integer nr,nt,np
+		real*8 x0,y0,z0,xn,yn,zn
+		character*10 shape			! CAR, SPH, CYL
+	end type ZoneType
+	
+	type(ZoneType),allocatable :: Zone(:)						! dimension nzones
+	type(StarType),allocatable :: Star(:)						! dimension nstars
+	type(Particle),allocatable :: Part(:)					! dimension npart
 
 	end module GlobalSetup
 

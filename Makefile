@@ -73,7 +73,7 @@ $(PROGRAM):     $(OBJS)
 $(OBJS):	Modules.f
 
 # recompile everything if InputOutput.f has changed 
-$(OBJS):	InputOutput.f
+#$(OBJS):	InputOutput.f
 
 
 
