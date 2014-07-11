@@ -25,6 +25,11 @@ c===============================================================================
 	module GlobalSetup
 	IMPLICIT NONE
 	integer nzones,nstars,npart
+	integer maxiter
+
+c string converting functions
+	character*20 int2string,dbl2string
+	external int2string,dbl2string
 	
 	type StarType
 		real*8 x,y,z
@@ -71,12 +76,19 @@ c===============================================================================
 		integer nx,ny,nz
 		integer nr,nt,np
 		real*8 x0,y0,z0,xn,yn,zn
-		character*10 shape			! CAR, SPH, CYL
+		character*3 shape			! CAR, SPH, CYL
 	end type ZoneType
 	
 	type(ZoneType),allocatable :: Zone(:)						! dimension nzones
 	type(StarType),allocatable :: Star(:)						! dimension nstars
 	type(Particle),allocatable :: Part(:)					! dimension npart
+
+	type SettingKey
+		character*100 key1,key2,value
+		integer nr1,nr2
+		logical last
+		type(SettingKey),pointer :: next
+	end type SettingKey
 
 	end module GlobalSetup
 
