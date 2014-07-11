@@ -51,7 +51,8 @@ endif
 
 # files to make
 OBJS	      = Modules.o \
-				MCMax3D.o
+				MCMax3D.o \
+				InputOutput.o
 
 # program name and install location
 PROGRAM       = MCMax3D
@@ -73,7 +74,7 @@ $(PROGRAM):     $(OBJS)
 $(OBJS):	Modules.f
 
 # recompile everything if InputOutput.f has changed 
-#$(OBJS):	InputOutput.f
+$(OBJS):	InputOutput.f
 
 
 
