@@ -26,6 +26,7 @@ c===============================================================================
 	IMPLICIT NONE
 	integer nzones,nstars,npart
 	integer maxiter
+	logical criticalerror
 
 c string converting functions
 	character*20 int2string,dbl2string
@@ -34,6 +35,7 @@ c string converting functions
 	type StarType
 		real*8 x,y,z
 		real*8 L,R,T
+		character*10 startype
 		real*8,allocatable :: F(:)								! dimension nlam
 	end type StarType
 

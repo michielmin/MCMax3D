@@ -26,8 +26,11 @@ c allocate the arrays
 	select case(key%key1)
 		case("zone")
 			call ReadZone(key)
+		case("star")
+			call ReadStar(key)
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
+			criticalerror=.true.
 	end select
 
 	key => key%next
@@ -36,6 +39,11 @@ c allocate the arrays
 	
 
 	call output("==================================================================")
+
+	if(criticalerror) then
+		call output("Critical error encountered")
+		stop
+	endif
 	
 	return
 	end
@@ -58,10 +66,51 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%yn
 		case("zn")
 			read(key%value,*) Zone(key%nr1)%zn
+		case("nx")
+			read(key%value,*) Zone(key%nr1)%nx
+		case("ny")
+			read(key%value,*) Zone(key%nr1)%ny
+		case("nz")
+			read(key%value,*) Zone(key%nr1)%nz
+		case("nr")
+			read(key%value,*) Zone(key%nr1)%nr
+		case("nt")
+			read(key%value,*) Zone(key%nr1)%nt
+		case("np")
+			read(key%value,*) Zone(key%nr1)%np
 		case("shape")
 			Zone(key%nr1)%shape=key%value(1:3)
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
+			criticalerror=.true.
+	end select
+
+	return
+	end
+	
+	subroutine ReadStar(key)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(SettingKey) key
+
+	select case(key%key2)
+		case("x")
+			read(key%value,*) Star(key%nr1)%x
+		case("y")
+			read(key%value,*) Star(key%nr1)%y
+		case("z")
+			read(key%value,*) Star(key%nr1)%z
+		case("l")
+			read(key%value,*) Star(key%nr1)%L
+		case("r")
+			read(key%value,*) Star(key%nr1)%R
+		case("t")
+			read(key%value,*) Star(key%nr1)%T
+		case("type")
+			Star(key%nr1)%startype=trim(key%value)
+		case default
+			call output("Unknown star keyword: " // trim(key%key2))
+			criticalerror=.true.
 	end select
 
 	return

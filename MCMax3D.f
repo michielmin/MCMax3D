@@ -6,6 +6,8 @@
 	integer iter
 	character*500 VersionGIT
 
+	criticalerror=.false.
+
 c terms of use
 	call output("==================================================================")
 	call output("By using MCMax3D you agree to the terms of use.")
