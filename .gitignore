@@ -5,5 +5,5 @@
 *.i
 _*
 gitversion.h
-MCMax3D*
+MCMax3D
 .DS_Store
