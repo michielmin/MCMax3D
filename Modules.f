@@ -25,12 +25,18 @@ c===============================================================================
 	module GlobalSetup
 	IMPLICIT NONE
 	integer nzones,nstars,npart
-	integer maxiter
+	integer maxiter,Nphot
 	logical criticalerror
+	character*500 outputdir,particledir
 
 c string converting functions
 	character*20 int2string,dbl2string
 	external int2string,dbl2string
+
+c wavelength grid
+	integer nlam,nzlam
+	real*8 lam1,lam2,zlam1,zlam2
+	real*8,allocatable :: lam(:)
 	
 	type StarType
 		real*8 x,y,z
@@ -67,10 +73,16 @@ c string converting functions
 	end type Mueller
 
 	type Particle
-		real*8 rv,rho
-		real*8,allocatable :: Kabs(:),Ksca(:),Kext(:)		! dimension nlam
-		type(Mueller),allocatable :: F(:)					! dimension nlam
-		real*8,allocatable :: Kp(:)							! dimension nT
+		real*8,allocatable :: rv(:,:)								! dimension nsize,nT
+		real*8,allocatable :: Tmax(:)								! dimension nT
+		real*8 rho,amin,amax,apow,fmax,porosity,fcarbon
+		logical blend
+		real*8,allocatable :: Kabs(:,:,:),Ksca(:,:,:),Kext(:,:,:)	! dimension nsize,nT,nlam
+		type(Mueller),allocatable :: F(:,:,:)						! dimension nsize,nT,nlam
+		real*8,allocatable :: Kp(:,:,:)								! dimension nsize,nT,nBB
+		character*500,allocatable :: file(:)						! dimension nT
+		character*20 standard,ptype
+		integer nsize,nT
 	end type Particle
 	
 	type ZoneType
@@ -83,7 +95,7 @@ c string converting functions
 	
 	type(ZoneType),allocatable :: Zone(:)						! dimension nzones
 	type(StarType),allocatable :: Star(:)						! dimension nstars
-	type(Particle),allocatable :: Part(:)					! dimension npart
+	type(Particle),allocatable :: Part(:)						! dimension npart
 
 	type SettingKey
 		character*100 key1,key2,value

@@ -28,6 +28,23 @@ c allocate the arrays
 			call ReadZone(key)
 		case("star")
 			call ReadStar(key)
+		case("part")
+			Part(key%nr1)%file=trim(key%value)
+			Part(key%nr1)%ptype="PARTFILE"
+		case("computepart")
+			call ReadComputePart(key)
+		case("nlam")
+			read(key%value,*) nlam
+		case("lam1")
+			read(key%value,*) lam1
+		case("lam2")
+			read(key%value,*) lam2
+		case("nzlam")
+			read(key%value,*) nzlam
+		case("zlam1")
+			read(key%value,*) zlam1
+		case("zlam2")
+			read(key%value,*) zlam2
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -117,6 +134,44 @@ c allocate the arrays
 	end
 	
 
+	subroutine ReadComputePart(key)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(SettingKey) key
+
+	Part(key%nr1)%ptype="COMPUTE"
+
+	select case(key%key2)
+		case("file")
+			Part(key%nr1)%file=trim(key%value)
+		case("ngrains","nsize")
+			read(key%value,*) Part(key%nr1)%nsize
+		case("amin")
+			read(key%value,*) Part(key%nr1)%amin
+		case("amax")
+			read(key%value,*) Part(key%nr1)%amax
+		case("apow")
+			read(key%value,*) Part(key%nr1)%apow
+		case("fmax")
+			read(key%value,*) Part(key%nr1)%fmax
+		case("blend")
+			read(key%value,*) Part(key%nr1)%blend
+		case("porosity")
+			read(key%value,*) Part(key%nr1)%porosity
+		case("standard")
+			Part(key%nr1)%standard=trim(key%value)
+		case("fcarbon")
+			read(key%value,*) Part(key%nr1)%fcarbon
+		case default
+			call output("Unknown computepart keyword: " // trim(key%key2))
+			criticalerror=.true.
+	end select
+
+	return
+	end
+	
+
+
 
 	subroutine GetKeywords(firstkey)
 	use GlobalSetup
@@ -173,6 +228,14 @@ c read another command, so go back
 	allocate(key%next)
 	key => key%next
 	key%last=.true.
+
+	call getarg(2,readline)
+	read(readline,*) Nphot
+	if(Nphot.gt.0) then
+		call output("Number of photon packages for radiative transfer: " // int2string(Nphot,'(i10)'))
+	else
+		call output("No radiative transfer")
+	endif
 
 	return
 	end
@@ -271,7 +334,7 @@ c===============================================================================
 				if(key%nr1.gt.nzones) nzones=key%nr1
 			case("star")
 				if(key%nr1.gt.nstars) nstars=key%nr1
-			case("part","computepart","opac")
+			case("part","opac","computepart")
 				if(key%nr1.gt.npart) npart=key%nr1
 		end select
 		key=>key%next
@@ -284,6 +347,26 @@ c===============================================================================
 	allocate(Zone(nzones))
 	allocate(Star(nstars))
 	allocate(Part(npart))
+
+	do i=1,npart
+		Part(i)%nT=0
+	enddo
+
+	key => firstkey
+	do while(.not.key%last)
+		select case(key%key1)
+			case("computepart")
+				if(key%key2.eq."tfile") then
+					Part(key%nr1)%nT=Part(key%nr1)%nT+1
+				endif
+		end select
+		key=>key%next
+	enddo
+	do i=1,npart
+		if(Part(i)%nT.eq.0) Part(i)%nT=1
+		allocate(Part(i)%file(Part(i)%nT))
+		allocate(Part(i)%Tmax(Part(i)%nT))
+	enddo
 
 	return
 	end

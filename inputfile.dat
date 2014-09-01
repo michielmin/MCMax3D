@@ -3,3 +3,7 @@ zone4:x=4
 
 
 star01:T=5000
+
+part01="particle.particle"
+part02="particle.particle"
+

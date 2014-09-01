@@ -22,11 +22,12 @@ c terms of use
 c let's initialize everything first
 	call Initialize
 c now setup the basic structure
-c	call SetupStructure
+	call SetupStructure
 	
 	converged=.false.
 	iter=0
 
+	if(Nphot.gt.0) then
 c iterate when needed
 	do while(.not.converged.and.iter.le.maxiter)
 c compute the next iteration of the structure
@@ -41,6 +42,7 @@ c write the structure to the output files
 c		call OutputStructure(iter,converged)
 		iter=iter+1
 	enddo
+	endif
 
 c ok, structure is done, now let's see what this looks like
 c	call Observations

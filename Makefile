@@ -53,7 +53,9 @@ endif
 OBJS	      = Modules.o \
 				MCMax3D.o \
 				InputOutput.o \
-				Init.o
+				Init.o \
+				SetupStructure.o \
+				ComputePart.o
 
 # program name and install location
 PROGRAM       = MCMax3D
