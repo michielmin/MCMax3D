@@ -1,10 +1,12 @@
-	subroutine ComputePart(p,ii)
+	subroutine ComputePart(p,ii,iT)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 
 	type(Particle) p
+	integer MAXMAT
 	parameter(MAXMAT=20)
+	integer ii,iT
 
 	real cext,csca,maxf
 	real minlog,maxlog,pow,e1blend,e2blend,cabs,totA
@@ -26,7 +28,7 @@
 	real*8 rmie,lmie,e1mie,e2mie,csmie,cemie,KR,theta,dummy
 	real*8,allocatable :: Mief11(:),Mief12(:),Mief22(:)
 	real*8,allocatable :: Mief33(:),Mief34(:),Mief44(:)
-	logical truefalse,checkparticlefile
+	logical truefalse,checkparticlefile,lnkloglog
 	external Carbon_BE_Zubko1996,Mg07Fe03SiO3_Dorschner1995,AstroSilicate
 
 	write(tmp,'("mkdir -p ",a)') particledir(1:len_trim(particledir)-1)
@@ -36,6 +38,7 @@
 100	format('DHS')
 
 	na=180
+	lnkloglog=.true.
 
 	allocate(e1(MAXMAT,nlam))
 	allocate(e2(MAXMAT,nlam))
@@ -61,15 +64,13 @@
 	allocate(f34(nlam,na))
 	allocate(f44(nlam,na))
 
-	minlog=log10(amin)
-	maxlog=log10(amax)
-	pow=-apow
-	maxf=fmax
+	minlog=log10(p%amin)
+	maxlog=log10(p%amax)
+	pow=-p%apow
+	maxf=p%fmax
+	input=p%file(iT)
 
-	p%qhp=.false.
-	p%gascoupled=.false.
-
-	if(standard.eq.'FILE') then
+	if(p%standard.eq.'FILE') then
 		open(unit=30,file=input,RECL=5000)
 		call ignorestar(30)
 		read(30,*) ns
@@ -86,10 +87,6 @@
 		call ignorestar(30)
 		read(30,*) frac(nm),rho(nm)
 		call ignorestar(30)
-c change this to the input abundances if they are set
-		if(inp_abun(nm).ge.0d0) then
-			frac(nm)=inp_abun(nm)
-		endif
 c changed this to mass fractions (11-05-2010)
 		frac(nm)=frac(nm)/rho(nm)
 		call readrefindCP(filename(nm),lam(1:nlam),e1(nm,1:nlam),e2(nm,1:nlam),nlam,lnkloglog)
@@ -97,8 +94,9 @@ c changed this to mass fractions (11-05-2010)
 		goto 1
 2		nm=nm-1
 		close(unit=30)
-	else if(standard.eq.'DIANA') then
-		ns=nsubgrains
+	else if(p%standard.eq.'DIANA') then
+		input='DIANA'
+		ns=p%nsubgrains
 		nf=20
 		if(maxf.eq.0e0) nf=1
 		allocate(r(ns))
@@ -108,8 +106,8 @@ c changed this to mass fractions (11-05-2010)
 		nm=2
 		rho(1)=3.01
 		rho(2)=1.80
-		frac(1)=inp_abun(1)/rho(1)
-		frac(2)=inp_abun(2)/rho(2)
+		frac(1)=(1d0-p%fcarbon)/rho(1)
+		frac(2)=p%fcarbon/rho(2)
 		allocate(e1d(nlam))
 		allocate(e2d(nlam))
 		filename(1)='Mg07Fe03SiO3_Dorschner1995'
@@ -122,8 +120,9 @@ c changed this to mass fractions (11-05-2010)
 		e2(2,1:nlam)=e2d(1:nlam)
 		deallocate(e1d)
 		deallocate(e2d)
-	else if(standard.eq.'ASTROSIL') then
-		ns=nsubgrains
+	else if(p%standard.eq.'ASTROSIL') then
+		input='ASTROSIL'
+		ns=p%nsubgrains
 		nf=20
 		if(maxf.eq.0e0) nf=1
 		allocate(r(ns))
@@ -149,41 +148,22 @@ c changed this to mass fractions (11-05-2010)
 	do i=1,nm
 		tot=tot+frac(i)
 	enddo
-	if(normalize_abun.le.0d0) then
-		frac=frac/tot
-		p%mscale(iopac)=1d0
-		p%rscale(iopac)=1d0
-	else
-		p%mscale(iopac)=0d0
-		do i=1,nm
-			p%mscale(iopac)=p%mscale(iopac)+frac(i)*rho(i)/normalize_abun
-		enddo
-		p%rscale(iopac)=p%mscale(iopac)**(1d0/3d0)
-		frac=frac/tot
-	endif
+	frac=frac/tot
 
-	if(iopac.eq.1) then
-		write(partfile,'(a,"particle",i0.4,".fits")') trim(particledir),ii
-	else
-		write(partfile,'(a,"particle",i0.4,"_",i0.2,".fits")') trim(particledir),ii,iopac
-	endif
+	partfile=trim(particledir) // "particle" 
+     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(iT,'(i0.4)')) // ".fits" 
 	inquire(file=partfile,exist=truefalse)
 	if(truefalse) then
-		if(checkparticlefile(partfile,amin,amax,apow,ns,fmax,blend,porosity,frac,rho,nm,filename)) then
-			dummy=0d0
-			call ReadParticleFits(partfile,p,.false.,dummy,dummy,dummy,dummy,iopac)
+		if(checkparticlefile(partfile,p%amin,p%amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename)) then
+			call ReadParticleFits(partfile,p,iT)
 			return
 		endif
 	endif
 	
 	write(*,'("Computing particle:",i7)') ii
-	write(*,'("Size: ",f10.3," - ",f10.3," micron")') amin,amax
+	write(*,'("Size: ",f10.3," - ",f10.3," micron")') p%amin,p%amax
 	write(9,'("Computing particle:",i7)') ii
-	write(9,'("Size: ",f10.3," - ",f10.3," micron")') amin,amax
-
-	if(normalize_abun.gt.0d0) then
-		write(*,'("Particle radius and mass scaled (rv x ",f5.3,")")') p%rscale(iopac)
-	endif
+	write(9,'("Size: ",f10.3," - ",f10.3," micron")') p%amin,p%amax
 
 	do j=1,nm
 		write(lnkfile,'(a,a,i0.3,".lnk")') trim(particledir),trim(input),j
@@ -195,13 +175,13 @@ c changed this to mass fractions (11-05-2010)
 		close(unit=30)
 	enddo
 
-	if(blend) then
+	if(p%blend) then
 		nm=nm+1
 		e1(nm,1:nlam)=1d0
 		e2(nm,1:nlam)=0d0
 		rho(nm)=0d0
-		frac(nm)=porosity
-		frac(1:nm-1)=frac(1:nm-1)*(1d0-porosity)
+		frac(nm)=p%porosity
+		frac(1:nm-1)=frac(1:nm-1)*(1d0-p%porosity)
 		do i=1,nlam
 			call Blender(e1(1:nm,i),e2(1:nm,i),frac,nm,e1blend,e2blend)
 			e1(1,i)=e1blend
@@ -381,21 +361,21 @@ c	make sure the scattering matrix is properly normalized by adjusting the forwar
 10	continue
 	enddo
 
-	p%rho(iopac)=Mass/Vol
+	p%rho(iT)=Mass/Vol
 	rho_av=Mass/Vol
-	p%Kabs(iopac,ilam)=1d4*cabs/(Mass/p%mscale(iopac))
-	p%Ksca(iopac,ilam)=1d4*csca/(Mass/p%mscale(iopac))
-	p%Kext(iopac,ilam)=1d4*cext/(Mass/p%mscale(iopac))
-	p%F(iopac,ilam)%F11(1:180)=f11(ilam,1:180)/csca
-	p%F(iopac,ilam)%F12(1:180)=f12(ilam,1:180)/csca
-	p%F(iopac,ilam)%F22(1:180)=f22(ilam,1:180)/csca
-	p%F(iopac,ilam)%F33(1:180)=f33(ilam,1:180)/csca
-	p%F(iopac,ilam)%F34(1:180)=f34(ilam,1:180)/csca
-	p%F(iopac,ilam)%F44(1:180)=f44(ilam,1:180)/csca
+	p%Kabs(1,iT,ilam)=1d4*cabs/Mass
+	p%Ksca(1,iT,ilam)=1d4*csca/Mass
+	p%Kext(1,iT,ilam)=1d4*cext/Mass
+	p%F(1,iT,ilam)%F11(1:180)=f11(ilam,1:180)/csca
+	p%F(1,iT,ilam)%F12(1:180)=f12(ilam,1:180)/csca
+	p%F(1,iT,ilam)%F22(1:180)=f22(ilam,1:180)/csca
+	p%F(1,iT,ilam)%F33(1:180)=f33(ilam,1:180)/csca
+	p%F(1,iT,ilam)%F34(1:180)=f34(ilam,1:180)/csca
+	p%F(1,iT,ilam)%F44(1:180)=f44(ilam,1:180)/csca
 
 	enddo
 
-	if(standard.eq.'FILE') then
+	if(p%standard.eq.'FILE') then
 		open(unit=30,file=input,RECL=5000)
 		call ignorestar(30)
 		read(30,*) ns
@@ -406,10 +386,6 @@ c	make sure the scattering matrix is properly normalized by adjusting the forwar
 		read(30,*,end=4) filename(nm)
 		call ignorestar(30)
 		read(30,*) frac(nm),rho(nm)
-c change this to the input abundances if they are set
-		if(inp_abun(nm).ge.0d0) then
-			frac(nm)=inp_abun(nm)
-		endif
 		call ignorestar(30)
 c changed this to mass fractions (11-05-2010)
 		frac(nm)=frac(nm)/rho(nm)
@@ -417,14 +393,14 @@ c changed this to mass fractions (11-05-2010)
 		goto 3
 4		nm=nm-1
 		close(unit=30)
-	else if(standard.eq.'DIANA') then
+	else if(p%standard.eq.'DIANA') then
 		ns=1
 		nf=20
 		nm=2
 		rho(1)=3.01
 		rho(2)=1.80
-		frac(1)=inp_abun(1)/rho(1)
-		frac(2)=inp_abun(2)/rho(2)
+		frac(1)=(1d0-p%fcarbon)/rho(1)
+		frac(2)=p%fcarbon/rho(2)
 		allocate(e1d(nlam))
 		allocate(e2d(nlam))
 		filename(1)='Mg07Fe03SiO3_Dorschner1995'
@@ -446,7 +422,7 @@ c changed this to mass fractions (11-05-2010)
 	enddo
 	frac=frac/tot
 
-	call ParticleFITS(p,r,nr(1:nm,1:ns),nm,ns,rho_av,ii,amin,amax,apow,fmax,blend,porosity,frac,rho,filename,iopac)
+	call ParticleFITS(p,r,nr(1:nm,1:ns),nm,ns,rho_av,ii,p%amin,p%amax,p%apow,p%fmax,p%blend,p%porosity,frac,rho,filename,iT)
 	
 	deallocate(e1)
 	deallocate(e2)
@@ -611,200 +587,10 @@ c-----------------------------------------------------------------------
 	return
 	end
 	
-	subroutine KappaAverage()
-	use Parameters
-	IMPLICIT NONE
-	type(particle) p
-	integer i,j,ii,iopac,l
-	real*8,allocatable :: array(:,:,:)
-	real*8 Mtot,Vtot,w,wtot(ngrains,ngrains2)
 
-	  integer status,unit,blocksize,bitpix,naxis,naxes(3)
-	  integer group,fpixel,nelements
-	  logical simple,extend,truefalse
-	character*500 filename
-
-	allocate(p%Kabs(1,nlam))
-	allocate(p%Ksca(1,nlam))
-	allocate(p%Kext(1,nlam))
-	allocate(p%F(1,nlam))
-	allocate(p%rho(1))
-
-	p%Kabs=0d0
-	p%Kext=0d0
-	p%Ksca=0d0
-	do l=1,nlam
-		p%F(1,l)%F11=0d0
-		p%F(1,l)%F12=0d0
-		p%F(1,l)%F22=0d0
-		p%F(1,l)%F33=0d0
-		p%F(1,l)%F34=0d0
-		p%F(1,l)%F44=0d0
-	enddo
-	Mtot=0d0
-	Vtot=0d0
-	wtot=0d0
-	do i=1,D%nR-1
-		do j=1,D%nTheta-1
-			do ii=1,ngrains
-				do iopac=1,Grain(ii)%nopac
-					w=C(i,j)%mass*C(i,j)%w(ii)*C(i,j)%wopac(ii,iopac)
-					wtot(ii,iopac)=wtot(ii,iopac)+w
-				enddo
-			enddo
-			Mtot=Mtot+C(i,j)%mass
-		enddo
-	enddo
-	wtot=wtot/Mtot
-	do ii=1,ngrains
-		do iopac=1,Grain(ii)%nopac
-			w=wtot(ii,iopac)
-			p%dust_moment1=p%dust_moment1+w*Grain(ii)%dust_moment1
-			p%dust_moment2=p%dust_moment2+w*Grain(ii)%dust_moment2
-			p%dust_moment3=p%dust_moment3+w*Grain(ii)%dust_moment3
-			do l=1,nlam
-				p%Kabs(1,l)=p%Kabs(1,l)+w*Grain(ii)%Kabs(iopac,l)
-				p%Ksca(1,l)=p%Ksca(1,l)+w*Grain(ii)%Ksca(iopac,l)
-				p%F(1,l)%F11(1:180)=p%F(1,l)%F11(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F11(1:180)
-				p%F(1,l)%F12(1:180)=p%F(1,l)%F12(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F12(1:180)
-				p%F(1,l)%F22(1:180)=p%F(1,l)%F22(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F22(1:180)
-				p%F(1,l)%F33(1:180)=p%F(1,l)%F33(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F33(1:180)
-				p%F(1,l)%F34(1:180)=p%F(1,l)%F34(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F34(1:180)
-				p%F(1,l)%F44(1:180)=p%F(1,l)%F44(1:180)
-     &		+w*Grain(ii)%Ksca(iopac,l)*Grain(ii)%F(iopac,l)%F44(1:180)
-			enddo
-			Vtot=Vtot+w/Grain(ii)%rho(iopac)
-		enddo
-	enddo
-	do l=1,nlam
-		p%F(1,l)%F11(1:180)=p%F(1,l)%F11(1:180)/p%Ksca(1,l)
-		p%F(1,l)%F12(1:180)=p%F(1,l)%F12(1:180)/p%Ksca(1,l)
-		p%F(1,l)%F22(1:180)=p%F(1,l)%F22(1:180)/p%Ksca(1,l)
-		p%F(1,l)%F33(1:180)=p%F(1,l)%F33(1:180)/p%Ksca(1,l)
-		p%F(1,l)%F34(1:180)=p%F(1,l)%F34(1:180)/p%Ksca(1,l)
-		p%F(1,l)%F44(1:180)=p%F(1,l)%F44(1:180)/p%Ksca(1,l)
-	enddo
-	p%Kext=p%Kabs+p%Ksca
-	p%rho(1)=Mtot/Vtot
-	
-	write(filename,'(a,"particle_average.fits")') trim(outdir)
-
-	inquire(file=filename,exist=truefalse)
-	if(truefalse) then
-		write(*,'("FITS file already exists, overwriting")')
-		write(9,'("FITS file already exists, overwriting")')
-		open(unit=90,file=filename)
-		close(unit=90,status='delete')
-	endif
-	
-	  status=0
-C	 Get an unused Logical Unit Number to use to create the FITS file
-	  call ftgiou(unit,status)
-C	 create the new empty FITS file
-	  blocksize=1
-	  call ftinit(unit,filename,blocksize,status)
-
-	  simple=.true.
-	  extend=.true.
-	group=1
-	fpixel=1
-
-	bitpix=-64
-	naxis=2
-	naxes(1)=nlam
-	naxes(2)=4
-	nelements=naxes(1)*naxes(2)
-	allocate(array(nlam,4,1))
-
-	! Write the required header keywords.
-	call ftphpr(unit,simple,bitpix,naxis,naxes,0,1,extend,status)
-
-	! Write optional keywords to the header
-
-	call ftpkye(unit,'a1',real(p%dust_moment1),8,'[micron]',status)
-	call ftpkye(unit,'a2',real(p%dust_moment2),8,'[micron^2]',status)
-	call ftpkye(unit,'a3',real(p%dust_moment3),8,'[micron^3]',status)
-	call ftpkye(unit,'density',real(p%rho(1)),8,'[g/cm^3]',status)
-
-
-	!  Write the array to the FITS file.
-
-	!------------------------------------------------------------------------------
-	! HDU 0: opacities 
-	!------------------------------------------------------------------------------
-
-	do i=1,nlam
-		array(i,1,1)=lam(i)
-		array(i,2,1)=p%Kext(1,i)
-		array(i,3,1)=p%Kabs(1,i)
-		array(i,4,1)=p%Ksca(1,i)
-	enddo
-
-	call ftpprd(unit,group,fpixel,nelements,array(1:nlam,1:4,1),status)
-	
-	deallocate(array)
-
-	!------------------------------------------------------------------------------
-	! HDU 1: Temperature 
-	!------------------------------------------------------------------------------
-	bitpix=-64
-	naxis=3
-	naxes(1)=nlam
-	naxes(2)=6
-	naxes(3)=180
-	nelements=naxes(1)*naxes(2)*naxes(3)
-
-	allocate(array(nlam,6,180))
-
-	! create new hdu
-	call ftcrhd(unit, status)
-
-	!  Write the required header keywords.
-	call ftphpr(unit,simple,bitpix,naxis,naxes,0,1,extend,status)
-
-	do i=1,nlam
-		do j=1,180
-			array(i,1,j)=p%F(1,i)%F11(j)
-			array(i,2,j)=p%F(1,i)%F12(j)
-			array(i,3,j)=p%F(1,i)%F22(j)
-			array(i,4,j)=p%F(1,i)%F33(j)
-			array(i,5,j)=p%F(1,i)%F34(j)
-			array(i,6,j)=p%F(1,i)%F44(j)
-		enddo
-	enddo
-
-	!  Write the array to the FITS file.
-	call ftpprd(unit,group,fpixel,nelements,array,status)
-
-	deallocate(array)
-	
-	!  Close the file and free the unit number.
-	call ftclos(unit, status)
-	call ftfiou(unit, status)
-
-	!  Check for any error, and if so print out error messages
-	if (status.gt.0) then
-	   print*,'error in export to fits file',status
-	end if
-	
-	write(filename,'(a,"particle_average.opacity")') trim(outdir)
-	open(unit=30,file=filename,RECL=500)
-	do i=1,nlam
-		write(30,*) lam(i),p%Kext(1,i),p%Kabs(1,i),p%Ksca(1,i)
-	enddo
-	close(unit=30)
-	
-	return
-	end
-	
-
-	subroutine ParticleFITS(p,r,nr,nm,na,rho_av,ii,amin,amax,apow,fmax,blend,porosity,frac,rho,lnkfiles,iopac)
-	use Parameters
+	subroutine ParticleFITS(p,r,nr,nm,na,rho_av,ii,amin,amax,apow,fmax,blend,porosity,frac,rho,lnkfiles,iT)
+	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 
 	character*500 lnkfiles(nm)
@@ -814,7 +600,7 @@ C	 create the new empty FITS file
 	character*6 word
 
 	type(particle) p
-	integer nm,na,i,j,ii,iopac,nm2
+	integer nm,na,i,j,ii,iT,nm2
 	real r(na),nr(nm,na)
 	real a0,a1,a2,a3,rho_av,rmin,rmax
 	real*8,allocatable :: array(:,:,:)
@@ -824,11 +610,8 @@ C	 create the new empty FITS file
 	  logical simple,extend,truefalse
 	character*500 filename
 
-	if(iopac.eq.1) then
-		write(filename,'(a,"particle",i0.4,".fits")') trim(particledir),ii
-	else
-		write(filename,'(a,"particle",i0.4,"_",i0.2,".fits")') trim(particledir),ii,iopac
-	endif
+	filename=trim(particledir) // "particle" 
+     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(iT,'(i0.4)')) // ".fits" 
 
 	inquire(file=filename,exist=truefalse)
 	if(truefalse) then
@@ -929,9 +712,9 @@ C	 create the new empty FITS file
 
 	do i=1,nlam
 		array(i,1,1)=lam(i)
-		array(i,2,1)=p%Kext(iopac,i)
-		array(i,3,1)=p%Kabs(iopac,i)
-		array(i,4,1)=p%Ksca(iopac,i)
+		array(i,2,1)=p%Kext(1,iT,i)
+		array(i,3,1)=p%Kabs(1,iT,i)
+		array(i,4,1)=p%Ksca(1,iT,i)
 	enddo
 
 	call ftpprd(unit,group,fpixel,nelements,array(1:nlam,1:4,1),status)
@@ -958,12 +741,12 @@ C	 create the new empty FITS file
 
 	do i=1,nlam
 		do j=1,180
-			array(i,1,j)=p%F(iopac,i)%F11(j)
-			array(i,2,j)=p%F(iopac,i)%F12(j)
-			array(i,3,j)=p%F(iopac,i)%F22(j)
-			array(i,4,j)=p%F(iopac,i)%F33(j)
-			array(i,5,j)=p%F(iopac,i)%F34(j)
-			array(i,6,j)=p%F(iopac,i)%F44(j)
+			array(i,1,j)=p%F(1,iT,i)%F11(j)
+			array(i,2,j)=p%F(1,iT,i)%F12(j)
+			array(i,3,j)=p%F(1,iT,i)%F22(j)
+			array(i,4,j)=p%F(1,iT,i)%F33(j)
+			array(i,5,j)=p%F(1,iT,i)%F34(j)
+			array(i,6,j)=p%F(1,iT,i)%F44(j)
 		enddo
 	enddo
 

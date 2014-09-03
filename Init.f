@@ -7,8 +7,7 @@ c===============================================================================
 	use Constants
 	IMPLICIT NONE
 	type(SettingKey),pointer :: key,first
-
-	call SetDefaults
+	character*1000 command
 
 	allocate(key)
 	first => key
@@ -18,6 +17,8 @@ c Count the number of zones, particles, and stars
 c allocate the arrays
 	key => first%next
 	call CountStuff(key)
+
+	call SetDefaults
 
 	key => first%next
 
@@ -35,16 +36,28 @@ c allocate the arrays
 			call ReadComputePart(key)
 		case("nlam")
 			read(key%value,*) nlam
-		case("lam1")
-			read(key%value,*) lam1
-		case("lam2")
-			read(key%value,*) lam2
+		case("lam")
+			select case(key%nr1)
+				case(1)
+					read(key%value,*) lam1
+				case(2)
+					read(key%value,*) lam2
+				case default
+					call output("Unknown lam value")
+			end select
 		case("nzlam")
 			read(key%value,*) nzlam
-		case("zlam1")
-			read(key%value,*) zlam1
-		case("zlam2")
-			read(key%value,*) zlam2
+		case("zlam")
+			select case(key%nr1)
+				case(1)
+					read(key%value,*) zlam1
+				case(2)
+					read(key%value,*) zlam2
+				case default
+					call output("Unknown zlam value")
+			end select
+		case("dirparticle","particledir")
+			particledir=trim(key%value)
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -61,6 +74,14 @@ c allocate the arrays
 		call output("Critical error encountered")
 		stop
 	endif
+
+	if(particledir.eq.' ') particledir=outputdir
+	if(particledir(len_trim(particledir)-1:len_trim(particledir)).ne.'/') then
+		particledir=trim(particledir) // '/'
+	endif
+	call output("Particle dir: " // trim(particledir))
+	write(command,'("mkdir -p ",a)') trim(particledir)
+	call system(command)
 	
 	return
 	end
@@ -179,7 +200,7 @@ c allocate the arrays
 	type(SettingKey),target :: firstkey
 	type(SettingKey),pointer :: key
 	integer ncla	! number of command line arguments
-	character*1000 readline,inputfile
+	character*1000 readline,inputfile,command
 
 	call getarg(1,inputfile)
 
@@ -201,6 +222,14 @@ c allocate the arrays
 			call getarg(1+ncla,readline)
 			call output("Command line argument: " // trim(readline))
 			ncla=ncla+1
+		else if(readline(1:2).eq.'-o') then
+			ncla=ncla+1
+			call getarg(1+ncla,outputdir)
+			if(outputdir(len_trim(outputdir)-1:len_trim(outputdir)).ne.'/') then
+				outputdir=trim(outputdir) // '/'
+			endif
+			ncla=ncla+1
+			goto 10
 		else
 			if(readline.ne.' ') then
 c				try to read another command line argument
@@ -236,6 +265,10 @@ c read another command, so go back
 	else
 		call output("No radiative transfer")
 	endif
+
+	call output("Output dir: " // trim(outputdir))
+	write(command,'("mkdir -p ",a)') trim(outputdir)
+	call system(command)
 
 	return
 	end
@@ -310,9 +343,59 @@ c This subroutine sets the default values for the global variables
 c=========================================================================================
 	subroutine SetDefaults()
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
+	integer i
 	
 	maxiter=0
+	
+	lam1=0.1
+	lam2=10000
+	nlam=200
+	zlam1=5
+	zlam2=35
+	nzlam=0
+	
+	outputdir='./'
+	particledir=' '
+	
+	do i=1,nstars
+		Star(i)%x=0d0
+		Star(i)%y=0d0
+		Star(i)%z=0d0
+		Star(i)%L=1d0
+		Star(i)%R=1d0
+		Star(i)%T=5777d0
+		Star(i)%startype='KURUCZ'
+	enddo
+	
+	do i=1,nzones
+		Zone(i)%nr=150
+		Zone(i)%nt=80
+		Zone(i)%np=90
+		Zone(i)%shape='SPH'
+		Zone(i)%x0=0d0
+		Zone(i)%y0=0d0
+		Zone(i)%z0=0d0
+		Zone(i)%xn=0d0
+		Zone(i)%yn=0d0
+		Zone(i)%zn=1d0
+		Zone(i)%Rin=1d0
+		Zone(i)%Rout=100d0
+	enddo
+
+	do i=1,npart
+		Part(i)%standard='DIANA'
+		Part(i)%amin=0.05
+		Part(i)%amax=3000.0
+		Part(i)%apow=3.5
+		Part(i)%fmax=0.8
+		Part(i)%porosity=0.25
+		Part(i)%fcarbon=0.15
+		Part(i)%nsize=1
+		Part(i)%nT=1
+		Part(i)%nsubgrains=20
+	enddo
 	
 	return
 	end

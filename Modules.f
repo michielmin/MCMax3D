@@ -36,7 +36,16 @@ c string converting functions
 c wavelength grid
 	integer nlam,nzlam
 	real*8 lam1,lam2,zlam1,zlam2
-	real*8,allocatable :: lam(:)
+	real*8,allocatable :: lam(:),nu(:)
+	
+c Planck functions
+	integer nBB
+	real*8 dTBB
+	parameter(nBB=5000,dTBB=1d0)
+	real*8,allocatable :: BB(:,:)		! dimension nlam,nBB
+	
+c particle scattering
+	integer nspike
 	
 	type StarType
 		real*8 x,y,z
@@ -74,15 +83,17 @@ c wavelength grid
 
 	type Particle
 		real*8,allocatable :: rv(:,:)								! dimension nsize,nT
+		real*8,allocatable :: rho(:)								! dimension nT
 		real*8,allocatable :: Tmax(:)								! dimension nT
-		real*8 rho,amin,amax,apow,fmax,porosity,fcarbon
+		real*8 amin,amax,apow,fmax,porosity,fcarbon
 		logical blend
 		real*8,allocatable :: Kabs(:,:,:),Ksca(:,:,:),Kext(:,:,:)	! dimension nsize,nT,nlam
 		type(Mueller),allocatable :: F(:,:,:)						! dimension nsize,nT,nlam
 		real*8,allocatable :: Kp(:,:,:)								! dimension nsize,nT,nBB
 		character*500,allocatable :: file(:)						! dimension nT
 		character*20 standard,ptype
-		integer nsize,nT
+		integer nsize,nT,nsubgrains
+		real*8 dust_moment1,dust_moment2,dust_moment3,rvmin,rvmax
 	end type Particle
 	
 	type ZoneType
@@ -90,6 +101,7 @@ c wavelength grid
 		integer nx,ny,nz
 		integer nr,nt,np
 		real*8 x0,y0,z0,xn,yn,zn
+		real*8 Rin,Rout,dx,dy,dz,dzr
 		character*3 shape			! CAR, SPH, CYL
 	end type ZoneType
 	

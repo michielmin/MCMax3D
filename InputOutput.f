@@ -12,6 +12,16 @@
 	return
 	end
 
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+
+	subroutine flushoutput()
+	IMPLICIT NONE
+	
+	call flush(6)
+	
+	return
+	end
 
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
@@ -74,6 +84,45 @@ c-----------------------------------------------------------------------
 		write(dbl2string,*) x
 	endif
 	
+	return
+	end
+
+
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+
+
+	subroutine tellertje(i,n)
+	IMPLICIT NONE
+	integer i,n,f
+	
+	if(i.eq.1) call output("....................")
+
+	f=int(20d0*dble(i)/dble(n))
+	
+	if(20d0*real(i-1)/real(n).lt.real(f)
+     &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
+		call outputform(".",'(a1,$)')
+		call flushoutput
+	endif
+	
+	if(i.eq.n) call output("")
+
+	return
+	end
+
+	logical function checktellertje(i,n)
+	IMPLICIT NONE
+	integer i,n,f
+
+	checktellertje=.false.
+	f=int(20d0*dble(i)/dble(n))
+	
+	if(20d0*real(i-1)/real(n).lt.real(f)
+     &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
+		checktellertje=.true.
+	endif
+
 	return
 	end
 

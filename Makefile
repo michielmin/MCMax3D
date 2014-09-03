@@ -55,7 +55,10 @@ OBJS	      = Modules.o \
 				InputOutput.o \
 				Init.o \
 				SetupStructure.o \
-				ComputePart.o
+				Radiation.o \
+				ComputePart.o \
+				ReadParticleFits.o \
+				RefIndData.o
 
 # program name and install location
 PROGRAM       = MCMax3D
