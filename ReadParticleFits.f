@@ -1,4 +1,4 @@
-	subroutine ReadParticleFits(input,p,iT)
+	subroutine ReadParticleFits(input,p,isize,iT)
 	use GlobalSetup
 	use Constants
 	implicit none
@@ -15,7 +15,7 @@
 	real*8,allocatable :: array(:,:),matrix(:,:,:)
 
 	type(particle) p,p0,p1
-	integer i,j,ia,iT,iread,nl_read
+	integer i,j,ia,iT,iread,nl_read,isize
 	logical truefalse,Rayleigh
 	real*8 l0,l1,tot,tot2,theta,asym,Pmax,HG,asym2,wasym2
 	real rho_av
@@ -37,18 +37,15 @@
 	readwrite=0
 	call ftopen(unit,input,readwrite,blocksize,status)
 	if (status /= 0) then
-	   write(*,'("Error reading particle file: ",a)') input(1:len_trim(input))
-	   write(9,'("Error reading particle file: ",a)') input(1:len_trim(input))
-	   write(*,'("--------------------------------------------------------")')
-	   write(9,'("--------------------------------------------------------")')
-	   stop
+		call output("Error reading particle file: " // trim(input))
+		call output("==================================================================")
+		stop
 	endif
 	group=1
 	firstpix=1
 	nullval=-999
 
-	write(*,'("Reading particle file: ",a)') input(1:len_trim(input))
-	write(9,'("Reading particle file: ",a)') input(1:len_trim(input))
+	call output("Reading particle file: " // trim(input))
 
 	!------------------------------------------------------------------------
 	! HDU0 : opacities
@@ -102,7 +99,7 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 	!  Get the text string which describes the error
 	if (status > 0) then
 	   call ftgerr(status,errtext)
-	   print *,'FITSIO Error Status =',status,': ',errtext
+	   call output('error in reading fits file' // int2string(status,'(i6)'))
 
 	   !  Read and print out all the error messages on the FITSIO stack
 	   call ftgmsg(errmessage)
@@ -128,10 +125,10 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 		p0%F(1,1,1)%F44(j)=matrix(iread,6,j)
 	enddo
 103	if(l0.ge.lam(i)) then
-		p%Kext(1,iT,i)=p0%Kext(1,1,1)
-		p%Ksca(1,iT,i)=p0%Ksca(1,1,1)
-		p%Kabs(1,iT,i)=p0%Kabs(1,1,1)
-		p%F(1,iT,i)=p0%F(1,1,1)
+		p%Kext(isize,iT,i)=p0%Kext(1,1,1)
+		p%Ksca(isize,iT,i)=p0%Ksca(1,1,1)
+		p%Kabs(isize,iT,i)=p0%Kabs(1,1,1)
+		p%F(isize,iT,i)=p0%F(1,1,1)
 		call tellertje(i,nlam)
 		i=i+1
 		goto 103
@@ -151,15 +148,15 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 		p1%F(1,1,1)%F44(j)=matrix(iread,6,j)
 	enddo
 101	if(lam(i).le.l1.and.lam(i).ge.l0) then
-		p%Kext(1,iT,i)=p1%Kext(1,1,1)+(lam(i)-l1)*(p0%Kext(1,1,1)-p1%Kext(1,1,1))/(l0-l1)
-		p%Ksca(1,iT,i)=p1%Ksca(1,1,1)+(lam(i)-l1)*(p0%Ksca(1,1,1)-p1%Ksca(1,1,1))/(l0-l1)
-		p%Kabs(1,iT,i)=p1%Kabs(1,1,1)+(lam(i)-l1)*(p0%Kabs(1,1,1)-p1%Kabs(1,1,1))/(l0-l1)
-		p%F(1,iT,i)%F11(1:180)=p1%F(1,1,1)%F11(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F11(1:180)-p1%F(1,1,1)%F11(1:180))/(l0-l1)
-		p%F(1,iT,i)%F12(1:180)=p1%F(1,1,1)%F12(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F12(1:180)-p1%F(1,1,1)%F12(1:180))/(l0-l1)
-		p%F(1,iT,i)%F22(1:180)=p1%F(1,1,1)%F22(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F22(1:180)-p1%F(1,1,1)%F22(1:180))/(l0-l1)
-		p%F(1,iT,i)%F33(1:180)=p1%F(1,1,1)%F33(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F33(1:180)-p1%F(1,1,1)%F33(1:180))/(l0-l1)
-		p%F(1,iT,i)%F34(1:180)=p1%F(1,1,1)%F34(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F34(1:180)-p1%F(1,1,1)%F34(1:180))/(l0-l1)
-		p%F(1,iT,i)%F44(1:180)=p1%F(1,1,1)%F44(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F44(1:180)-p1%F(1,1,1)%F44(1:180))/(l0-l1)
+		p%Kext(isize,iT,i)=p1%Kext(1,1,1)+(lam(i)-l1)*(p0%Kext(1,1,1)-p1%Kext(1,1,1))/(l0-l1)
+		p%Ksca(isize,iT,i)=p1%Ksca(1,1,1)+(lam(i)-l1)*(p0%Ksca(1,1,1)-p1%Ksca(1,1,1))/(l0-l1)
+		p%Kabs(isize,iT,i)=p1%Kabs(1,1,1)+(lam(i)-l1)*(p0%Kabs(1,1,1)-p1%Kabs(1,1,1))/(l0-l1)
+		p%F(isize,iT,i)%F11(1:180)=p1%F(1,1,1)%F11(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F11(1:180)-p1%F(1,1,1)%F11(1:180))/(l0-l1)
+		p%F(isize,iT,i)%F12(1:180)=p1%F(1,1,1)%F12(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F12(1:180)-p1%F(1,1,1)%F12(1:180))/(l0-l1)
+		p%F(isize,iT,i)%F22(1:180)=p1%F(1,1,1)%F22(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F22(1:180)-p1%F(1,1,1)%F22(1:180))/(l0-l1)
+		p%F(isize,iT,i)%F33(1:180)=p1%F(1,1,1)%F33(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F33(1:180)-p1%F(1,1,1)%F33(1:180))/(l0-l1)
+		p%F(isize,iT,i)%F34(1:180)=p1%F(1,1,1)%F34(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F34(1:180)-p1%F(1,1,1)%F34(1:180))/(l0-l1)
+		p%F(isize,iT,i)%F44(1:180)=p1%F(1,1,1)%F44(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F44(1:180)-p1%F(1,1,1)%F44(1:180))/(l0-l1)
 		call tellertje(i,nlam)
 		i=i+1
 		if(i.gt.nlam) goto 102
@@ -174,61 +171,60 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 102	continue
 	do j=i,nlam
 		call tellertje(j,nlam)
-		p%Ksca(1,iT,j)=p%Ksca(1,iT,i-1)*(lam(i-1)/lam(j))**4
-		p%Kabs(1,iT,j)=p%Kabs(1,iT,i-1)*(lam(i-1)/lam(j))**2
-		p%Kext(1,iT,j)=p%Kabs(1,iT,j)+p%Ksca(1,iT,j)
-		p%F(1,iT,j)=p%F(1,iT,i-1)
+		p%Ksca(isize,iT,j)=p%Ksca(isize,iT,i-1)*(lam(i-1)/lam(j))**4
+		p%Kabs(isize,iT,j)=p%Kabs(isize,iT,i-1)*(lam(i-1)/lam(j))**2
+		p%Kext(isize,iT,j)=p%Kabs(isize,iT,j)+p%Ksca(isize,iT,j)
+		p%F(isize,iT,j)=p%F(isize,iT,i-1)
 	enddo
 
 
 	if(nspike.gt.0.and.nspike.lt.180) then
 c the nspike parameter removes the n degree spike in the forward direction.
-		write(*,'("Making first ",i2," degrees isotropic")') nspike
-		write(9,'("Making first ",i2," degrees isotropic")') nspike
+		call output("Making first " // trim(int2string(nspike,'(i2)')) // " degrees isotropic")
 	endif
 
 	do j=1,nlam
 	tot=0d0
 	tot2=0d0
 	do i=1,180
-		tot=tot+p%F(1,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
+		tot=tot+p%F(isize,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
 		tot2=tot2+sin(pi*(real(i)-0.5)/180d0)
 	enddo
 	do i=1,180
-		p%F(1,iT,j)%F11(i)=tot2*p%F(1,iT,j)%F11(i)/tot
-		p%F(1,iT,j)%F12(i)=tot2*p%F(1,iT,j)%F12(i)/tot
-		p%F(1,iT,j)%F22(i)=tot2*p%F(1,iT,j)%F22(i)/tot
-		p%F(1,iT,j)%F33(i)=tot2*p%F(1,iT,j)%F33(i)/tot
-		p%F(1,iT,j)%F34(i)=tot2*p%F(1,iT,j)%F34(i)/tot
-		p%F(1,iT,j)%F44(i)=tot2*p%F(1,iT,j)%F44(i)/tot
+		p%F(isize,iT,j)%F11(i)=tot2*p%F(isize,iT,j)%F11(i)/tot
+		p%F(isize,iT,j)%F12(i)=tot2*p%F(isize,iT,j)%F12(i)/tot
+		p%F(isize,iT,j)%F22(i)=tot2*p%F(isize,iT,j)%F22(i)/tot
+		p%F(isize,iT,j)%F33(i)=tot2*p%F(isize,iT,j)%F33(i)/tot
+		p%F(isize,iT,j)%F34(i)=tot2*p%F(isize,iT,j)%F34(i)/tot
+		p%F(isize,iT,j)%F44(i)=tot2*p%F(isize,iT,j)%F44(i)/tot
 	enddo
 
 	if(nspike.gt.0.and.nspike.lt.180) then
 c the nspike parameter removes the n degree spike in the forward direction.
 		do i=1,nspike
-			p%F(1,iT,j)%F12(i)=p%F(1,iT,j)%F12(i)*p%F(1,iT,j)%F11(nspike+1)/p%F(1,iT,j)%F11(i)
-			p%F(1,iT,j)%F22(i)=p%F(1,iT,j)%F22(i)*p%F(1,iT,j)%F11(nspike+1)/p%F(1,iT,j)%F11(i)
-			p%F(1,iT,j)%F33(i)=p%F(1,iT,j)%F33(i)*p%F(1,iT,j)%F11(nspike+1)/p%F(1,iT,j)%F11(i)
-			p%F(1,iT,j)%F34(i)=p%F(1,iT,j)%F34(i)*p%F(1,iT,j)%F11(nspike+1)/p%F(1,iT,j)%F11(i)
-			p%F(1,iT,j)%F44(i)=p%F(1,iT,j)%F44(i)*p%F(1,iT,j)%F11(nspike+1)/p%F(1,iT,j)%F11(i)
-			p%F(1,iT,j)%F11(i)=p%F(1,iT,j)%F11(nspike+1)
+			p%F(isize,iT,j)%F12(i)=p%F(isize,iT,j)%F12(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
+			p%F(isize,iT,j)%F22(i)=p%F(isize,iT,j)%F22(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
+			p%F(isize,iT,j)%F33(i)=p%F(isize,iT,j)%F33(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
+			p%F(isize,iT,j)%F34(i)=p%F(isize,iT,j)%F34(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
+			p%F(isize,iT,j)%F44(i)=p%F(isize,iT,j)%F44(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
+			p%F(isize,iT,j)%F11(i)=p%F(isize,iT,j)%F11(nspike+1)
 		enddo
 
 		tot=0d0
 		tot2=0d0
 		do i=1,180
-			tot=tot+p%F(1,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
+			tot=tot+p%F(isize,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
 			tot2=tot2+sin(pi*(real(i)-0.5)/180d0)
 		enddo
-		p%Ksca(1,iT,j)=p%Ksca(1,iT,j)*tot/tot2
-		p%Kext(1,iT,j)=p%Kabs(1,iT,j)+p%Ksca(1,iT,j)
+		p%Ksca(isize,iT,j)=p%Ksca(isize,iT,j)*tot/tot2
+		p%Kext(isize,iT,j)=p%Kabs(isize,iT,j)+p%Ksca(isize,iT,j)
 		do i=1,180
-			p%F(1,iT,j)%F11(i)=tot2*p%F(1,iT,j)%F11(i)/tot
-			p%F(1,iT,j)%F12(i)=tot2*p%F(1,iT,j)%F12(i)/tot
-			p%F(1,iT,j)%F22(i)=tot2*p%F(1,iT,j)%F22(i)/tot
-			p%F(1,iT,j)%F33(i)=tot2*p%F(1,iT,j)%F33(i)/tot
-			p%F(1,iT,j)%F34(i)=tot2*p%F(1,iT,j)%F34(i)/tot
-			p%F(1,iT,j)%F44(i)=tot2*p%F(1,iT,j)%F44(i)/tot
+			p%F(isize,iT,j)%F11(i)=tot2*p%F(isize,iT,j)%F11(i)/tot
+			p%F(isize,iT,j)%F12(i)=tot2*p%F(isize,iT,j)%F12(i)/tot
+			p%F(isize,iT,j)%F22(i)=tot2*p%F(isize,iT,j)%F22(i)/tot
+			p%F(isize,iT,j)%F33(i)=tot2*p%F(isize,iT,j)%F33(i)/tot
+			p%F(isize,iT,j)%F34(i)=tot2*p%F(isize,iT,j)%F34(i)/tot
+			p%F(isize,iT,j)%F44(i)=tot2*p%F(isize,iT,j)%F44(i)/tot
 		enddo
 	endif
 

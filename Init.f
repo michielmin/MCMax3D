@@ -167,6 +167,8 @@ c allocate the arrays
 			Part(key%nr1)%file=trim(key%value)
 		case("ngrains","nsize")
 			read(key%value,*) Part(key%nr1)%nsize
+		case("nsubgrains")
+			read(key%value,*) Part(key%nr1)%nsubgrains
 		case("amin")
 			read(key%value,*) Part(key%nr1)%amin
 		case("amax")
@@ -207,6 +209,7 @@ c allocate the arrays
 	open(unit=20,file=inputfile,RECL=1000)
 	
 	ncla=-1
+	outputdir='./'
 
 	key => firstkey
 	
@@ -356,7 +359,6 @@ c===============================================================================
 	zlam2=35
 	nzlam=0
 	
-	outputdir='./'
 	particledir=' '
 	
 	do i=1,nstars
@@ -394,7 +396,7 @@ c===============================================================================
 		Part(i)%fcarbon=0.15
 		Part(i)%nsize=1
 		Part(i)%nT=1
-		Part(i)%nsubgrains=20
+		Part(i)%nsubgrains=1
 	enddo
 	
 	return

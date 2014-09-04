@@ -7,7 +7,7 @@
 	
 	call SetupLam()
 	
-	allocate(BB(nlam,nBB))
+	allocate(BB(nlam,0:nBB))
 	do i=1,nlam
 		BB(i,0)=0d0
 		do j=1,nBB
@@ -47,6 +47,7 @@ c		call SetupZone(i)
 		enddo
 	else
 c	does not seem to work!!! Have to fix this!!!
+		call output("NZLAM OPTION NOT ALWAYS WORKING PROPERLY YET!!!")
 		nl=(nlam-nzlam)*(log10(zlam1/lam1)/log10(lam2*zlam1/(zlam2*lam1)))
 		do i=1,nl
 			lam(i)=10d0**(log10(lam1)+(log10(zlam1)-log10(lam1))*real(i-1)/real(nl-1))
@@ -81,7 +82,8 @@ c	does not seem to work!!! Have to fix this!!!
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,iT
+	integer ii,iT,is,iBB
+	real*8 spec(nlam)
 	
 	allocate(Part(ii)%rv(Part(ii)%nsize,Part(ii)%nT))
 	allocate(Part(ii)%rho(Part(ii)%nT))
@@ -93,14 +95,25 @@ c	does not seem to work!!! Have to fix this!!!
 	
 	select case(Part(ii)%ptype)
 		case("COMPUTE")
-			do iT=1,Part(ii)%nT
-				call ComputePart(Part(ii),ii,iT)
+			do is=1,Part(ii)%nsize
+				do iT=1,Part(ii)%nT
+					call ComputePart(Part(ii),ii,is,iT)
+				enddo
 			enddo
 c		case("PARTFILE")
 c			call ReadParticle(Part(ii),ii)
 		case default
 			call output("I did not understand what I was trying to do. Sorry!")
 	end select
+	
+	do iBB=1,nBB
+		do is=1,Part(ii)%nsize
+			do iT=1,Part(ii)%nT
+				spec=BB(1:nlam,iT)*Part(ii)%Kabs(is,iT,1:nlam)
+				call integrate(spec,Part(ii)%Kp(is,iT,iBB))
+			enddo
+		enddo
+	enddo
 		
 	return
 	end

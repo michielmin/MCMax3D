@@ -1,4 +1,4 @@
-	subroutine ComputePart(p,ii,iT)
+	subroutine ComputePart(p,ii,isize,iT)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
@@ -6,7 +6,7 @@
 	type(Particle) p
 	integer MAXMAT
 	parameter(MAXMAT=20)
-	integer ii,iT
+	integer ii,iT,isize
 
 	real cext,csca,maxf
 	real minlog,maxlog,pow,e1blend,e2blend,cabs,totA
@@ -25,7 +25,7 @@
 	character*3 meth
 	character*500 input,filename(100),grid,tmp,tmp2,partfile,lnkfile
 
-	real*8 rmie,lmie,e1mie,e2mie,csmie,cemie,KR,theta,dummy
+	real*8 rmie,lmie,e1mie,e2mie,csmie,cemie,KR,theta,dummy,amin,amax
 	real*8,allocatable :: Mief11(:),Mief12(:),Mief22(:)
 	real*8,allocatable :: Mief33(:),Mief34(:),Mief44(:)
 	logical truefalse,checkparticlefile,lnkloglog
@@ -64,8 +64,11 @@
 	allocate(f34(nlam,na))
 	allocate(f44(nlam,na))
 
-	minlog=log10(p%amin)
-	maxlog=log10(p%amax)
+	amin=10d0**(log10(p%amin)+log10(p%amax/p%amin)*real(isize-1)/real(p%nsize))
+	amax=10d0**(log10(p%amin)+log10(p%amax/p%amin)*real(isize)/real(p%nsize))
+
+	minlog=log10(amin)
+	maxlog=log10(amax)
 	pow=-p%apow
 	maxf=p%fmax
 	input=p%file(iT)
@@ -151,19 +154,19 @@ c changed this to mass fractions (11-05-2010)
 	frac=frac/tot
 
 	partfile=trim(particledir) // "particle" 
-     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(iT,'(i0.4)')) // ".fits" 
+     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(isize,'(i0.4)')) 
+     &	// "_" // trim(int2string(iT,'(i0.4)'))// ".fits" 
 	inquire(file=partfile,exist=truefalse)
 	if(truefalse) then
-		if(checkparticlefile(partfile,p%amin,p%amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename)) then
-			call ReadParticleFits(partfile,p,iT)
+		if(checkparticlefile(partfile,amin,amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename)) then
+			call ReadParticleFits(partfile,p,isize,iT)
 			return
 		endif
 	endif
 	
-	write(*,'("Computing particle:",i7)') ii
-	write(*,'("Size: ",f10.3," - ",f10.3," micron")') p%amin,p%amax
-	write(9,'("Computing particle:",i7)') ii
-	write(9,'("Size: ",f10.3," - ",f10.3," micron")') p%amin,p%amax
+	call output("Computing particle:" // trim(int2string(ii,'(i0.4)')))
+	call output("(size, T): (" // trim(int2string(isize,'(i0.4)')) // ","  // trim(int2string(iT,'(i0.4)')) // ")")
+	call output("Size: " // trim(dbl2string(amin,'(f10.3)')) // " - " // trim(dbl2string(amax,'(f10.3)')) // " micron")
 
 	do j=1,nm
 		write(lnkfile,'(a,a,i0.3,".lnk")') trim(particledir),trim(input),j
@@ -363,15 +366,15 @@ c	make sure the scattering matrix is properly normalized by adjusting the forwar
 
 	p%rho(iT)=Mass/Vol
 	rho_av=Mass/Vol
-	p%Kabs(1,iT,ilam)=1d4*cabs/Mass
-	p%Ksca(1,iT,ilam)=1d4*csca/Mass
-	p%Kext(1,iT,ilam)=1d4*cext/Mass
-	p%F(1,iT,ilam)%F11(1:180)=f11(ilam,1:180)/csca
-	p%F(1,iT,ilam)%F12(1:180)=f12(ilam,1:180)/csca
-	p%F(1,iT,ilam)%F22(1:180)=f22(ilam,1:180)/csca
-	p%F(1,iT,ilam)%F33(1:180)=f33(ilam,1:180)/csca
-	p%F(1,iT,ilam)%F34(1:180)=f34(ilam,1:180)/csca
-	p%F(1,iT,ilam)%F44(1:180)=f44(ilam,1:180)/csca
+	p%Kabs(isize,iT,ilam)=1d4*cabs/Mass
+	p%Ksca(isize,iT,ilam)=1d4*csca/Mass
+	p%Kext(isize,iT,ilam)=1d4*cext/Mass
+	p%F(isize,iT,ilam)%F11(1:180)=f11(ilam,1:180)/csca
+	p%F(isize,iT,ilam)%F12(1:180)=f12(ilam,1:180)/csca
+	p%F(isize,iT,ilam)%F22(1:180)=f22(ilam,1:180)/csca
+	p%F(isize,iT,ilam)%F33(1:180)=f33(ilam,1:180)/csca
+	p%F(isize,iT,ilam)%F34(1:180)=f34(ilam,1:180)/csca
+	p%F(isize,iT,ilam)%F44(1:180)=f44(ilam,1:180)/csca
 
 	enddo
 
@@ -422,7 +425,7 @@ c changed this to mass fractions (11-05-2010)
 	enddo
 	frac=frac/tot
 
-	call ParticleFITS(p,r,nr(1:nm,1:ns),nm,ns,rho_av,ii,p%amin,p%amax,p%apow,p%fmax,p%blend,p%porosity,frac,rho,filename,iT)
+	call ParticleFITS(p,r,nr(1:nm,1:ns),nm,ns,rho_av,ii,amin,amax,p%apow,p%fmax,p%blend,p%porosity,frac,rho,filename,isize,iT)
 	
 	deallocate(e1)
 	deallocate(e2)
@@ -498,8 +501,7 @@ c-----------------------------------------------------------------------
 	firstpix=1
 	nullval=-999
 
-	write(*,'("Checking particle file: ",a)') partfile(1:len_trim(partfile))
-	write(9,'("Checking particle file: ",a)') partfile(1:len_trim(partfile))
+	call output("Checking particle file: " // trim(partfile) )
 
 	!------------------------------------------------------------------------
 	! HDU0 : opacities
@@ -588,7 +590,7 @@ c-----------------------------------------------------------------------
 	end
 	
 
-	subroutine ParticleFITS(p,r,nr,nm,na,rho_av,ii,amin,amax,apow,fmax,blend,porosity,frac,rho,lnkfiles,iT)
+	subroutine ParticleFITS(p,r,nr,nm,na,rho_av,ii,amin,amax,apow,fmax,blend,porosity,frac,rho,lnkfiles,isize,iT)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
@@ -600,7 +602,7 @@ c-----------------------------------------------------------------------
 	character*6 word
 
 	type(particle) p
-	integer nm,na,i,j,ii,iT,nm2
+	integer nm,na,i,j,ii,iT,nm2,isize
 	real r(na),nr(nm,na)
 	real a0,a1,a2,a3,rho_av,rmin,rmax
 	real*8,allocatable :: array(:,:,:)
@@ -611,12 +613,12 @@ c-----------------------------------------------------------------------
 	character*500 filename
 
 	filename=trim(particledir) // "particle" 
-     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(iT,'(i0.4)')) // ".fits" 
+     &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(isize,'(i0.4)')) 
+     &	// "_" // trim(int2string(iT,'(i0.4)'))// ".fits" 
 
 	inquire(file=filename,exist=truefalse)
 	if(truefalse) then
-		write(*,'("FITS file already exists, overwriting")')
-		write(9,'("FITS file already exists, overwriting")')
+		call output("FITS file already exists, overwriting")
 		open(unit=90,file=filename)
 		close(unit=90,status='delete')
 	endif
@@ -712,9 +714,9 @@ C	 create the new empty FITS file
 
 	do i=1,nlam
 		array(i,1,1)=lam(i)
-		array(i,2,1)=p%Kext(1,iT,i)
-		array(i,3,1)=p%Kabs(1,iT,i)
-		array(i,4,1)=p%Ksca(1,iT,i)
+		array(i,2,1)=p%Kext(isize,iT,i)
+		array(i,3,1)=p%Kabs(isize,iT,i)
+		array(i,4,1)=p%Ksca(isize,iT,i)
 	enddo
 
 	call ftpprd(unit,group,fpixel,nelements,array(1:nlam,1:4,1),status)
@@ -741,12 +743,12 @@ C	 create the new empty FITS file
 
 	do i=1,nlam
 		do j=1,180
-			array(i,1,j)=p%F(1,iT,i)%F11(j)
-			array(i,2,j)=p%F(1,iT,i)%F12(j)
-			array(i,3,j)=p%F(1,iT,i)%F22(j)
-			array(i,4,j)=p%F(1,iT,i)%F33(j)
-			array(i,5,j)=p%F(1,iT,i)%F34(j)
-			array(i,6,j)=p%F(1,iT,i)%F44(j)
+			array(i,1,j)=p%F(isize,iT,i)%F11(j)
+			array(i,2,j)=p%F(isize,iT,i)%F12(j)
+			array(i,3,j)=p%F(isize,iT,i)%F22(j)
+			array(i,4,j)=p%F(isize,iT,i)%F33(j)
+			array(i,5,j)=p%F(isize,iT,i)%F34(j)
+			array(i,6,j)=p%F(isize,iT,i)%F44(j)
 		enddo
 	enddo
 
@@ -761,7 +763,7 @@ C	 create the new empty FITS file
 
 	!  Check for any error, and if so print out error messages
 	if (status.gt.0) then
-	   print*,'error in export to fits file',status
+	   call output('error in export to fits file' // int2string(status,'(i6)'))
 	end if
 
 
