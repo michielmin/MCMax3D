@@ -14,13 +14,13 @@ LINKER	      = ifort
 
 # enforce single core compilation with:
 # cl> make multi=false
-ifneq ($(multi),false)
+ifeq ($(multi),true)
   MULTICORE = -openmp -fp-model strict
 endif
 
 # array boundary check
 ifeq ($(debug),true)
-  DEBUGGING = -debug -check bounds -ftrapuv -fpe0 -O0 -check all -fp-stack-check
+  DEBUGGING = -debug -check bounds -ftrapuv -fpe0 -O0 -check all,noarg_temp_created -fp-stack-check
   #DEBUGGING = -debug -ftrapuv -g -check all -fp-stack-check
   #DEBUGGING = -heap-arrays
   #DEBUGGING = -gen-interfaces -warn interfaces
@@ -58,7 +58,8 @@ OBJS	      = Modules.o \
 				Radiation.o \
 				ComputePart.o \
 				ReadParticleFits.o \
-				RefIndData.o
+				RefIndData.o \
+				KuruczData.o
 
 # program name and install location
 PROGRAM       = MCMax3D

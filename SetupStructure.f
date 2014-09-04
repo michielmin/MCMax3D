@@ -16,14 +16,20 @@
 		enddo
 	enddo
 	
+	call output("==================================================================")
+
 	do i=1,npart
 		call SetupPart(i)
 	enddo
 
+	call output("==================================================================")
+
 	do i=1,nstars
-c		call SetupStar(i)
+		call SetupStar(i)
 	enddo
 	
+	call output("==================================================================")
+
 	do i=1,nzones
 c		call SetupZone(i)
 	enddo
@@ -120,6 +126,55 @@ c			call ReadParticle(Part(ii),ii)
 	
 
 
+	subroutine SetupStar(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i
+	real*8 Luminosity,tot,Planck
+	
+	call output("Setting up star: " // trim(int2string(ii,'(i0.4)')))
+	Star(ii)%L=Star(ii)%L*Lsun
+	allocate(Star(ii)%F(nlam))
+
+	select case(Star(ii)%startype)
+		case("PLANCK")
+			do i=1,nlam
+				Star(ii)%F(i)=Planck(Star(ii)%T,lam(i))
+			enddo
+			call integrate(Star(ii)%F,tot)
+			Star(ii)%F=Star(ii)%L*Star(ii)%F/tot
+		case("KURUCZ")
+			call ReadKurucz(Star(ii)%T,Star(ii)%logg,lam,Star(ii)%F,nlam)
+			call integrate(Star(ii)%F,tot)
+			Star(ii)%F=Star(ii)%L*Star(ii)%F/tot
+		case("FILE")
+			call readstar(Star(ii)%file,lam,Star(ii)%F,nlam)
+			call integrate(Star(ii)%F,tot)
+			Star(ii)%F=Star(ii)%L*Star(ii)%F/tot
+		case default
+			call output("Nope, such stars do not exist in our universe...")
+	end select
+
+	Star(ii)%R=Rsun*sqrt(Star(ii)%L/Luminosity(Star(ii)%T,Rsun))
+
+	call output("Stellar temperature: " // trim(dbl2string(Star(ii)%T,'(f14.2)')) // " K")
+	call output("Stellar luminosity:  " // trim(dbl2string(Star(ii)%L/Lsun,'(f14.2)')) // " Lsun")
+	call output("Stellar radius:      " // trim(dbl2string(Star(ii)%R/Rsun,'(f14.2)')) // " Rsun")
+
+	open(unit=20,file=trim(outputdir) // 'star' // trim(int2string(ii,'(i0.4)')) // '.dat')
+	do i=1,nlam
+		write(20,*) lam(i),Star(ii)%F(i)
+	enddo
+	close(unit=20)
+
+
+	
+	return
+	end
+	
+	
+
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 	
@@ -150,7 +205,7 @@ c-----------------------------------------------------------------------
 
 	real*8 function Planck(T,lam)
 	IMPLICIT NONE
-	real*8 T,k,c,h,nu,lam
+	real*8 T,k,c,h,nu,lam,pi
 	real*16 x
 
 	k=1.3807d-16
@@ -158,13 +213,26 @@ c-----------------------------------------------------------------------
 	h=6.6261d-27
 	nu=c/(lam*1d-4)
 	x=h*nu/(k*T)
+	pi=3.1415926536
+
 	if(x.gt.1d3) then
 		Planck=0d0
 	else
 		Planck=(2d0*h*nu**3/c**2)/(exp(x)-1d0)
 	endif
-c	Planck=Planck*1e23
 
+	return
+	end
+
+	real*8 function Luminosity(T,R)
+	IMPLICIT NONE
+	real*8 T,R,pi,sigma
+
+	pi=3.1415926536
+	sigma=5.6704d-5
+
+	Luminosity=4d0*pi*sigma*R**2*T**4
+	
 	return
 	end
 

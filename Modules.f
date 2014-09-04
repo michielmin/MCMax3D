@@ -49,8 +49,9 @@ c particle scattering
 	
 	type StarType
 		real*8 x,y,z
-		real*8 L,R,T
+		real*8 L,R,T,logg
 		character*10 startype
+		character*500 file
 		real*8,allocatable :: F(:)								! dimension nlam
 	end type StarType
 

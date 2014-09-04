@@ -132,6 +132,9 @@ c allocate the arrays
 	type(SettingKey) key
 
 	select case(key%key2)
+		case("file")
+			Star(key%nr1)%file=trim(key%value)
+			Star(key%nr1)%startype='FILE'
 		case("x")
 			read(key%value,*) Star(key%nr1)%x
 		case("y")
@@ -144,6 +147,8 @@ c allocate the arrays
 			read(key%value,*) Star(key%nr1)%R
 		case("t")
 			read(key%value,*) Star(key%nr1)%T
+		case("logg")
+			read(key%value,*) Star(key%nr1)%logg
 		case("type")
 			Star(key%nr1)%startype=trim(key%value)
 		case default
@@ -368,6 +373,7 @@ c===============================================================================
 		Star(i)%L=1d0
 		Star(i)%R=1d0
 		Star(i)%T=5777d0
+		Star(i)%logg=4d0
 		Star(i)%startype='KURUCZ'
 	enddo
 	
