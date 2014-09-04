@@ -47,6 +47,15 @@ c Planck functions
 c particle scattering
 	integer nspike
 	
+c observation direction
+	real*8 xobs,yobs,zobs,theta_obs,phi_obs
+	
+	type Mueller
+		real*8 F11(180),F12(180),F22(180)
+		real*8 F33(180),F44(180),F34(180)
+		real*8 IF11,IF12
+	end type Mueller
+
 	type StarType
 		real*8 x,y,z
 		real*8 L,R,T,logg
@@ -56,11 +65,11 @@ c particle scattering
 	end type StarType
 
 	type Cell
-		real*8 T,M,V,E			! Temperature, Mass, Volume, Energy absorbed
+		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
 		integer Ni				! statistics
 		real*8,allocatable :: Kabs(:),Ksca(:),Kext(:)			! dimension nlam
-		real*8,allocatable :: dens(:)							! dimension npart
-		real*8,allocatable :: LRFI(:),LRFQ(:),LRFU(:),LRFV(:)	! dimension nlam
+		type(Mueller),allocatable :: F(:)						! dimension nlam
+		real*8,allocatable :: densP(:)							! dimension npart
 		logical diff,randomwalk
 		real*8 x1,x2,y1,y2,z1,z2	! cell edges
 		real*8 r1,r2,t1,t2,p1,p2	! cell edges
@@ -75,12 +84,6 @@ c particle scattering
 		real*8 wl1,wl2
 		logical onEdge,scatt,pol
 	end type Photon
-	
-	type Mueller
-		real*8 F11(180),F12(180),F22(180)
-		real*8 F33(180),F44(180),F34(180)
-		real*8 IF11,IF12
-	end type Mueller
 
 	type Particle
 		real*8,allocatable :: rv(:,:)								! dimension nsize,nT
@@ -102,8 +105,12 @@ c particle scattering
 		integer nx,ny,nz
 		integer nr,nt,np
 		real*8 x0,y0,z0,xn,yn,zn
-		real*8 Rin,Rout,dx,dy,dz,dzr
+		real*8 Rin,Rout,dx,dy,dz,tmax
 		character*3 shape			! CAR, SPH, CYL
+		character*10 denstype		! DISK, SHELL
+		logical iter
+		real*8 sigmapow,Mdust,alpha,Rexp,sh,Rsh,shpow
+		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:)
 	end type ZoneType
 	
 	type(ZoneType),allocatable :: Zone(:)						! dimension nzones

@@ -118,10 +118,33 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%np
 		case("shape")
 			Zone(key%nr1)%shape=key%value(1:3)
+		case("rin")
+			read(key%value,*) Zone(key%nr1)%Rin
+		case("rout")
+			read(key%value,*) Zone(key%nr1)%Rout
+		case("rexp")
+			read(key%value,*) Zone(key%nr1)%Rexp
+		case("iter")
+			read(key%value,*) Zone(key%nr1)%iter
+		case("denstype")
+			Zone(key%nr1)%denstype=trim(key%value)
+		case("denspow","sigmapow")
+			read(key%value,*) Zone(key%nr1)%sigmapow
+		case("mdust")
+			read(key%value,*) Zone(key%nr1)%Mdust
+		case("alpha")
+			read(key%value,*) Zone(key%nr1)%alpha
+		case("sh")
+			read(key%value,*) Zone(key%nr1)%sh
+		case("Rsh")
+			read(key%value,*) Zone(key%nr1)%Rsh
+		case("shpow")
+			read(key%value,*) Zone(key%nr1)%shpow
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
 	end select
+
 
 	return
 	end
@@ -364,6 +387,9 @@ c===============================================================================
 	zlam2=35
 	nzlam=0
 	
+	theta_obs=35d0
+	phi_obs=0d0
+	
 	particledir=' '
 	
 	do i=1,nstars
@@ -389,7 +415,16 @@ c===============================================================================
 		Zone(i)%yn=0d0
 		Zone(i)%zn=1d0
 		Zone(i)%Rin=1d0
-		Zone(i)%Rout=100d0
+		Zone(i)%Rout=500d0
+		Zone(i)%Rexp=100d0
+		Zone(i)%iter=.false.
+		Zone(i)%denstype='DISK'
+		Zone(i)%sigmapow=1d0
+		Zone(i)%Mdust=1d-4
+		Zone(i)%alpha=1d-2
+		Zone(i)%sh=0.1
+		Zone(i)%Rsh=1.0
+		Zone(i)%shpow=1.1
 	enddo
 
 	do i=1,npart

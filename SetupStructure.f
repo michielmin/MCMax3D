@@ -7,6 +7,7 @@
 	
 	call SetupLam()
 	
+c setup the blackbodies to use
 	allocate(BB(nlam,0:nBB))
 	do i=1,nlam
 		BB(i,0)=0d0
@@ -15,6 +16,11 @@
 			BB(i,j)=Planck(T,lam(i))
 		enddo
 	enddo
+
+c setup the observation direction
+	xobs=cos(phi_obs)*sin(theta_obs)
+	yobs=sin(phi_obs)*sin(theta_obs)
+	zobs=cos(theta_obs)
 	
 	call output("==================================================================")
 
@@ -31,12 +37,14 @@
 	call output("==================================================================")
 
 	do i=1,nzones
-c		call SetupZone(i)
+		call SetupZone(i)
 	enddo
 	
 	return
 	end
 
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
 	subroutine SetupLam
 	use GlobalSetup
@@ -83,6 +91,8 @@ c	does not seem to work!!! Have to fix this!!!
 	return
 	end
 
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
 	subroutine SetupPart(ii)
 	use GlobalSetup
@@ -124,6 +134,8 @@ c			call ReadParticle(Part(ii),ii)
 	return
 	end
 	
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
 
 	subroutine SetupStar(ii)
@@ -173,7 +185,77 @@ c			call ReadParticle(Part(ii),ii)
 	return
 	end
 	
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 	
+
+	subroutine SetupZone(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii
+	
+	select case(Zone(ii)%shape)
+		case("SPH","CYL")
+			allocate(Zone(ii)%C(Zone(ii)%nr,Zone(ii)%nt,Zone(ii)%np))
+			allocate(Zone(ii)%R(Zone(ii)%nr+1))
+			allocate(Zone(ii)%theta(Zone(ii)%nt+1))
+			allocate(Zone(ii)%phi(Zone(ii)%np+1))
+		case("CAR")
+			allocate(Zone(ii)%C(Zone(ii)%nx,Zone(ii)%ny,Zone(ii)%nz))
+			allocate(Zone(ii)%x(Zone(ii)%nx+1))
+			allocate(Zone(ii)%y(Zone(ii)%ny+1))
+			allocate(Zone(ii)%z(Zone(ii)%nz+1))
+		case default
+			call output("Interesting shape option ("// Zone(ii)%shape //"). But I don't get it...")
+			stop
+	end select
+	
+	select case(Zone(ii)%denstype)
+		case("DISK")
+			call SetupDisk(ii)
+		case("SHELL")
+			call SetupShell(ii)
+		case default
+			call output("Really? A " // trim(Zone(ii)%denstype) // "-zone? That is an awesome idea! (but not yet possible)")
+			stop
+	end select	
+	
+	return
+	end
+	
+
+	subroutine SetupDisk(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i
+
+	if(Zone(ii)%shape.eq.'CAR') then
+		call output("A disk on a rectangular grid... Let's don't and say we did.")
+		stop
+	endif
+
+c setup initial radial grid
+	do i=1,Zone(ii)%nr+1
+		Zone(ii)%R(i)=10d0**(log10(Zone(ii)%Rin)+real(i-1)*log10(Zone(ii)%Rout/Zone(ii)%Rin)/real(Zone(ii)%nr))
+	enddo		
+
+
+	
+	return
+	end
+
+
+	subroutine SetupShell(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii
+	
+	return
+	end
+
 
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
@@ -223,6 +305,9 @@ c-----------------------------------------------------------------------
 
 	return
 	end
+
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
 
 	real*8 function Luminosity(T,R)
 	IMPLICIT NONE
