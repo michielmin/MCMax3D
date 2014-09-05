@@ -219,6 +219,8 @@ c-----------------------------------------------------------------------
 			allocate(Zone(ii)%R(Zone(ii)%nr+1))
 			allocate(Zone(ii)%theta(Zone(ii)%nt+1))
 			allocate(Zone(ii)%phi(Zone(ii)%np+1))
+			allocate(Zone(ii)%R2(Zone(ii)%nr+1))
+			allocate(Zone(ii)%cost2(Zone(ii)%nt+1))
 			Zone(ii)%n1=Zone(ii)%nr
 			Zone(ii)%n2=Zone(ii)%nt
 			Zone(ii)%n3=Zone(ii)%np
@@ -425,6 +427,10 @@ c setup initial radial grid
 	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%y0+Zone(ii)%Rout)
 	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%z0+Zone(ii)%Rout)
 
+	do i=1,Zone(ii)%nr+1
+		Zone(ii)%R2(i)=Zone(ii)%R(i)**2
+	enddo
+
 	return
 	end
 	
@@ -449,6 +455,10 @@ c setup initial theta grid
 		write(20,*) Zone(ii)%theta(i)
 	enddo		
 	close(unit=20)
+
+	do i=1,Zone(ii)%nt+1
+		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
+	enddo
 
 	return
 	end

@@ -118,6 +118,7 @@ c multiwav thingies
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp
 		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
+		real*8,allocatable :: R2(:),cost2(:)
 	end type ZoneType
 
 	type MCobsType
