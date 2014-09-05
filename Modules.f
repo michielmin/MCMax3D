@@ -29,7 +29,7 @@ c global setup for MCMax3D
 c=========================================================================================
 	module GlobalSetup
 	IMPLICIT NONE
-	integer nzones,nstars,npart,maxns,maxnT
+	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot
 	logical criticalerror
 	character*500 outputdir,particledir
@@ -51,9 +51,6 @@ c Planck functions
 	
 c particle scattering
 	integer nspike
-	
-c observation direction
-	real*8 xobs,yobs,zobs,theta_obs,phi_obs
 	
 	type Mueller
 		real*8 F11(180),F12(180),F22(180)
@@ -120,10 +117,18 @@ c observation direction
 		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 	end type ZoneType
+
+	type MCobsType
+		integer npix
+		real*8,allocatable :: image(:,:,:)						! dimension nlam,npix,npix
+		real*8,allocatable :: spec(:)							! dimension nlam
+		real*8 x,y,z,theta,phi,opening
+	end type MCobsType
 	
 	type(ZoneType),allocatable :: Zone(:)						! dimension nzones
 	type(StarType),allocatable :: Star(:)						! dimension nstars
 	type(Particle),allocatable :: Part(:)						! dimension npart
+	type(MCobsType),allocatable :: MCobs(:)						! dimension nMCobs
 
 	type SettingKey
 		character*100 key1,key2,value

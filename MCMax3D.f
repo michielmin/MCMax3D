@@ -33,7 +33,7 @@ c iterate when needed
 c compute the next iteration of the structure
 c		call EvolveStructure(iter)
 c do the radiative transfer
-c		call RadiativeTransfer
+		call RadiativeTransfer
 c write the MC observables to the output file
 c		call OutputMCobs
 

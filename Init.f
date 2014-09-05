@@ -30,6 +30,8 @@ c allocate the arrays
 			call ReadZone(key)
 		case("star")
 			call ReadStar(key)
+		case("mcobs")
+			call ReadMCobs(key)
 		case("part")
 			Part(key%nr1)%file=trim(key%value)
 			Part(key%nr1)%ptype="PARTFILE"
@@ -207,6 +209,29 @@ c allocate the arrays
 			Star(key%nr1)%startype=trim(key%value)
 		case default
 			call output("Unknown star keyword: " // trim(key%key2))
+			criticalerror=.true.
+	end select
+
+	return
+	end
+	
+
+	subroutine ReadMCobs(key)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(SettingKey) key
+
+	select case(key%key2)
+		case("theta")
+			read(key%value,*) MCobs(key%nr1)%theta
+		case("phi")
+			read(key%value,*) MCobs(key%nr1)%phi
+		case("opening")
+			read(key%value,*) MCobs(key%nr1)%opening
+		case("npix")
+			read(key%value,*) MCobs(key%nr1)%npix
+		case default
+			call output("Unknown MCobs keyword: " // trim(key%key2))
 			criticalerror=.true.
 	end select
 
@@ -418,9 +443,6 @@ c===============================================================================
 	zlam2=35
 	nzlam=0
 	
-	theta_obs=35d0
-	phi_obs=0d0
-	
 	particledir=' '
 	
 	do i=1,nstars
@@ -479,6 +501,13 @@ c===============================================================================
 		Part(i)%nsubgrains=1
 	enddo
 	
+	do i=1,nMCobs
+		MCobs(i)%theta=35d0
+		MCobs(i)%phi=0d0
+		MCobs(i)%opening=5d0
+		MCobs(i)%npix=500
+	enddo
+	
 	return
 	end
 	
@@ -495,6 +524,7 @@ c===============================================================================
 	nzones=1
 	npart=1
 	nstars=1
+	nMCobs=1
 	do while(.not.key%last)
 		select case(key%key1)
 			case("zone")
@@ -503,17 +533,21 @@ c===============================================================================
 				if(key%nr1.gt.nstars) nstars=key%nr1
 			case("part","opac","computepart")
 				if(key%nr1.gt.npart) npart=key%nr1
+			case("mcobs")
+				if(key%nr1.gt.nMCobs) nMCobs=key%nr1
 		end select
 		key=>key%next
 	enddo
 
-	call output('Number of zones:     ' // int2string(nzones,'(i4)'))
-	call output('Number of stars:     ' // int2string(nstars,'(i4)'))
-	call output('Number of particles: ' // int2string(npart,'(i4)'))
+	call output('Number of zones:        ' // int2string(nzones,'(i4)'))
+	call output('Number of stars:        ' // int2string(nstars,'(i4)'))
+	call output('Number of particles:    ' // int2string(npart,'(i4)'))
+	call output('Number of observations: ' // int2string(npart,'(i4)'))
 
 	allocate(Zone(nzones))
 	allocate(Star(nstars))
 	allocate(Part(npart))
+	allocate(MCobs(nMCobs))
 
 	do i=1,npart
 		Part(i)%nT=0

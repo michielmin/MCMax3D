@@ -18,9 +18,14 @@ c setup the blackbodies to use
 	enddo
 
 c setup the observation direction
-	xobs=cos(phi_obs)*sin(theta_obs)
-	yobs=sin(phi_obs)*sin(theta_obs)
-	zobs=cos(theta_obs)
+	do i=1,nMCobs
+		MCobs(i)%theta=MCobs(i)%theta*pi/180d0
+		MCobs(i)%phi=MCobs(i)%phi*pi/180d0
+		MCobs(i)%opening=MCobs(i)%opening*pi/180d0
+		MCobs(i)%x=cos(MCobs(i)%phi)*sin(MCobs(i)%theta)
+		MCobs(i)%y=sin(MCobs(i)%phi)*sin(MCobs(i)%theta)
+		MCobs(i)%z=cos(MCobs(i)%theta)
+	enddo
 	
 	call output("==================================================================")
 
@@ -204,9 +209,14 @@ c-----------------------------------------------------------------------
 			allocate(Zone(ii)%theta(Zone(ii)%nt+1))
 			allocate(Zone(ii)%phi(Zone(ii)%np+1))
 			do i1=1,Zone(ii)%nr
+				call tellertje(i1,Zone(ii)%nr)
 				do i2=1,Zone(ii)%nt
 					do i3=1,Zone(ii)%np
 						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
+						allocate(Zone(ii)%C(i1,i2,i3)%Kabs(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%Ksca(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%Kext(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%F(nlam))
 					enddo
 				enddo
 			enddo
@@ -219,6 +229,10 @@ c-----------------------------------------------------------------------
 				do i2=1,Zone(ii)%ny
 					do i3=1,Zone(ii)%nz
 						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
+						allocate(Zone(ii)%C(i1,i2,i3)%Kabs(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%Ksca(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%Kext(nlam))
+						allocate(Zone(ii)%C(i1,i2,i3)%F(nlam))
 					enddo
 				enddo
 			enddo
