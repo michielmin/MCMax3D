@@ -4,7 +4,13 @@
 	type(Photon) phot
 	integer i
 	character*500 fitsfile
-	
+
+	allocate(phot%i1(nzones))
+	allocate(phot%i2(nzones))
+	allocate(phot%i3(nzones))
+	allocate(phot%inzone(nzones))
+	allocate(phot%edgeNr(nzones))
+
 	call InitRadiativeTransfer
 	
 	call output("==================================================================")
@@ -12,7 +18,7 @@
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
-c		call TravelPhoton(phot)
+		call TravelPhoton(phot)
 		call MCoutput(phot)
 	enddo
 
@@ -27,6 +33,93 @@ c	call DetermineTemperatures
 	return
 	end
 
+
+	subroutine TravelPhoton(phot)
+	use GlobalSetup
+	IMPLICIT NONE
+	integer izone,imin
+	logical leave
+	real*8 minv,Kext,tau0,tau,GetKext
+	type(Travel) Trac(nzones)
+	type(Cell),pointer :: C
+	type(Photon) phot
+
+1	continue
+	Kext=0d0
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call TravelSph(phot,izone,Trac(izone))
+				case("CYL")
+c					call TravelCyl(phot,izone,Trac(izone))
+				case("CAR")
+c					call TravelCar(phot,izone,Trac(izone))
+			end select
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			Kext=Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
+		else
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call HitSph(phot,izone,Trac(izone))
+				case("CYL")
+c					call HitCyl(phot,izone,Trac(izone))
+				case("CAR")
+c					call HitCar(phot,izone,Trac(izone))
+			end select
+		endif
+	enddo
+	minv=1d200
+	leave=.true.
+	do izone=1,nzones
+		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
+			minv=Trac(izone)%v
+			imin=izone
+			leave=.false.
+		endif
+	enddo
+
+	if(leave) goto 2
+
+	if((tau0-Kext*minv).lt.0d0) then
+		minv=tau0/Kext
+		phot%edgeNr(imin)=0
+		phot%x=phot%x+minv*phot%vx
+		phot%y=phot%y+minv*phot%vy
+		phot%z=phot%z+minv*phot%vz
+
+		call Interact(phot)
+		goto 1
+	endif
+
+	phot%x=phot%x+minv*phot%vx
+	phot%y=phot%y+minv*phot%vy
+	phot%z=phot%z+minv*phot%vz
+	phot%i1(imin)=Trac(imin)%i1next
+	phot%i2(imin)=Trac(imin)%i2next
+	phot%i3(imin)=Trac(imin)%i3next
+	phot%edgeNr(imin)=Trac(imin)%edgenext
+	if(phot%i1(imin).gt.Zone(imin)%n1.or.phot%i2(imin).gt.Zone(imin)%n2.or.phot%i3(imin).gt.Zone(imin)%n3) then
+		phot%inzone(imin)=.false.
+	endif
+
+	goto 1
+2	continue
+	
+	return
+	end
+	
+
+	subroutine Interact(phot)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+
+	call randomdirection(phot%vx,phot%vy,phot%vz)
+
+	return
+	end
+	
 
 	subroutine MCoutput(phot)
 	use GlobalSetup
@@ -57,8 +150,9 @@ c	call DetermineTemperatures
 			call rotateY(x,y,z,cos(MCobs(i)%theta),sin(MCobs(i)%theta))
 			ix=real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
 			iy=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
-			print*,ix,iy
-			MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
+			if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
+				MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
+			endif
 		endif
 	enddo
 	
@@ -108,6 +202,7 @@ c	call DetermineTemperatures
 	phot%z=phot%z+Star(i)%z
 	
 	phot%edgeNr=0
+	phot%inzone=.false.
 	
 	return
 	end

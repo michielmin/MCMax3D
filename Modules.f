@@ -73,7 +73,6 @@ c multiwav thingies
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
 		integer Ni				! statistics
-		real*8 Kabs,Kext
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
 		real*8 x1,x2,y1,y2,z1,z2	! cell edges
@@ -83,9 +82,9 @@ c multiwav thingies
 	type Photon
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
 		real*8 Sx,Sy,Sz,lam,nu
-		integer,allocatable :: i(:),j(:),k(:)				! dimension nzones
+		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
-		integer ilam1,ilam2,edgeNr
+		integer ilam1,ilam2
 		real*8 wl1,wl2
 		logical scatt,pol
 	end type Photon
@@ -140,5 +139,10 @@ c multiwav thingies
 		type(SettingKey),pointer :: next
 	end type SettingKey
 
+	type Travel
+		real*8 v
+		integer i1next,i2next,i3next,edgenext
+	end type Travel
+	
 	end module GlobalSetup
 
