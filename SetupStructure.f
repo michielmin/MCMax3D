@@ -25,6 +25,8 @@ c setup the observation direction
 		MCobs(i)%x=cos(MCobs(i)%phi)*sin(MCobs(i)%theta)
 		MCobs(i)%y=sin(MCobs(i)%phi)*sin(MCobs(i)%theta)
 		MCobs(i)%z=cos(MCobs(i)%theta)
+		allocate(MCobs(i)%image(nlam,MCobs(i)%npix,MCobs(i)%npix))
+		allocate(MCobs(i)%spec(nlam))
 	enddo
 	
 	call output("==================================================================")
@@ -209,31 +211,29 @@ c-----------------------------------------------------------------------
 			allocate(Zone(ii)%R(Zone(ii)%nr+1))
 			allocate(Zone(ii)%theta(Zone(ii)%nt+1))
 			allocate(Zone(ii)%phi(Zone(ii)%np+1))
-			do i1=1,Zone(ii)%nr
-				call tellertje(i1,Zone(ii)%nr)
-				do i2=1,Zone(ii)%nt
-					do i3=1,Zone(ii)%np
-						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
-					enddo
-				enddo
-			enddo
+			Zone(ii)%n1=Zone(ii)%nr
+			Zone(ii)%n2=Zone(ii)%nt
+			Zone(ii)%n3=Zone(ii)%np
 		case("CAR")
 			allocate(Zone(ii)%C(Zone(ii)%nx,Zone(ii)%ny,Zone(ii)%nz))
 			allocate(Zone(ii)%x(Zone(ii)%nx+1))
 			allocate(Zone(ii)%y(Zone(ii)%ny+1))
 			allocate(Zone(ii)%z(Zone(ii)%nz+1))
-			do i1=1,Zone(ii)%nx
-				call tellertje(i1,Zone(ii)%nx)
-				do i2=1,Zone(ii)%ny
-					do i3=1,Zone(ii)%nz
-						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
-					enddo
-				enddo
-			enddo
+			Zone(ii)%n1=Zone(ii)%nx
+			Zone(ii)%n2=Zone(ii)%ny
+			Zone(ii)%n3=Zone(ii)%nz
 		case default
 			call output("Interesting shape option ("// Zone(ii)%shape //"). But I don't get it...")
 			stop
 	end select
+	do i1=1,Zone(ii)%nr
+		call tellertje(i1,Zone(ii)%nr)
+		do i2=1,Zone(ii)%nt
+			do i3=1,Zone(ii)%np
+				allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
+			enddo
+		enddo
+	enddo
 
 	call ScaleZoneInput(ii)
 	

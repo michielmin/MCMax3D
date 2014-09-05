@@ -30,7 +30,7 @@ c===============================================================================
 	module GlobalSetup
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
-	integer maxiter,Nphot
+	integer maxiter,Nphot,idum
 	logical criticalerror
 	character*500 outputdir,particledir
 
@@ -51,6 +51,9 @@ c Planck functions
 	
 c particle scattering
 	integer nspike
+
+c multiwav thingies
+	real*8,allocatable :: specemit(:),column(:)					! nlam
 	
 	type Mueller
 		real*8 F11(180),F12(180),F22(180)
@@ -69,7 +72,7 @@ c particle scattering
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
 		integer Ni				! statistics
-		real*8 Kabs,Ksca,Kext
+		real*8 Kabs,Kext
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
 		real*8 x1,x2,y1,y2,z1,z2	! cell edges
@@ -78,7 +81,7 @@ c particle scattering
 	
 	type Photon
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
-		real*8 Sx,Sy,Sz
+		real*8 Sx,Sy,Sz,lam,nu
 		integer,allocatable :: i(:),j(:),k(:)				! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2,edgeNr
@@ -104,7 +107,7 @@ c particle scattering
 	type ZoneType
 		type(Cell),allocatable :: C(:,:,:)					! dimension nx,ny,nz
 		integer nx,ny,nz
-		integer nr,nt,np
+		integer nr,nt,np,n1,n2,n3
 		real*8 x0,y0,z0,xn,yn,zn
 		real*8 Rin,Rout,dx,dy,dz,tmax
 		character*3 shape			! CAR, SPH, CYL
@@ -124,7 +127,7 @@ c particle scattering
 		real*8 x,y,z,theta,phi,opening
 	end type MCobsType
 	
-	type(ZoneType),allocatable :: Zone(:)						! dimension nzones
+	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones
 	type(StarType),allocatable :: Star(:)						! dimension nstars
 	type(Particle),allocatable :: Part(:)						! dimension npart
 	type(MCobsType),allocatable :: MCobs(:)						! dimension nMCobs

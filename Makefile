@@ -61,7 +61,8 @@ OBJS	      = Modules.o \
 				RefIndData.o \
 				KuruczData.o \
 				SizeDis.o \
-				RadiativeTransfer.o
+				RadiativeTransfer.o \
+				Subroutines.o
 
 # program name and install location
 PROGRAM       = MCMax3D

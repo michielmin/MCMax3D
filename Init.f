@@ -94,6 +94,9 @@ c allocate the arrays
 	call output("Particle dir: " // trim(particledir))
 	write(command,'("mkdir -p ",a)') trim(particledir)
 	call system(command)
+
+	allocate(specemit(nlam))
+	allocate(column(nlam))
 	
 	return
 	end
