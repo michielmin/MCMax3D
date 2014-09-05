@@ -229,19 +229,93 @@ c-----------------------------------------------------------------------
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,i
+	integer ii,i,nspan,nlev,j,ir
 
 	if(Zone(ii)%shape.eq.'CAR') then
 		call output("A disk on a rectangular grid... Let's don't and say we did.")
 		stop
 	endif
 
+	call SetupRadGrid(ii)
+	if(Zone(ii)%shape.eq.'SPH') then
+		call SetupThetaGridSPH(ii)
+	else if(Zone(ii)%shape.eq.'CYL') then
+c		call SetupThetaGridCYL(ii)
+	endif
+	call SetupPhiGrid(ii)
+	
+	return
+	end
+	
+
+	subroutine SetupRadGrid(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i,nspan,nlev,j,ir
+
+	nspan=7
+	nlev=7
+	if(Zone(ii)%nr.lt.nspan*nlev) then
+		call output("You need more than " // trim(int2string(nspan*nlev,'(i2)')) // " radial points")
+		stop
+	endif
+
 c setup initial radial grid
+	do i=1,Zone(ii)%nr+1-nspan*nlev
+		Zone(ii)%R(i)=10d0**(log10(Zone(ii)%Rin)+real(i-1)*log10(Zone(ii)%Rout/Zone(ii)%Rin)/real(Zone(ii)%nr-nspan*nlev))
+	enddo
+	
+	ir=Zone(ii)%nr+1-nspan*nlev
+	do j=1,nlev
+		do i=1,nspan
+			ir=ir+1
+			Zone(ii)%R(ir)=sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))
+		enddo
+		call sort(Zone(ii)%R(1:ir),ir)
+	enddo
+
+	open(unit=20,file=trim(outputdir) // 'radgrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
 	do i=1,Zone(ii)%nr+1
-		Zone(ii)%R(i)=10d0**(log10(Zone(ii)%Rin)+real(i-1)*log10(Zone(ii)%Rout/Zone(ii)%Rin)/real(Zone(ii)%nr))
+		write(20,*) Zone(ii)%R(i)
 	enddo		
+	close(unit=20)
 
+	return
+	end
+	
 
+	subroutine SetupThetaGridSPH(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i
+
+c setup initial theta grid
+	open(unit=20,file=trim(outputdir) // 'thetagrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
+	do i=1,Zone(ii)%nt+1
+		Zone(ii)%theta(i)=(pi*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi)/2d0
+		write(20,*) Zone(ii)%theta(i)
+	enddo		
+	close(unit=20)
+
+	return
+	end
+	
+
+	subroutine SetupPhiGrid(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i
+
+c setup initial phi grid
+	open(unit=20,file=trim(outputdir) // 'phigrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
+	do i=1,Zone(ii)%np+1
+		Zone(ii)%phi(i)=2d0*pi*real(i-1)/real(Zone(ii)%np)
+		write(20,*) Zone(ii)%phi(i)
+	enddo		
+	close(unit=20)
 	
 	return
 	end
@@ -252,6 +326,15 @@ c setup initial radial grid
 	use Constants
 	IMPLICIT NONE
 	integer ii
+
+	if(Zone(ii)%shape.eq.'CAR'.or.Zone(ii)%shape.eq.'CYL') then
+		call output("Free advice: a spherical shell is better put on a spherical grid.")
+		stop
+	endif
+
+	call SetupRadGrid(ii)
+	call SetupThetaGridSPH(ii)
+	call SetupPhiGrid(ii)
 	
 	return
 	end
