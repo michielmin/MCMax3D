@@ -8,6 +8,7 @@ c===============================================================================
 	IMPLICIT NONE
 	type(SettingKey),pointer :: key,first
 	character*1000 command
+	integer i
 
 	allocate(key)
 	first => key
@@ -75,6 +76,13 @@ c allocate the arrays
 		stop
 	endif
 
+	maxns=0d0
+	maxnT=0d0
+	do i=1,npart
+		if(Part(i)%nsize.gt.maxns) maxns=Part(i)%nsize
+		if(Part(i)%nT.gt.maxnT) maxnT=Part(i)%nT
+	enddo
+
 	if(particledir.eq.' ') particledir=outputdir
 	if(particledir(len_trim(particledir)-1:len_trim(particledir)).ne.'/') then
 		particledir=trim(particledir) // '/'
@@ -88,6 +96,7 @@ c allocate the arrays
 
 	subroutine ReadZone(key)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	type(SettingKey) key
 
@@ -122,14 +131,18 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%Rin
 		case("rout")
 			read(key%value,*) Zone(key%nr1)%Rout
+		case("tmax")
+			read(key%value,*) Zone(key%nr1)%tmax
 		case("rexp")
 			read(key%value,*) Zone(key%nr1)%Rexp
 		case("iter")
 			read(key%value,*) Zone(key%nr1)%iter
 		case("denstype")
 			Zone(key%nr1)%denstype=trim(key%value)
+		case("gamma_exp")
+			read(key%value,*) Zone(key%nr1)%gamma_exp
 		case("denspow","sigmapow")
-			read(key%value,*) Zone(key%nr1)%sigmapow
+			read(key%value,*) Zone(key%nr1)%denspow
 		case("mdust")
 			read(key%value,*) Zone(key%nr1)%Mdust
 		case("alpha")
@@ -140,6 +153,16 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%Rsh
 		case("shpow")
 			read(key%value,*) Zone(key%nr1)%shpow
+		case("dx")
+			read(key%value,*) Zone(key%nr1)%dx
+		case("dy")
+			read(key%value,*) Zone(key%nr1)%dy
+		case("dz")
+			read(key%value,*) Zone(key%nr1)%dz
+		case("sscale")
+			Zone(key%nr1)%sscaletype=trim(key%value)
+		case("mscale")
+			Zone(key%nr1)%mscaletype=trim(key%value)
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -419,12 +442,17 @@ c===============================================================================
 		Zone(i)%Rexp=100d0
 		Zone(i)%iter=.false.
 		Zone(i)%denstype='DISK'
-		Zone(i)%sigmapow=1d0
+		Zone(i)%denspow=1d0
+		Zone(i)%gamma_exp=1d0
 		Zone(i)%Mdust=1d-4
 		Zone(i)%alpha=1d-2
 		Zone(i)%sh=0.1
 		Zone(i)%Rsh=1.0
 		Zone(i)%shpow=1.1
+		Zone(i)%tmax=45d0
+		Zone(i)%sscaletype='AU'
+		Zone(i)%mscaletype='Msun'
+		Zone(i)%abun(1:npart)=1d0/real(npart)
 	enddo
 
 	do i=1,npart
@@ -446,8 +474,10 @@ c===============================================================================
 
 	subroutine CountStuff(firstkey)
 	use GlobalSetup
+	IMPLICIT NONE
 	type(SettingKey),target :: firstkey
 	type(SettingKey),pointer :: key
+	integer i
 
 	key => firstkey
 
@@ -492,6 +522,10 @@ c===============================================================================
 		if(Part(i)%nT.eq.0) Part(i)%nT=1
 		allocate(Part(i)%file(Part(i)%nT))
 		allocate(Part(i)%Tmax(Part(i)%nT))
+	enddo
+
+	do i=1,nzones
+		allocate(Zone(i)%abun(npart))
 	enddo
 
 	return

@@ -239,6 +239,7 @@ c changed this to mass fractions (11-05-2010)
 		mu(i)=cos(theta)
 	enddo
 
+	p%rv(isize)=0d0
 	do l=1,nm
 		if(ns.eq.1) then
 			r(1)=10d0**((minlog+maxlog)/2d0)
@@ -253,9 +254,11 @@ c changed this to mass fractions (11-05-2010)
 			enddo
 			do k=1,ns
 				nr(l,k)=frac(l)*nr(l,k)/tot
+				p%rv(isize)=p%rv(isize)+nr(l,k)*r(k)**2
 			enddo
 		endif
 	enddo
+	p%rv(isize)=sqrt(p%rv(isize))
 
 	do l=1,nm
 	if(frac(l).eq.0d0) goto 10
@@ -648,7 +651,7 @@ c-----------------------------------------------------------------------
 	p%dust_moment1=a1
 	p%dust_moment2=a2
 	p%dust_moment3=a3
-	p%rv=sqrt(p%dust_moment2)*1d-4
+	p%rv(isize)=sqrt(p%dust_moment2)*1d-4
 	p%rvmin=amin*1d-4
 	p%rvmax=amax*1d-4
 	

@@ -61,7 +61,7 @@
 
 	call ftgkye(unit,'a1',p%dust_moment1,comment,status)
 	call ftgkye(unit,'a2',p%dust_moment2,comment,status)
-	p%rv=sqrt(p%dust_moment2)*1d-4
+	p%rv(isize)=sqrt(p%dust_moment2)*1d-4
 	call ftgkye(unit,'a3',p%dust_moment3,comment,status)
 	call ftgkye(unit,'density',rho_av,comment,status)
 	p%rho(iT)=rho_av
