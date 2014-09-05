@@ -7,9 +7,16 @@
 	call InitRadiativeTransfer
 	
 	do i=1,Nphot
+		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
 c		call TravelPhoton(phot)
 c		call MCoutput(phot)
+		MCobs(1)%spec(phot%ilam1)=MCobs(1)%spec(phot%ilam1)+phot%wl1
+		MCobs(1)%spec(phot%ilam2)=MCobs(1)%spec(phot%ilam2)+phot%wl2
+	enddo
+
+	do i=1,nlam
+		write(20,*) lam(i),MCobs(1)%spec(i)
 	enddo
 
 c	call DetermineTemperatures

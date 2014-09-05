@@ -1,6 +1,7 @@
 	real*8 function random(idum)
 	IMPLICIT NONE
 	real*8 ran1
+	integer idum
 !$OMP CRITICAL
 	random=ran1(idum)
 !$OMP END CRITICAL
