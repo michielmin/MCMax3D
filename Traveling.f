@@ -43,32 +43,24 @@
 	else if(phot%edgeNr(izone).eq.3) then
 		hitR1=hitR(R1,r,b,vR1)
 		hitR2=hitR(R2,r,b,vR2)
-		hitT1=.false.
-		vT1=1d200
-		if(phot%i2(izone).ne.Zone(izone)%nt) then
+		if(Zone(izone)%theta(phot%i2(izone)).lt.(pi/2d0)) then
+			hitT1=.false.
+			vT1=1d200
 			hitT2=hitT(zt,phot%vz,phot,T2,r,b,vT2)
 		else
-			vT2=-phot%z/phot%vz
-			if(vT2.gt.0d0) then
-				hitT2=.true.
-			else
-				hitT2=.false.
-			endif
+			hitT1=hitT(zt,phot%vz,T1,r,b,vT1)
+			hitT2=hitTsame(zt,phot%vz,T2,r,b,vT2)
 		endif
 	else if(phot%edgeNr(izone).eq.4) then
 		hitR1=hitR(R1,r,b,vR1)
 		hitR2=hitR(R2,r,b,vR2)
-		if(phot%i2(izone).ne.1) then
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1)
-		else
-			hitT1=.false.
-			vT1=1d200
-		endif
-		if(phot%i2(izone).ne.Zone(izone)%nt) then
-			hitT2=hitTsame(zt,phot%vz,T2,r,b,vT2)
-		else
+		if(Zone(izone)%theta(phot%i2(izone)).gt.(pi/2d0)) then
+			hitT1=hitT(zt,phot%vz,phot,T1,r,b,vT1)
 			hitT2=.false.
 			vT2=1d200
+		else
+			hitT1=hitTsame(zt,phot%vz,T1,r,b,vT1)
+			hitT2=hitT(zt,phot%vz,T2,r,b,vT2)
 		endif
 	endif
 	endif
