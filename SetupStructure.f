@@ -202,6 +202,7 @@ c-----------------------------------------------------------------------
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
 	
+	call output("allocating memory")
 	select case(Zone(ii)%shape)
 		case("SPH","CYL")
 			allocate(Zone(ii)%C(Zone(ii)%nr,Zone(ii)%nt,Zone(ii)%np))
@@ -213,10 +214,6 @@ c-----------------------------------------------------------------------
 				do i2=1,Zone(ii)%nt
 					do i3=1,Zone(ii)%np
 						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
-						allocate(Zone(ii)%C(i1,i2,i3)%Kabs(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%Ksca(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%Kext(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%F(nlam))
 					enddo
 				enddo
 			enddo
@@ -226,13 +223,10 @@ c-----------------------------------------------------------------------
 			allocate(Zone(ii)%y(Zone(ii)%ny+1))
 			allocate(Zone(ii)%z(Zone(ii)%nz+1))
 			do i1=1,Zone(ii)%nx
+				call tellertje(i1,Zone(ii)%nx)
 				do i2=1,Zone(ii)%ny
 					do i3=1,Zone(ii)%nz
 						allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
-						allocate(Zone(ii)%C(i1,i2,i3)%Kabs(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%Ksca(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%Kext(nlam))
-						allocate(Zone(ii)%C(i1,i2,i3)%F(nlam))
 					enddo
 				enddo
 			enddo
@@ -243,6 +237,7 @@ c-----------------------------------------------------------------------
 
 	call ScaleZoneInput(ii)
 	
+	call output("setup density structure")
 	select case(Zone(ii)%denstype)
 		case("DISK")
 			call SetupDisk(ii)

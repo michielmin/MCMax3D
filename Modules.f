@@ -69,8 +69,7 @@ c particle scattering
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
 		integer Ni				! statistics
-		real*8,allocatable :: Kabs(:),Ksca(:),Kext(:)			! dimension nlam
-		type(Mueller),allocatable :: F(:)						! dimension nlam
+		real*8 Kabs,Ksca,Kext
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
 		real*8 x1,x2,y1,y2,z1,z2	! cell edges
