@@ -32,6 +32,7 @@ c===============================================================================
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum
 	logical criticalerror
+	real*8 maxR
 	character*500 outputdir,particledir
 
 c string converting functions
@@ -86,7 +87,7 @@ c multiwav thingies
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2,edgeNr
 		real*8 wl1,wl2
-		logical onEdge,scatt,pol
+		logical scatt,pol
 	end type Photon
 
 	type Particle
@@ -122,7 +123,7 @@ c multiwav thingies
 
 	type MCobsType
 		integer npix
-		real*8,allocatable :: image(:,:,:)						! dimension nlam,npix,npix
+		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
 		real*8 x,y,z,theta,phi,opening
 	end type MCobsType

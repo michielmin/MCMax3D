@@ -3,27 +3,68 @@
 	IMPLICIT NONE
 	type(Photon) phot
 	integer i
+	character*500 fitsfile
 	
 	call InitRadiativeTransfer
 	
+	call output("==================================================================")
+	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
 c		call TravelPhoton(phot)
-c		call MCoutput(phot)
-		MCobs(1)%spec(phot%ilam1)=MCobs(1)%spec(phot%ilam1)+phot%wl1
-		MCobs(1)%spec(phot%ilam2)=MCobs(1)%spec(phot%ilam2)+phot%wl2
+		call MCoutput(phot)
 	enddo
 
-	do i=1,nlam
-		write(20,*) lam(i),MCobs(1)%spec(i)
+	call output("==================================================================")
+	call output("Writing Monte Carlo observables")
+	do i=1,nMCobs
+		fitsfile="MCout" // trim(int2string(i,'(i0.4)')) // ".fits"
+		call writefitsfile(fitsfile,MCobs(i)%image,nlam,MCobs(i)%npix)
 	enddo
-
 c	call DetermineTemperatures
 	
 	return
 	end
 
+
+	subroutine MCoutput(phot)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	real*8 inp,tot,x,y,z
+	integer i,j,ix,iy
+	type(Photon) phot
+	
+	do i=1,nMCobs
+		inp=MCobs(i)%x*phot%vx+MCobs(i)%y*phot%vy+MCobs(i)%z*phot%vz
+		if(inp.gt.MCobs(i)%opening) then
+			do j=1,nlam
+				if(column(j).lt.1000d0) then
+					specemit(j)=specemit(j)*exp(-column(j))
+				else
+					specemit(j)=0d0
+				endif
+			enddo
+			call integrate(specemit,tot)
+			specemit=specemit/tot
+			specemit=1d23*phot%sI*specemit
+			MCobs(i)%spec(1:nlam)=MCobs(i)%spec(1:nlam)+specemit(1:nlam)
+			x=phot%x
+			y=phot%y
+			z=phot%z
+			call rotateZ(x,y,z,cos(MCobs(i)%phi),sin(MCobs(i)%phi))
+			call rotateY(x,y,z,cos(MCobs(i)%theta),sin(MCobs(i)%theta))
+			ix=real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
+			iy=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
+			print*,ix,iy
+			MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
+		endif
+	enddo
+	
+	return
+	end
+	
 
 	subroutine EmitPhoton(phot)
 	use GlobalSetup
@@ -42,7 +83,31 @@ c	call DetermineTemperatures
 		if(r.lt.0d0) exit
 	enddo
 
+	call randomdirection(phot%x,phot%y,phot%z)
+
+	phot%x=Star(i)%R*phot%x
+	phot%y=Star(i)%R*phot%y
+	phot%z=Star(i)%R*phot%z
+
 	call emit(phot,Star(i)%F,Star(i)%L)
+
+	phot%sI=Ltot/real(Nphot)
+	phot%sQ=0d0
+	phot%sU=0d0
+	phot%sV=0d0
+
+	call randomdirection(phot%vx,phot%vy,phot%vz)
+	if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
+		phot%vx=-phot%vx
+		phot%vy=-phot%vy
+		phot%vz=-phot%vz
+	endif
+	
+	phot%x=phot%x+Star(i)%x
+	phot%y=phot%y+Star(i)%y
+	phot%z=phot%z+Star(i)%z
+	
+	phot%edgeNr=0
 	
 	return
 	end

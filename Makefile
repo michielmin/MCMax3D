@@ -62,7 +62,8 @@ OBJS	      = Modules.o \
 				KuruczData.o \
 				SizeDis.o \
 				RadiativeTransfer.o \
-				Subroutines.o
+				Subroutines.o \
+				writeFITS.o
 
 # program name and install location
 PROGRAM       = MCMax3D

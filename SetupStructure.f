@@ -5,6 +5,8 @@
 	integer i,j
 	real*8 T,Planck
 	
+	maxR=0d0
+	
 	call SetupLam()
 	
 c setup the blackbodies to use
@@ -21,11 +23,11 @@ c setup the observation direction
 	do i=1,nMCobs
 		MCobs(i)%theta=MCobs(i)%theta*pi/180d0
 		MCobs(i)%phi=MCobs(i)%phi*pi/180d0
-		MCobs(i)%opening=MCobs(i)%opening*pi/180d0
+		MCobs(i)%opening=cos(MCobs(i)%opening*pi/180d0)
 		MCobs(i)%x=cos(MCobs(i)%phi)*sin(MCobs(i)%theta)
 		MCobs(i)%y=sin(MCobs(i)%phi)*sin(MCobs(i)%theta)
 		MCobs(i)%z=cos(MCobs(i)%theta)
-		allocate(MCobs(i)%image(nlam,MCobs(i)%npix,MCobs(i)%npix))
+		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
 		allocate(MCobs(i)%spec(nlam))
 	enddo
 	
@@ -187,7 +189,13 @@ c-----------------------------------------------------------------------
 	enddo
 	close(unit=20)
 
+	Star(ii)%x=Star(ii)%x*AU
+	Star(ii)%y=Star(ii)%y*AU
+	Star(ii)%z=Star(ii)%z*AU
 
+	if((Star(ii)%x+Star(ii)%R).gt.maxR) maxR=(Star(ii)%x+Star(ii)%R)
+	if((Star(ii)%y+Star(ii)%R).gt.maxR) maxR=(Star(ii)%y+Star(ii)%R)
+	if((Star(ii)%z+Star(ii)%R).gt.maxR) maxR=(Star(ii)%z+Star(ii)%R)
 	
 	return
 	end
@@ -412,6 +420,10 @@ c setup initial radial grid
 		write(20,*) Zone(ii)%R(i)/Zone(ii)%sscale
 	enddo		
 	close(unit=20)
+
+	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%x0+Zone(ii)%Rout)
+	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%y0+Zone(ii)%Rout)
+	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%z0+Zone(ii)%Rout)
 
 	return
 	end
