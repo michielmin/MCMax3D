@@ -102,7 +102,7 @@ c observation direction
 		character*500,allocatable :: file(:)						! dimension nT
 		character*20 standard,ptype
 		integer nsize,nT,nsubgrains
-		real*8 dust_moment1,dust_moment2,dust_moment3,rvmin,rvmax
+		real dust_moment1,dust_moment2,dust_moment3,rvmin,rvmax
 	end type Particle
 	
 	type ZoneType
@@ -117,6 +117,7 @@ c observation direction
 		character*10 denstype		! DISK, SHELL
 		logical iter
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp
+		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 	end type ZoneType
 	

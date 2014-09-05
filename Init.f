@@ -163,6 +163,12 @@ c allocate the arrays
 			Zone(key%nr1)%sscaletype=trim(key%value)
 		case("mscale")
 			Zone(key%nr1)%mscaletype=trim(key%value)
+		case("amin")
+			read(key%value,*) Zone(key%nr1)%amin
+		case("amax")
+			read(key%value,*) Zone(key%nr1)%amax
+		case("apow")
+			read(key%value,*) Zone(key%nr1)%apow
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -453,6 +459,9 @@ c===============================================================================
 		Zone(i)%sscaletype='AU'
 		Zone(i)%mscaletype='Msun'
 		Zone(i)%abun(1:npart)=1d0/real(npart)
+		Zone(i)%amin=0.05
+		Zone(i)%amax=3000d0
+		Zone(i)%apow=3.5
 	enddo
 
 	do i=1,npart

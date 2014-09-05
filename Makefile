@@ -59,7 +59,8 @@ OBJS	      = Modules.o \
 				ComputePart.o \
 				ReadParticleFits.o \
 				RefIndData.o \
-				KuruczData.o
+				KuruczData.o \
+				SizeDis.o
 
 # program name and install location
 PROGRAM       = MCMax3D

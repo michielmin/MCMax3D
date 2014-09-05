@@ -368,19 +368,6 @@ c-----------------------------------------------------------------------
 	return
 	end
 	
-	subroutine SetSizeDis(w,ipart,izone)
-	use GlobalSetup
-	IMPLICIT NONE
-	real*8 w(1:maxns)
-	integer ipart,izone,i
-	
-	do i=1,Part(ipart)%nsize
-		print*,Part(ipart)%rv(i)
-	enddo
-	
-	return
-	end
-	
 
 	subroutine SetupRadGrid(ii)
 	use GlobalSetup
@@ -469,7 +456,8 @@ c setup initial phi grid
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii
+	integer ii,ir,it,ip,i,ips,ipt
+	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns)
 
 	if(Zone(ii)%shape.eq.'CAR'.or.Zone(ii)%shape.eq.'CYL') then
 		call output("Free advice: a spherical shell is better put on a spherical grid.")
@@ -479,6 +467,41 @@ c setup initial phi grid
 	call SetupRadGrid(ii)
 	call SetupThetaGrid(ii)
 	call SetupPhiGrid(ii)
+
+	Mtot=0d0
+	do i=1,npart
+		call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+	enddo
+	
+	do ir=1,Zone(ii)%nr
+		call tellertje(ir,Zone(ii)%nr)
+		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*sin(theta)
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
+     &					(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
+				Zone(ii)%C(ir,it,ip)%dens=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
+				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+    		enddo
+		enddo
+	enddo
+	do ir=1,Zone(ii)%nr
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%Mdust/Mtot
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*Zone(ii)%abun(i)*Zone(ii)%C(ir,it,ip)%dens
+						do ipt=2,Part(i)%nT
+							Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=0d0
+						enddo
+					enddo
+				enddo
+				Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+			enddo
+		enddo
+	enddo
+
 	
 	return
 	end
