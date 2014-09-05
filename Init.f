@@ -57,6 +57,8 @@ c allocate the arrays
 				case default
 					call output("Unknown zlam value")
 			end select
+		case("maxiter")
+			read(key%value,*) maxiter
 		case("dirparticle","particledir")
 			particledir=trim(key%value)
 		case default
