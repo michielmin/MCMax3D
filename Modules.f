@@ -81,7 +81,7 @@ c multiwav thingies
 	
 	type Photon
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
-		real*8 Sx,Sy,Sz,lam,nu
+		real*8 Sx,Sy,Sz,lam,nu,x0,y0,z0
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2

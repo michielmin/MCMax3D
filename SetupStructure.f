@@ -339,7 +339,7 @@ c-----------------------------------------------------------------------
 			do ip=1,Zone(ii)%np
 				if(Zone(ii)%shape.eq.'SPH') then
 					Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
+     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
 				else if(Zone(ii)%shape.eq.'CYL') then
 					call output("Still have to do this...")
 					stop
@@ -488,7 +488,7 @@ c setup initial phi grid
 	use Constants
 	IMPLICIT NONE
 	integer ii,ir,it,ip,i,ips,ipt
-	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns)
+	real*8 r,z,hr,f1,f2,Mtot,w(npart,maxns)
 
 	if(Zone(ii)%shape.eq.'CAR'.or.Zone(ii)%shape.eq.'CYL') then
 		call output("Free advice: a spherical shell is better put on a spherical grid.")
@@ -506,11 +506,11 @@ c setup initial phi grid
 	
 	do ir=1,Zone(ii)%nr
 		call tellertje(ir,Zone(ii)%nr)
-		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*sin(theta)
+		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 		do it=1,Zone(ii)%nt
 			do ip=1,Zone(ii)%np
 				Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
+     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
 				Zone(ii)%C(ir,it,ip)%dens=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
     		enddo

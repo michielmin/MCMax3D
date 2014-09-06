@@ -18,6 +18,7 @@
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
+		call InWhichZones(phot)
 		call TravelPhoton(phot)
 		call MCoutput(phot)
 	enddo
@@ -33,9 +34,30 @@ c	call DetermineTemperatures
 	return
 	end
 
+	subroutine InWhichZones(phot)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	real*8 r
+	integer i
+	
+	do i=1,nzones
+		r=sqrt((phot%x-Zone(i)%x0)**2+(phot%y-Zone(i)%y0)**2+(phot%z-Zone(i)%z0)**2)
+		phot%inzone(i)=.false.
+		if(r.lt.Zone(i)%Rout.and.r.gt.Zone(i)%Rin) then
+			phot%inzone(i)=.true.
+			call determine_i1(phot,i)
+			call determine_i2(phot,i)
+			call determine_i3(phot,i)
+		endif
+	enddo
+	return
+	end
+	
 
 	subroutine TravelPhoton(phot)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	integer izone,imin
 	logical leave
@@ -43,20 +65,21 @@ c	call DetermineTemperatures
 	type(Travel) Trac(nzones)
 	type(Cell),pointer :: C
 	type(Photon) phot
+	integer iter
 
 	tau0=-log(random(idum))
-
+	iter=0
 1	continue
+	iter=iter+1
+	
+	call checkphot(phot)
+	
 	Kext=0d0
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
 					call TravelSph(phot,izone,Trac(izone))
-				case("CYL")
-c					call TravelCyl(phot,izone,Trac(izone))
-				case("CAR")
-c					call TravelCar(phot,izone,Trac(izone))
 			end select
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
 			Kext=Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
@@ -64,14 +87,10 @@ c					call TravelCar(phot,izone,Trac(izone))
 			select case(Zone(izone)%shape)
 				case("SPH")
 					call HitSph(phot,izone,Trac(izone))
-				case("CYL")
-c					call HitCyl(phot,izone,Trac(izone))
-				case("CAR")
-c					call HitCar(phot,izone,Trac(izone))
 			end select
 		endif
 	enddo
-	minv=2d0*maxR
+	minv=20d0*maxR
 	leave=.true.
 	do izone=1,nzones
 		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
@@ -83,47 +102,91 @@ c					call HitCar(phot,izone,Trac(izone))
 
 	if(leave) goto 2
 
-	if(phot%inzone(imin)) then
-		if((tau0-Kext*minv).lt.0d0) then
-			minv=tau0/Kext
-			phot%edgeNr(imin)=0
-			phot%x=phot%x+minv*phot%vx
-			phot%y=phot%y+minv*phot%vy
-			phot%z=phot%z+minv*phot%vz
-
-			call Interact(phot)
-			tau0=-log(random(idum))
-			goto 1
-		endif
+	if((tau0-Kext*minv).lt.0d0) then
+		minv=tau0/Kext
+		phot%edgeNr=0
+		phot%x=phot%x+minv*phot%vx
+		phot%y=phot%y+minv*phot%vy
+		phot%z=phot%z+minv*phot%vz
+		call Interact(phot)
+		tau0=-log(random(idum))
+		goto 1
 	endif
 
 	phot%x=phot%x+minv*phot%vx
 	phot%y=phot%y+minv*phot%vy
 	phot%z=phot%z+minv*phot%vz
 
-	phot%i1(imin)=Trac(imin)%i1next
-	phot%i2(imin)=Trac(imin)%i2next
-	phot%i3(imin)=Trac(imin)%i3next
+	do izone=1,nzones
+		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
+			phot%i1(izone)=Trac(izone)%i1next
+			phot%i2(izone)=Trac(izone)%i2next
+			phot%i3(izone)=Trac(izone)%i3next
 
-	if(phot%i1(imin).eq.-1) call determine_i1(phot,imin)
-	if(phot%i2(imin).eq.-1) call determine_i2(phot,imin)
-	if(phot%i3(imin).eq.-1) call determine_i3(phot,imin)
+			if(phot%i1(izone).eq.-1) call determine_i1(phot,izone)
+			if(phot%i2(izone).eq.-1) call determine_i2(phot,izone)
+			if(phot%i3(izone).eq.-1) call determine_i3(phot,izone)
 
-	phot%edgeNr(imin)=Trac(imin)%edgenext
-	phot%inzone(imin)=.true.
-	if(phot%i1(imin).gt.Zone(imin)%n1.or.
-     & phot%i2(imin).gt.Zone(imin)%n2.or.
-     & phot%i3(imin).gt.Zone(imin)%n3.or.
-     & phot%i1(imin).lt.1.or.
-     & phot%i2(imin).lt.1.or.
-     & phot%i3(imin).lt.1) then
-		phot%inzone(imin)=.false.
-	endif
+			phot%edgeNr(izone)=Trac(izone)%edgenext
+			phot%inzone(izone)=.true.
+			if(phot%i1(izone).gt.Zone(izone)%n1.or.
+     &			phot%i2(izone).gt.Zone(izone)%n2.or.
+     &			phot%i3(izone).gt.Zone(izone)%n3.or.
+     &			phot%i1(izone).lt.1.or.
+     &			phot%i2(izone).lt.1.or.
+     &			phot%i3(izone).lt.1) then
+				phot%inzone(izone)=.false.
+			endif
+		else
+			phot%edgeNr(izone)=0
+		endif
+	enddo
 	tau0=tau0-Kext*minv
 
 	goto 1
 2	continue
 	
+	return
+	end
+	
+
+	subroutine checkphot(phot)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i
+	real*8 r
+	logical oops
+
+	oops=.false.	
+	do i=1,nzones
+		r=sqrt((phot%x-Zone(i)%x0)**2+(phot%y-Zone(i)%y0)**2+(phot%z-Zone(i)%z0)**2)
+		if(phot%inzone(i)) then
+			if(r.lt.Zone(i)%R(phot%i1(i))*0.99.or.
+     &		   r.gt.Zone(i)%R(phot%i1(i)+1)*1.01) then
+     			print*,'zone',i,r/AU
+     			print*,'oeps',phot%x/AU,phot%y/AU,phot%z/AU
+				print*,Zone(i)%R(phot%i1(i))/AU
+				print*,Zone(i)%R(phot%i1(i)+1)/AU
+				print*,phot%i1
+				print*,phot%inzone
+     			oops=.true.
+     		endif
+		else
+			if(r.gt.Zone(i)%R(1)*1.01.and.
+     &		   r.lt.Zone(i)%R(Zone(i)%nr+1)*0.99) then
+     			print*,'zone',i,r/AU
+c				print*,'oeps',phot%x/AU,phot%y/AU,phot%z/AU
+c				print*,phot%i1
+				print*,phot%inzone
+c				oops=.true.
+     		endif
+		endif
+	enddo
+c	if(oops) then
+c		stop
+c	endif
 	return
 	end
 	
@@ -134,6 +197,10 @@ c					call HitCar(phot,izone,Trac(izone))
 	type(Photon) phot
 
 	call randomdirection(phot%vx,phot%vy,phot%vz)
+
+	phot%x0=phot%x
+	phot%y0=phot%y
+	phot%z0=phot%z
 
 	return
 	end
@@ -161,9 +228,9 @@ c					call HitCar(phot,izone,Trac(izone))
 			specemit=specemit/tot
 			specemit=1d23*phot%sI*specemit
 			MCobs(i)%spec(1:nlam)=MCobs(i)%spec(1:nlam)+specemit(1:nlam)
-			x=phot%x
-			y=phot%y
-			z=phot%z
+			x=phot%x0
+			y=phot%y0
+			z=phot%z0
 			call rotateZ(x,y,z,cos(MCobs(i)%phi),sin(MCobs(i)%phi))
 			call rotateY(x,y,z,cos(MCobs(i)%theta),sin(MCobs(i)%theta))
 			ix=real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
@@ -411,9 +478,9 @@ c This subroutine gets the scattering matrix in a certain cell
 	
 	select case(Zone(izone)%shape)
 		case("SPH")
-			r2=phot%x**2+phot%y**2+phot%z**2
+			r2=(phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2+(phot%z-Zone(izone)%z0)**2
 		case("CYL")
-			r2=phot%x**2+phot%y**2
+			r2=(phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2
 	end select
 
 	do i=1,Zone(izone)%nr
@@ -433,8 +500,8 @@ c This subroutine gets the scattering matrix in a certain cell
 	real*8 theta,r
 	type(Photon) phot
 	
-	r=sqrt(phot%x**2+phot%y**2+phot%z**2)
-	theta=acos(phot%z/r)
+	r=sqrt((phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2+(phot%z-Zone(izone)%z0)**2)
+	theta=acos((phot%z-Zone(izone)%z0)/r)
 	
 	do i=1,Zone(izone)%nt
 		if(theta.ge.Zone(izone)%theta(i).and.theta.le.Zone(izone)%theta(i+1)) exit
@@ -452,9 +519,9 @@ c This subroutine gets the scattering matrix in a certain cell
 	real*8 phi,r
 	type(Photon) phot
 	
-	r=sqrt(phot%x**2+phot%y**2)
-	phi=acos(phot%x/r)
-	if(phot%y.lt.0d0) phi=2d0*pi-phi
+	r=sqrt((phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2)
+	phi=acos((phot%x-Zone(izone)%x0)/r)
+	if((phot%y-Zone(izone)%y0).lt.0d0) phi=2d0*pi-phi
 	
 	do i=1,Zone(izone)%nr
 		if(phi.ge.Zone(izone)%phi(i).and.phi.le.Zone(izone)%phi(i+1)) exit
