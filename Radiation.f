@@ -93,3 +93,41 @@ c-----------------------------------------------------------------------
 	return
 	end
 
+
+
+
+	real*8 function increaseT(C)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Cell) C
+	real*8 E1,kp0,kp1,GetKp
+	integer i,j,ii,iopac
+
+	E1=C%E
+	j=int(C%T/dTBB)
+	kp0=GetKp(j,C)*C%V
+
+	increaseT=0d0
+	do i=j,nBB-1
+		kp1=GetKp(i+1,C)*C%V
+		if(kp0.le.E1.and.kp1.ge.E1) then
+			increaseT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
+			return
+		endif
+		kp0=kp1
+	enddo
+c not found, starting from 1 K
+	do i=1,j
+		kp1=GetKp(i+1,C)*C%V
+		if(kp0.le.E1.and.kp1.ge.E1) then
+			increaseT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
+			return
+		endif
+		kp0=kp1
+	enddo
+	increaseT=real(nBB)*dTBB
+
+	return
+	end
+
+

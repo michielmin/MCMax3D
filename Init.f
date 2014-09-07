@@ -96,8 +96,22 @@ c allocate the arrays
 	call system(command)
 
 	allocate(specemit(nlam))
-	allocate(column(nlam))
-	
+	allocate(column(npart,maxns,maxnT))
+	allocate(KabsTotal(nzones,nlam))
+	allocate(KscaTotal(nzones,nlam))
+	allocate(i1totalAbs(nzones))
+	allocate(i2totalAbs(nzones))
+	allocate(i3totalAbs(nzones))
+	allocate(i1totalSca(nzones))
+	allocate(i2totalSca(nzones))
+	allocate(i3totalSca(nzones))
+	i1totalAbs=0
+	i2totalAbs=0
+	i3totalAbs=0
+	i1totalSca=0
+	i2totalSca=0
+	i3totalSca=0
+
 	return
 	end
 

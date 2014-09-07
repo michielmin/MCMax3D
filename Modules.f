@@ -54,8 +54,14 @@ c particle scattering
 	integer nspike
 
 c multiwav thingies
-	real*8,allocatable :: specemit(:),column(:)					! nlam
+	real*8,allocatable :: specemit(:)				! nlam
+	real*8,allocatable :: column(:,:,:)				! npart,nsize,iT
 	
+c storage speed options
+	real*8,allocatable :: KabsTotal(:,:),KscaTotal(:,:)		! nzones,nlam
+	integer,allocatable :: i1totalAbs(:),i2totalAbs(:),i3totalAbs(:)	! nzones
+	integer,allocatable :: i1totalSca(:),i2totalSca(:),i3totalSca(:)	! nzones
+
 	type Mueller
 		real*8 F11(180),F12(180),F22(180)
 		real*8 F33(180),F44(180),F34(180)
@@ -85,7 +91,7 @@ c multiwav thingies
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2
-		real*8 wl1,wl2
+		real*8 wl1,wl2,Kext,Kabs
 		logical scatt,pol
 	end type Photon
 
@@ -118,7 +124,7 @@ c multiwav thingies
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp
 		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
-		real*8,allocatable :: R2(:),cost2(:)
+		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)
 	end type ZoneType
 
 	type MCobsType

@@ -116,7 +116,7 @@ c-----------------------------------------------------------------------
 	allocate(Part(ii)%Ksca(Part(ii)%nsize,Part(ii)%nT,nlam))
 	allocate(Part(ii)%Kext(Part(ii)%nsize,Part(ii)%nT,nlam))
 	allocate(Part(ii)%F(Part(ii)%nsize,Part(ii)%nT,nlam))
-	allocate(Part(ii)%Kp(Part(ii)%nsize,Part(ii)%nT,nBB))
+	allocate(Part(ii)%Kp(Part(ii)%nsize,Part(ii)%nT,0:nBB))
 	
 	select case(Part(ii)%ptype)
 		case("COMPUTE")
@@ -134,9 +134,14 @@ c			call ReadParticle(Part(ii),ii)
 	do iBB=1,nBB
 		do is=1,Part(ii)%nsize
 			do iT=1,Part(ii)%nT
-				spec=BB(1:nlam,iT)*Part(ii)%Kabs(is,iT,1:nlam)
+				spec=BB(1:nlam,iBB)*Part(ii)%Kabs(is,iT,1:nlam)
 				call integrate(spec,Part(ii)%Kp(is,iT,iBB))
 			enddo
+		enddo
+	enddo
+	do is=1,Part(ii)%nsize
+		do iT=1,Part(ii)%nT
+			Part(ii)%Kp(is,iT,0)=0d0
 		enddo
 	enddo
 		
@@ -221,6 +226,8 @@ c-----------------------------------------------------------------------
 			allocate(Zone(ii)%phi(Zone(ii)%np+1))
 			allocate(Zone(ii)%R2(Zone(ii)%nr+1))
 			allocate(Zone(ii)%cost2(Zone(ii)%nt+1))
+			allocate(Zone(ii)%tanx(Zone(ii)%np+1))
+			allocate(Zone(ii)%tany(Zone(ii)%np+1))
 			Zone(ii)%n1=Zone(ii)%nr
 			Zone(ii)%n2=Zone(ii)%nt
 			Zone(ii)%n3=Zone(ii)%np
@@ -478,7 +485,26 @@ c setup initial phi grid
 		write(20,*) Zone(ii)%phi(i)
 	enddo		
 	close(unit=20)
-	
+
+	do i=1,Zone(ii)%np+1
+		if(Zone(ii)%phi(i).lt.(pi/4d0)) then
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		else if(Zone(ii)%phi(i).lt.(3d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=-1d0
+			Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+		else if(Zone(ii)%phi(i).lt.(5d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		else if(Zone(ii)%phi(i).lt.(7d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=-1d0
+			Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+		else
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		endif
+	enddo
+		
 	return
 	end
 
