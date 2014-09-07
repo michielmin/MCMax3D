@@ -2,8 +2,8 @@
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
-	integer i
-	character*500 fitsfile
+	integer i,j
+	character*500 MCfile
 
 	allocate(phot%i1(nzones))
 	allocate(phot%i2(nzones))
@@ -15,6 +15,7 @@
 	
 	call output("==================================================================")
 	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
+
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
@@ -26,8 +27,14 @@
 	call output("==================================================================")
 	call output("Writing Monte Carlo observables")
 	do i=1,nMCobs
-		fitsfile="MCout" // trim(int2string(i,'(i0.4)')) // ".fits"
-		call writefitsfile(fitsfile,MCobs(i)%image,nlam,MCobs(i)%npix)
+		MCfile=trim(outputdir) // "MCout" // trim(int2string(i,'(i0.4)')) // ".fits"
+		call writefitsfile(MCfile,MCobs(i)%image,nlam,MCobs(i)%npix)
+		MCfile=trim(outputdir) // "MCSpec" // trim(int2string(i,'(i0.4)')) // ".dat"
+		open(unit=20,file=MCfile)
+		do j=1,nlam
+			write(20,*) lam(j),MCobs(i)%spec(j)
+		enddo
+		close(unit=20)
 	enddo
 c	call DetermineTemperatures
 	
@@ -73,16 +80,21 @@ c	call DetermineTemperatures
 	iter=iter+1
 	
 	call checkphot(phot)
-	
 	Kext=0d0
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			Kext=Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
+		endif
+	enddo
+	
+2	continue
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
 					call TravelSph(phot,izone,Trac(izone))
 			end select
-			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			Kext=Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
 		else
 			select case(Zone(izone)%shape)
 				case("SPH")
@@ -100,7 +112,7 @@ c	call DetermineTemperatures
 		endif
 	enddo
 
-	if(leave) goto 2
+	if(leave) goto 3
 
 	if((tau0-Kext*minv).lt.0d0) then
 		minv=tau0/Kext
@@ -110,7 +122,7 @@ c	call DetermineTemperatures
 		phot%z=phot%z+minv*phot%vz
 		call Interact(phot)
 		tau0=-log(random(idum))
-		goto 1
+		goto 2
 	endif
 
 	phot%x=phot%x+minv*phot%vx
@@ -144,7 +156,7 @@ c	call DetermineTemperatures
 	tau0=tau0-Kext*minv
 
 	goto 1
-2	continue
+3	continue
 	
 	return
 	end
@@ -214,6 +226,7 @@ c	endif
 	integer i,j,ix,iy
 	type(Photon) phot
 	
+!$OMP CRITICAL
 	do i=1,nMCobs
 		inp=MCobs(i)%x*phot%vx+MCobs(i)%y*phot%vy+MCobs(i)%z*phot%vz
 		if(inp.gt.MCobs(i)%opening) then
@@ -233,13 +246,14 @@ c	endif
 			z=phot%z0
 			call rotateZ(x,y,z,cos(MCobs(i)%phi),sin(MCobs(i)%phi))
 			call rotateY(x,y,z,cos(MCobs(i)%theta),sin(MCobs(i)%theta))
-			ix=real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
-			iy=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
+			ix=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
+			iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
 			if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
 				MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
 			endif
 		endif
 	enddo
+!$OMP END CRITICAL
 	
 	return
 	end
@@ -288,6 +302,10 @@ c	endif
 	
 	phot%edgeNr=0
 	phot%inzone=.false.
+
+	phot%x0=phot%x
+	phot%y0=phot%y
+	phot%z0=phot%z
 	
 	return
 	end

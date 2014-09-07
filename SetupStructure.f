@@ -339,7 +339,7 @@ c-----------------------------------------------------------------------
 			do ip=1,Zone(ii)%np
 				if(Zone(ii)%shape.eq.'SPH') then
 					Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
+     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
 				else if(Zone(ii)%shape.eq.'CYL') then
 					call output("Still have to do this...")
 					stop
@@ -510,7 +510,7 @@ c setup initial phi grid
 		do it=1,Zone(ii)%nt
 			do ip=1,Zone(ii)%np
 				Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))
+     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
 				Zone(ii)%C(ir,it,ip)%dens=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
     		enddo

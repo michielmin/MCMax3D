@@ -43,8 +43,8 @@
 				vT1=1d200
 				hitT2=hitT(zt,phot%vz,phot,T2,r,b,vT2)
 			else
-				hitT1=hitT(zt,phot%vz,T1,r,b,vT1)
-				hitT2=hitTsame(zt,phot%vz,T2,r,b,vT2)
+				hitT1=hitTsame(zt,phot%vz,T1,r,b,vT1)
+				hitT2=hitT(zt,phot%vz,T2,r,b,vT2)
 			endif
 		case(4)
 			hitR1=hitR(R1,r,b,vR1)
@@ -54,8 +54,8 @@
 				hitT2=.false.
 				vT2=1d200
 			else
-				hitT1=hitTsame(zt,phot%vz,T1,r,b,vT1)
-				hitT2=hitT(zt,phot%vz,T2,r,b,vT2)
+				hitT1=hitT(zt,phot%vz,T1,r,b,vT1)
+				hitT2=hitTsame(zt,phot%vz,T2,r,b,vT2)
 			endif
 		case default
 			hitR1=hitR(R1,r,b,vR1)
@@ -90,20 +90,20 @@
 		Trac%i3next=phot%i3(izone)
 		Trac%edgenext=1
 	endif
-C	if(hitT1.and.vT1.lt.Trac%v.and.vT1.gt.0d0) then
-C		Trac%v=vT1
-C		Trac%i1next=phot%i1(izone)
-C		Trac%i2next=phot%i2(izone)-1
-C		Trac%i3next=phot%i3(izone)
-C		Trac%edgenext=4
-C	endif
-C	if(hitT2.and.vT2.lt.Trac%v.and.vT2.gt.0d0) then
-C		Trac%v=vT2
-C		Trac%i1next=phot%i1(izone)
-C		Trac%i2next=phot%i2(izone)+1
-C		Trac%i3next=phot%i3(izone)
-C		Trac%edgenext=3
-C	endif
+	if(hitT1.and.vT1.lt.Trac%v.and.vT1.gt.0d0) then
+		Trac%v=vT1
+		Trac%i1next=phot%i1(izone)
+		Trac%i2next=phot%i2(izone)-1
+		Trac%i3next=phot%i3(izone)
+		Trac%edgenext=4
+	endif
+	if(hitT2.and.vT2.lt.Trac%v.and.vT2.gt.0d0) then
+		Trac%v=vT2
+		Trac%i1next=phot%i1(izone)
+		Trac%i2next=phot%i2(izone)+1
+		Trac%i3next=phot%i3(izone)
+		Trac%edgenext=3
+	endif
 
 	
 	return

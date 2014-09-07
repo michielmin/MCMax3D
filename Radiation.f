@@ -65,10 +65,6 @@
 	phot%ilam1=nlam-1
 	phot%ilam2=nlam
 
-	phot%x0=phot%x
-	phot%y0=phot%y
-	phot%z0=phot%z
-
 1	continue
 
 	return
