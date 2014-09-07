@@ -3,6 +3,7 @@
 	IMPLICIT NONE
 	type(Photon) phot
 	integer i,j
+	real*8 starttime,stoptime
 	character*500 MCfile
 
 	allocate(phot%i1(nzones))
@@ -16,6 +17,7 @@
 	call output("==================================================================")
 	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
 
+	call cpu_time(starttime)
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		call EmitPhoton(phot)
@@ -23,6 +25,8 @@
 		call TravelPhoton(phot)
 		call MCoutput(phot)
 	enddo
+	call cpu_time(stoptime)
+	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 
 	call output("==================================================================")
 	call output("Writing Monte Carlo observables")
