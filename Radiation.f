@@ -105,6 +105,11 @@ c-----------------------------------------------------------------------
 
 	E1=C%E
 	j=int(C%T/dTBB)
+	if(j.eq.nBB) then
+		increaseT=C%T
+		return
+	endif
+	
 	kp0=GetKp(j,C)*C%V
 
 	increaseT=0d0
