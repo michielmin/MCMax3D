@@ -354,7 +354,7 @@ c-----------------------------------------------------------------------
 				else if(Zone(ii)%shape.eq.'CYL') then
 					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 				endif
-				z=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta)
+				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
 				hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
 				f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 				f2=exp(-(z/hr)**2)
@@ -363,6 +363,7 @@ c-----------------------------------------------------------------------
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
+				if(Zone(ii)%C(ir,it,ip)%dens.lt.1d-40) Zone(ii)%C(ir,it,ip)%dens=1d-40
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
 			enddo
 		enddo
@@ -440,7 +441,7 @@ c setup initial radial grid
 	use Constants
 	IMPLICIT NONE
 	integer ii,i
-	real*8 tmax
+	real*8 tmax,random
 	
 	if(Zone(ii)%shape.eq.'SPH') then
 		tmax=pi/2d0
@@ -449,17 +450,24 @@ c setup initial radial grid
 	endif
 
 c setup initial theta grid
-	open(unit=20,file=trim(outputdir) // 'thetagrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi/2d0
+		if(abs(Zone(ii)%theta(i)-pi/2d0).lt.1d-8) then
+			Zone(ii)%theta(i)=pi/2d0+1d-8*(random(idum)-0.5)
+		endif
+	enddo
+	call sort(Zone(ii)%theta,Zone(ii)%nt+1)
+
+	open(unit=20,file=trim(outputdir) // 'thetagrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
+	do i=1,Zone(ii)%nt+1
 		write(20,*) Zone(ii)%theta(i)
-	enddo		
+	enddo
 	close(unit=20)
 
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
 	enddo
-
+	
 	return
 	end
 	
@@ -623,7 +631,7 @@ c-----------------------------------------------------------------------
 	if(x.gt.1d3) then
 		Planck=0d0
 	else
-		Planck=(2d0*h*nu**3/c**2)/(exp(x)-1d0)
+		Planck=4d0*pi*((2d0*h*nu**3/c**2)/(exp(x)-1d0))
 	endif
 
 	return

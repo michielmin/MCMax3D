@@ -10,6 +10,8 @@ c===============================================================================
 	character*1000 command
 	integer i
 
+	idum=-42
+	
 	allocate(key)
 	first => key
 	
@@ -170,7 +172,7 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%alpha
 		case("sh")
 			read(key%value,*) Zone(key%nr1)%sh
-		case("Rsh")
+		case("rsh")
 			read(key%value,*) Zone(key%nr1)%Rsh
 		case("shpow")
 			read(key%value,*) Zone(key%nr1)%shpow
@@ -220,6 +222,8 @@ c allocate the arrays
 			read(key%value,*) Star(key%nr1)%R
 		case("t")
 			read(key%value,*) Star(key%nr1)%T
+		case("m")
+			read(key%value,*) Star(key%nr1)%M
 		case("logg")
 			read(key%value,*) Star(key%nr1)%logg
 		case("type")

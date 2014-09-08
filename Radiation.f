@@ -21,6 +21,7 @@
 
 	subroutine emit(phot,spec,Lttot)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	real*8 spec(nlam),Lr,Lt,random,Ltold,Lttot,x,y,z,r
 	integer i,ii,iopac
@@ -51,7 +52,7 @@
 			phot%wl1=(Lr-Ltold)/(Lt-Ltold)
 			phot%wl2=1d0-phot%wl1
 			phot%nu=nu(i)*phot%wl1+nu(i+1)*phot%wl2
-			phot%lam=2.9979d14/phot%nu
+			phot%lam=1d4*clight/phot%nu
 			phot%ilam1=i
 			phot%ilam2=i+1
 			goto 1
@@ -61,7 +62,7 @@
 	phot%wl1=0d0
 	phot%wl2=1d0
 	phot%nu=nu(nlam)
-	phot%lam=2.9979d14/phot%nu
+	phot%lam=1d4*clight/phot%nu
 	phot%ilam1=nlam-1
 	phot%ilam2=nlam
 
@@ -98,24 +99,25 @@ c-----------------------------------------------------------------------
 
 	real*8 function increaseT(C)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	type(Cell) C
 	real*8 E1,kp0,kp1,GetKp
-	integer i,j,ii,iopac
+	integer i,j
 
-	E1=C%E
+	E1=C%E/C%V
 	j=int(C%T/dTBB)
 	if(j.eq.nBB) then
 		increaseT=C%T
 		return
 	endif
 	
-	kp0=GetKp(j,C)*C%V
+	kp0=GetKp(j,C)
 
 	increaseT=0d0
 	do i=j,nBB-1
-		kp1=GetKp(i+1,C)*C%V
-		if(kp0.le.E1.and.kp1.ge.E1) then
+		kp1=GetKp(i+1,C)
+		if(kp1.ge.E1) then
 			increaseT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
 			return
 		endif
@@ -123,7 +125,7 @@ c-----------------------------------------------------------------------
 	enddo
 c not found, starting from 1 K
 	do i=1,j
-		kp1=GetKp(i+1,C)*C%V
+		kp1=GetKp(i+1,C)
 		if(kp0.le.E1.and.kp1.ge.E1) then
 			increaseT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
 			return
@@ -131,6 +133,34 @@ c not found, starting from 1 K
 		kp0=kp1
 	enddo
 	increaseT=real(nBB)*dTBB
+
+	return
+	end
+
+
+
+	real*8 function determineT(C)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	type(Cell) C
+	real*8 E1,kp0,kp1,GetKp
+	integer i,j
+
+	E1=C%Etrace/C%V
+	
+	kp0=0d0
+
+	determineT=0d0
+	do i=1,nBB-1
+		kp1=GetKp(i+1,C)
+		if(kp0.le.E1.and.kp1.ge.E1) then
+			determineT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
+			return
+		endif
+		kp0=kp1
+	enddo
+	determineT=real(nBB)*dTBB
 
 	return
 	end

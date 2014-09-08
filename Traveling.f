@@ -47,10 +47,10 @@
 		case(3)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			if(Zone(izone)%theta(phot%i2(izone)).lt.(pi/2d0)) then
+			if(Zone(izone)%theta(phot%i2(izone)).le.(pi/2d0)) then
 				hitT1=.false.
 				vT1=1d200
-				hitT2=hitT(zt,phot%vz,phot,T2,r,b,vT2)
+				hitT2=hitT(zt,phot%vz,T2,r,b,vT2)
 			else
 				hitT1=hitTsame(zt,phot%vz,T1,r,b,vT1)
 				hitT2=hitT(zt,phot%vz,T2,r,b,vT2)
@@ -60,8 +60,8 @@
 		case(4)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			if(Zone(izone)%theta(phot%i2(izone)).gt.(pi/2d0)) then
-				hitT1=hitT(zt,phot%vz,phot,T1,r,b,vT1)
+			if(Zone(izone)%theta(phot%i2(izone)+1).ge.(pi/2d0)) then
+				hitT1=hitT(zt,phot%vz,T1,r,b,vT1)
 				hitT2=.false.
 				vT2=1d200
 			else
@@ -176,8 +176,6 @@
 
 	b=2d0*(xt*phot%vx+yt*phot%vy+zt*phot%vz)
 
-	hitR1=.false.
-	hitR2=.false.
 	hitR1=hitRin(R1,r,b,vR1)
 	hitR2=hitRout(R2,r,b,vR2)
 

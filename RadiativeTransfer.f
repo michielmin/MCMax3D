@@ -1,16 +1,19 @@
 	subroutine RadiativeTransfer
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
 	integer i,j
 	real*8 starttime,stoptime
 	character*500 MCfile
+	real*8 tot,GetKext
 
 	allocate(phot%i1(nzones))
 	allocate(phot%i2(nzones))
 	allocate(phot%i3(nzones))
 	allocate(phot%inzone(nzones))
 	allocate(phot%edgeNr(nzones))
+	allocate(phot%KabsZ(nzones))
 
 	call InitRadiativeTransfer
 	
@@ -26,6 +29,7 @@
 !$OMP DO
 	do i=1,Nphot
 		call tellertje(i,Nphot)
+		phot%nr=i
 		call EmitPhoton(phot)
 		call InWhichZones(phot)
 		call TravelPhoton(phot)
@@ -49,7 +53,14 @@
 		enddo
 		close(unit=20)
 	enddo
-c	call DetermineTemperatures
+	call DetermineTemperatures
+
+	tot=0d0
+	do i=1,Zone(1)%nt
+		write(10,*) Zone(1)%R(60)*cos((Zone(1)%theta(i)+Zone(1)%theta(i+1))/2d0)/AU,Zone(1)%C(60,i,2)%T,Zone(1)%C(60,i,2)%dens
+		tot=tot+(Zone(1)%R(i+1)-Zone(1)%R(i))*GetKext(66,Zone(1)%C(i,Zone(1)%nt/2,1))
+	enddo
+	print*,tot
 	
 	return
 	end
@@ -81,7 +92,7 @@ c	call DetermineTemperatures
 	IMPLICIT NONE
 	integer izone,imin
 	logical leave
-	real*8 minv,tau0,tau,GetKext,random
+	real*8 minv,tau0,tau,GetKext,random,GetKabs
 	type(Travel) Trac(nzones)
 	type(Cell),pointer :: C
 	type(Photon) phot
@@ -90,22 +101,25 @@ c	call DetermineTemperatures
 	tau0=-log(random(idum))
 	iter=0
 1	continue
-	iter=iter+1
-	if(iter.gt.1000000) then
+
+	if(phot%nr.eq.208) write(11,*) phot%x,phot%y,phot%z
+	phot%Kext=0d0
+	phot%Kabs=0d0
+	do izone=1,nzones
+		phot%KabsZ(izone)=0d0
+		if(phot%inzone(izone)) then
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			phot%Kext=phot%Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
+			phot%KabsZ(izone)=GetKabs(phot%ilam1,C)*phot%wl1+GetKabs(phot%ilam2,C)*phot%wl2
+			phot%Kabs=phot%Kabs+phot%KabsZ(izone)
+		endif
+	enddo
+
+	if(iter.ge.100000) then
 		print*,'overflow'
 		goto 3
 	endif
 
-c	call checkphot(phot)
-	phot%Kext=0d0
-	do izone=1,nzones
-		if(phot%inzone(izone)) then
-			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			phot%Kext=phot%Kext+GetKext(phot%ilam1,C)*phot%wl1+GetKext(phot%ilam2,C)*phot%wl2
-		endif
-	enddo
-	
-2	continue
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
@@ -130,7 +144,7 @@ c	call checkphot(phot)
 	enddo
 
 	if(leave) goto 3
-
+	
 	if((tau0-phot%Kext*minv).lt.0d0) then
 		minv=tau0/phot%Kext
 		phot%edgeNr=0
@@ -138,15 +152,18 @@ c	call checkphot(phot)
 		phot%x=phot%x+minv*phot%vx
 		phot%y=phot%y+minv*phot%vy
 		phot%z=phot%z+minv*phot%vz
+		call AddEtrace(phot,minv)
 		call Interact(phot)
 		tau0=-log(random(idum))
-		goto 2
+		goto 1
 	endif
 
 	call increaseColumn(phot,minv)
 	phot%x=phot%x+minv*phot%vx
 	phot%y=phot%y+minv*phot%vy
 	phot%z=phot%z+minv*phot%vz
+	call AddEtrace(phot,minv)
+	tau0=tau0-phot%Kext*minv
 
 	do izone=1,nzones
 		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
@@ -172,7 +189,6 @@ c	call checkphot(phot)
 			phot%edgeNr(izone)=0
 		endif
 	enddo
-	tau0=tau0-phot%Kext*minv
 
 	goto 1
 3	continue
@@ -203,25 +219,35 @@ c	call checkphot(phot)
 	
 	return
 	end
+
+
+	subroutine AddEtrace(phot,v)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer izone
+	real*8 v
+	
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace=
+     & 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace+
+     & 			v*phot%KabsZ(izone)*phot%sI
+		endif
+	enddo
+  
+	return
+	end
 	
 
 	subroutine Interact(phot)
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
-	real*8 GetKabs,random,K,Kabs(nzones),GetKp,spec(nlam)
+	real*8 GetKabs,random,K,GetKp,spec(nlam)
 	real*8 T0,T1,epsT0,epsT1,kp,tot,GetKsca,increaseT,Ksca(nlam)
 	integer izone,iT0,iT1,l
 	type(Cell),pointer :: C
-
-	phot%Kabs=0d0
-	do izone=1,nzones
-		if(phot%inzone(izone)) then
-			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			Kabs(izone)=GetKabs(phot%ilam1,C)*phot%wl1+GetKabs(phot%ilam2,C)*phot%wl2
-			phot%Kabs=phot%Kabs+Kabs(izone)
-		endif
-	enddo
 	
 	K=random(idum)*phot%Kext
 	if(K.lt.phot%Kabs) then
@@ -231,7 +257,7 @@ c absorption and reemission
 		do izone=1,nzones
 		if(phot%inzone(izone)) then
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			C%E=C%E+phot%sI*Kabs(izone)/phot%Kabs
+			C%E=C%E+phot%sI*phot%KabsZ(izone)/phot%Kabs
 			T0=C%T
 			T1=increaseT(C)
 
@@ -267,13 +293,11 @@ c absorption and reemission
 				enddo
 				kp=kp+epsT1*GetKp(iT1+1,C)+(1d0-epsT1)*GetKp(iT1,C)-epsT0*GetKp(iT0+1,C)-(1d0-epsT0)*GetKp(iT0,C)
 			endif
+			C%T=T1
 		endif
 		enddo
-		call integrate(spec,kp)
-
+		
 		call emit(phot,spec,kp)
-	
-		C%T=T1
 	else
 c scattering
 		call randomdirection(phot%vx,phot%vy,phot%vz)
@@ -362,6 +386,7 @@ c scattering
 
 	subroutine EmitPhoton(phot)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
 	integer i
@@ -390,13 +415,12 @@ c scattering
 	phot%sU=0d0
 	phot%sV=0d0
 
-	call randomdirection(phot%vx,phot%vy,phot%vz)
 	if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
 		phot%vx=-phot%vx
 		phot%vy=-phot%vy
 		phot%vz=-phot%vz
 	endif
-	
+
 	phot%x=phot%x+Star(i)%x
 	phot%y=phot%y+Star(i)%y
 	phot%z=phot%z+Star(i)%z
@@ -429,6 +453,7 @@ c scattering
 					C%E=0d0
 					C%Ni=0d0
 					C%T=0d0
+					C%Etrace=0d0
 				enddo
 			enddo
 		enddo
@@ -690,6 +715,25 @@ c	endif
 	return
 	end
 	
+	subroutine DetermineTemperatures
+	use GlobalSetup
+	IMPLICIT NONE
+	integer i1,i2,i3,izone
+	real*8 determineT
+	type(Cell),pointer :: C
 	
+	do izone=1,nzones
+		do i1=1,Zone(izone)%n1
+			do i2=1,Zone(izone)%n2
+				do i3=1,Zone(izone)%n3
+					C=>Zone(izone)%C(i1,i2,i3)
+					C%T=determineT(C)
+				enddo
+			enddo
+		enddo
+	enddo
+	
+	return
+	end
 	
 	

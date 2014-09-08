@@ -70,7 +70,7 @@ c storage speed options
 
 	type StarType
 		real*8 x,y,z
-		real*8 L,R,T,logg
+		real*8 L,R,T,logg,M
 		character*10 startype
 		character*500 file
 		real*8,allocatable :: F(:)								! dimension nlam
@@ -78,11 +78,10 @@ c storage speed options
 
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
+		real*8 Etrace
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
-		real*8 x1,x2,y1,y2,z1,z2	! cell edges
-		real*8 r1,r2,t1,t2,p1,p2	! cell edges
 	end type Cell
 	
 	type Photon
@@ -90,8 +89,9 @@ c storage speed options
 		real*8 Sx,Sy,Sz,lam,nu,x0,y0,z0
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
-		integer ilam1,ilam2
+		integer ilam1,ilam2,nr
 		real*8 wl1,wl2,Kext,Kabs
+		real*8,allocatable :: KabsZ(:)						! dimension nzones
 		logical scatt,pol
 	end type Photon
 
