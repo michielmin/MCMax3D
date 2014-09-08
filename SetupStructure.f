@@ -334,7 +334,9 @@ c-----------------------------------------------------------------------
 	call SetupRadGrid(ii)
 	call SetupThetaGrid(ii)
 	call SetupPhiGrid(ii)
+	call SetupVolume(ii)
 
+			
 	Mtot=0d0
 	do i=1,npart
 		call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
@@ -343,15 +345,6 @@ c-----------------------------------------------------------------------
 	do ir=1,Zone(ii)%nr
 		call tellertje(ir,Zone(ii)%nr)
 		do it=1,Zone(ii)%nt
-			do ip=1,Zone(ii)%np
-				if(Zone(ii)%shape.eq.'SPH') then
-					Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
-				else if(Zone(ii)%shape.eq.'CYL') then
-					call output("Still have to do this...")
-					stop
-				endif
-    		enddo
 			njj=10
 			Zone(ii)%C(ir,it,:)%dens=0d0
 			do jj=1,njj
@@ -509,6 +502,30 @@ c setup initial phi grid
 	end
 
 
+	subroutine SetupVolume(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ir,it,ip,ii
+	
+	do ir=1,Zone(ii)%nr
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				if(Zone(ii)%shape.eq.'SPH') then
+					Zone(ii)%C(ir,it,ip)%V=(2d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
+     &					abs(cos(Zone(ii)%theta(it))-cos(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
+				else if(Zone(ii)%shape.eq.'CYL') then
+					call output("Still have to do this...")
+					stop
+				endif
+    		enddo
+		enddo
+	enddo
+	
+	return
+	end
+	
+	
 	subroutine SetupShell(ii)
 	use GlobalSetup
 	use Constants
@@ -524,6 +541,7 @@ c setup initial phi grid
 	call SetupRadGrid(ii)
 	call SetupThetaGrid(ii)
 	call SetupPhiGrid(ii)
+	call SetupVolume(ii)
 
 	Mtot=0d0
 	do i=1,npart
@@ -535,8 +553,6 @@ c setup initial phi grid
 		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 		do it=1,Zone(ii)%nt
 			do ip=1,Zone(ii)%np
-				Zone(ii)%C(ir,it,ip)%V=(4d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
-     &					abs(cos(Zone(ii)%theta(it))-(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
 				Zone(ii)%C(ir,it,ip)%dens=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
     		enddo
