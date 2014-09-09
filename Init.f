@@ -63,6 +63,8 @@ c allocate the arrays
 			end select
 		case("maxiter")
 			read(key%value,*) maxiter
+		case("distance")
+			read(key%value,*) distance
 		case("dirparticle","particledir")
 			particledir=trim(key%value)
 		case default
@@ -463,6 +465,7 @@ c===============================================================================
 	zlam1=5
 	zlam2=35
 	nzlam=0
+	distance=150d0
 	
 	particledir=' '
 	

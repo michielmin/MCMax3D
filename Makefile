@@ -64,7 +64,8 @@ OBJS	      = Modules.o \
 				RadiativeTransfer.o \
 				Subroutines.o \
 				writeFITS.o \
-				Traveling.o
+				Traveling.o \
+				OutputMCobs.o
 
 # program name and install location
 PROGRAM       = MCMax3D

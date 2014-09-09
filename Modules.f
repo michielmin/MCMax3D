@@ -32,7 +32,7 @@ c===============================================================================
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum
 	logical criticalerror
-	real*8 maxR
+	real*8 maxR,distance
 	character*500 outputdir,particledir
 
 c string converting functions
@@ -113,7 +113,7 @@ c storage speed options
 	type ZoneType
 		type(Cell),allocatable :: C(:,:,:)					! dimension nx,ny,nz
 		integer nx,ny,nz
-		integer nr,nt,np,n1,n2,n3
+		integer nr,nt,np,n1,n2,n3,imidplane
 		real*8 x0,y0,z0,xn,yn,zn
 		real*8 Rin,Rout,dx,dy,dz,tmax
 		character*3 shape			! CAR, SPH, CYL

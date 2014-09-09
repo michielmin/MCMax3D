@@ -49,6 +49,8 @@ c setup the observation direction
 		call SetupZone(i)
 	enddo
 	
+	distance=distance*parsec
+	
 	return
 	end
 
@@ -449,13 +451,19 @@ c setup initial radial grid
 		tmax=Zone(ii)%tmax*pi/180d0
 	endif
 
+	if((2*int(Zone(ii)%nt/2)).ne.Zone(ii)%nt) then
+		Zone(ii)%nt=Zone(ii)%nt-1
+		call output("I need a midplane boundary, so an even number of theta cells")
+		call output("changing nt to: " // trim(int2string(Zone(ii)%nt,'(i4)')))
+	endif
+
 c setup initial theta grid
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi/2d0
-		if(abs(Zone(ii)%theta(i)-pi/2d0).lt.1d-8) then
-			Zone(ii)%theta(i)=pi/2d0+1d-8*(random(idum)-0.5)
-		endif
 	enddo
+
+	Zone(ii)%imidplane=Zone(ii)%nt/2+1
+
 	call sort(Zone(ii)%theta,Zone(ii)%nt+1)
 
 	open(unit=20,file=trim(outputdir) // 'thetagrid' // trim(int2string(ii,'(i0.4)')) // '.dat')

@@ -34,8 +34,6 @@ c compute the next iteration of the structure
 c		call EvolveStructure(iter)
 c do the radiative transfer
 		call RadiativeTransfer
-c write the MC observables to the output file
-c		call OutputMCobs
 
 c is everything converged? (or iterations not needed)
 c		converged=DetermineConverged(iter)

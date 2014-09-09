@@ -10,8 +10,7 @@
 
 	inquire(file=filename,exist=truefalse)
 	if(truefalse) then
-		write(*,'("FITS file already exists, overwriting")')
-		write(9,'("FITS file already exists, overwriting")')
+		call output("FITS file already exists, overwriting")
 		open(unit=90,file=filename)
 		close(unit=90,status='delete')
 	endif

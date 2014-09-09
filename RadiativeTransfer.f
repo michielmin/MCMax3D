@@ -5,8 +5,6 @@
 	type(Photon) phot
 	integer i,j
 	real*8 starttime,stoptime
-	character*500 MCfile
-	real*8 tot,GetKext
 
 	allocate(phot%i1(nzones))
 	allocate(phot%i2(nzones))
@@ -41,27 +39,10 @@
 	call cpu_time(stoptime)
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 
-	call output("==================================================================")
-	call output("Writing Monte Carlo observables")
-	do i=1,nMCobs
-		MCfile=trim(outputdir) // "MCout" // trim(int2string(i,'(i0.4)')) // ".fits"
-		call writefitsfile(MCfile,MCobs(i)%image,nlam,MCobs(i)%npix)
-		MCfile=trim(outputdir) // "MCSpec" // trim(int2string(i,'(i0.4)')) // ".dat"
-		open(unit=20,file=MCfile)
-		do j=1,nlam
-			write(20,*) lam(j),MCobs(i)%spec(j)
-		enddo
-		close(unit=20)
-	enddo
+	call OutputMCobs
+
 	call DetermineTemperatures
 
-	tot=0d0
-	do i=1,Zone(1)%nt
-		write(10,*) Zone(1)%R(60)*cos((Zone(1)%theta(i)+Zone(1)%theta(i+1))/2d0)/AU,Zone(1)%C(60,i,2)%T,Zone(1)%C(60,i,2)%dens
-		tot=tot+(Zone(1)%R(i+1)-Zone(1)%R(i))*GetKext(66,Zone(1)%C(i,Zone(1)%nt/2,1))
-	enddo
-	print*,tot
-	
 	return
 	end
 
@@ -102,7 +83,6 @@
 	iter=0
 1	continue
 
-	if(phot%nr.eq.208) write(11,*) phot%x,phot%y,phot%z
 	phot%Kext=0d0
 	phot%Kabs=0d0
 	do izone=1,nzones
