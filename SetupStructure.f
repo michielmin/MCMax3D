@@ -109,8 +109,8 @@ c-----------------------------------------------------------------------
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,iT,is,iBB
-	real*8 spec(nlam)
+	integer ii,iT,is,iBB,ilam,j
+	real*8 spec(nlam),phi,thet,tot,tot2
 	
 	allocate(Part(ii)%rv(Part(ii)%nsize))
 	allocate(Part(ii)%rho(Part(ii)%nT))
@@ -146,7 +146,50 @@ c			call ReadParticle(Part(ii),ii)
 			Part(ii)%Kp(is,iT,0)=0d0
 		enddo
 	enddo
-		
+
+	do ilam=1,nlam
+		do is=1,Part(ii)%nsize
+			do iT=1,Part(ii)%nT
+				tot=0d0
+				tot2=0d0
+				do j=1,180
+					tot=tot+Part(ii)%F(is,iT,ilam)%F11(j)*sin(pi*(real(j)-0.5)/180d0)
+					tot2=tot2+sin(pi*(real(j)-0.5)/180d0)
+				enddo
+				do j=1,180
+					Part(ii)%F(is,iT,ilam)%F11(j)=tot2*Part(ii)%F(is,iT,ilam)%F11(j)/tot
+					Part(ii)%F(is,iT,ilam)%F12(j)=tot2*Part(ii)%F(is,iT,ilam)%F12(j)/tot
+					Part(ii)%F(is,iT,ilam)%F22(j)=tot2*Part(ii)%F(is,iT,ilam)%F22(j)/tot
+					Part(ii)%F(is,iT,ilam)%F33(j)=tot2*Part(ii)%F(is,iT,ilam)%F33(j)/tot
+					Part(ii)%F(is,iT,ilam)%F34(j)=tot2*Part(ii)%F(is,iT,ilam)%F34(j)/tot
+					Part(ii)%F(is,iT,ilam)%F44(j)=tot2*Part(ii)%F(is,iT,ilam)%F44(j)/tot
+				enddo
+			enddo
+		enddo
+	enddo
+
+	do ilam=1,nlam
+		do is=1,Part(ii)%nsize
+			do iT=1,Part(ii)%nT
+				Part(ii)%F(is,iT,ilam)%IF11=0d0
+				Part(ii)%F(is,iT,ilam)%IF12=0d0
+				do j=1,180
+					thet=pi*(real(j)-0.5d0)/180d0
+					Part(ii)%F(is,iT,ilam)%IF11=Part(ii)%F(is,iT,ilam)%IF11+pi*sin(thet)
+     &			*Part(ii)%F(is,iT,ilam)%F11(j)/180d0
+					Part(ii)%F(is,iT,ilam)%IF12=Part(ii)%F(is,iT,ilam)%IF12+pi*sin(thet)
+     &			*Part(ii)%F(is,iT,ilam)%F12(j)/180d0
+				enddo
+			enddo
+		enddo
+	enddo
+	do j=0,360
+		phi=pi*real(j-1)/179.5d0
+		cos2phi(j)=cos(2d0*phi)
+		sin2phi(j)=sin(2d0*phi)
+	enddo
+
+	
 	return
 	end
 	

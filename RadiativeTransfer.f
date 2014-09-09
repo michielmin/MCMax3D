@@ -220,97 +220,6 @@
 	end
 	
 
-	subroutine Interact(phot)
-	use GlobalSetup
-	IMPLICIT NONE
-	type(Photon) phot
-	real*8 GetKabs,random,K,GetKp,spec(nlam)
-	real*8 T0,T1,epsT0,epsT1,kp,tot,GetKsca,increaseT,Ksca(nlam)
-	integer izone,iT0,iT1,l
-	type(Cell),pointer :: C
-	
-	K=random(idum)*phot%Kext
-	if(K.lt.phot%Kabs) then
-c absorption and reemission
-		spec=0d0
-		kp=0d0
-		do izone=1,nzones
-		if(phot%inzone(izone)) then
-			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			C%E=C%E+phot%sI*phot%KabsZ(izone)/phot%Kabs
-			T0=C%T
-			T1=increaseT(C)
-
-			iT0=int(T0/dTBB)
-			iT1=int(T1/dTBB)
-
-			epsT0=T0-real(iT0)*dTBB
-			epsT1=T1-real(iT1)*dTBB
-			if(iT0.ge.nBB-1) iT0=nBB-2
-			if(iT1.ge.nBB-1) iT1=nBB-1
-			if(iT0.lt.1) iT0=1
-			if(iT1.lt.2) iT1=2
-
-			if(i1totalAbs(izone).ne.phot%i1(izone).or.
-     &		   i2totalAbs(izone).ne.phot%i2(izone).or.
-     &		   i3totalAbs(izone).ne.phot%i3(izone)) then
-				do l=1,nlam
-					KabsTotal(izone,l)=GetKabs(l,C)
-				enddo
-				i1totalAbs(izone)=phot%i1(izone)
-				i2totalAbs(izone)=phot%i2(izone)
-				i3totalAbs(izone)=phot%i3(izone)
-			endif
-			if(iT0.eq.iT1) then
-				do l=1,nlam
-					spec(l)=spec(l)+(BB(l,iT0+1)-BB(l,iT0))*KabsTotal(izone,l)
-				enddo
-				kp=kp+GetKp(iT0+1,C)-GetKp(iT0,C)
-			else
-				do l=1,nlam
-					spec(l)=spec(l)+(epsT1*BB(l,iT1+1)+(1d0-epsT1)*BB(l,iT1)-epsT0*BB(l,iT0+1)-(1d0-epsT0)*BB(l,iT0))*
-     &							KabsTotal(izone,l)
-				enddo
-				kp=kp+epsT1*GetKp(iT1+1,C)+(1d0-epsT1)*GetKp(iT1,C)-epsT0*GetKp(iT0+1,C)-(1d0-epsT0)*GetKp(iT0,C)
-			endif
-			C%T=T1
-		endif
-		enddo
-		
-		call emit(phot,spec,kp)
-	else
-c scattering
-		call randomdirection(phot%vx,phot%vy,phot%vz)
-		Ksca=0d0
-		do izone=1,nzones
-			if(phot%inzone(izone)) then
-				if(i1totalSca(izone).ne.phot%i1(izone).or.
-     &			   i2totalSca(izone).ne.phot%i2(izone).or.
-     &			   i3totalSca(izone).ne.phot%i3(izone)) then
-					C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-					do l=1,nlam
-						KscaTotal(izone,l)=GetKsca(l,C)
-					enddo
-					i1totalSca(izone)=phot%i1(izone)
-					i2totalSca(izone)=phot%i2(izone)
-					i3totalSca(izone)=phot%i3(izone)
-				endif
-				Ksca(1:nlam)=Ksca(1:nlam)+KscaTotal(izone,1:nlam)
-			endif
-		enddo
-		specemit(1:nlam)=specemit(1:nlam)*Ksca(1:nlam)
-		call integrate(specemit,tot)
-		specemit=specemit/tot
-	endif
-
-	phot%x0=phot%x
-	phot%y0=phot%y
-	phot%z0=phot%z
-
-	return
-	end
-	
-
 	subroutine MCoutput(phot)
 	use GlobalSetup
 	use Constants
@@ -529,63 +438,23 @@ c This function gives the scattering cross section per cm
 	
 	
 	
-c This subroutine gets the scattering matrix in a certain cell
-	subroutine function SetFmatrix(ilam,C,F,Ksca)
+c This function gives the scattering cross section per cm in a certain angle
+	real*8 function GetF11(ilam,iscat,C)
 	use GlobalSetup
 	IMPLICIT NONE
-	integer i1,i2,i3,ilam,ipart,iT,isize
-	real*8 Ksca
+	integer i1,i2,i3,ilam,ipart,iT,isize,iscat
 	type(Mueller) F
 	type(Cell) C
 	
-	Ksca=0d0
+	GetF11=0d0
 	do ipart=1,npart
 		do isize=1,Part(ipart)%nsize
 			do iT=1,Part(ipart)%nT
-				Ksca=Ksca+C%densP(ipart,isize,iT)*Part(ipart)%Ksca(isize,iT,ilam)
+				GetF11=GetF11+C%densP(ipart,isize,iT)*
+     &				Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F11(iscat)
 			enddo
 		enddo
 	enddo
-	F%F11(1:180)=0d0
-	F%F12(1:180)=0d0
-	F%F22(1:180)=0d0
-	F%F33(1:180)=0d0
-	F%F34(1:180)=0d0
-	F%F44(1:180)=0d0
-	F%IF11=0d0
-	F%IF12=0d0
-	do ipart=1,npart
-		do isize=1,Part(ipart)%nsize
-			do iT=1,Part(ipart)%nT
-				F%F11(1:180)=F%F11(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F11(1:180)
-				F%F12(1:180)=F%F12(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F12(1:180)
-				F%F22(1:180)=F%F22(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F22(1:180)
-				F%F33(1:180)=F%F33(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F33(1:180)
-				F%F34(1:180)=F%F34(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F34(1:180)
-				F%F44(1:180)=F%F44(1:180)+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%F44(1:180)
-				F%IF11=F%IF11+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%IF11
-				F%IF12=F%IF12+C%densP(ipart,isize,iT)*
-     &						Part(ipart)%Ksca(isize,iT,ilam)*Part(ipart)%F(isize,iT,ilam)%IF12
-			enddo
-		enddo
-	enddo
-	F%F11=F%F11/Ksca
-	F%F12=F%F12/Ksca
-	F%F22=F%F22/Ksca
-	F%F33=F%F33/Ksca
-	F%F34=F%F34/Ksca
-	F%F44=F%F44/Ksca
-	F%IF11=F%IF11/Ksca
-	F%IF12=F%IF12/Ksca
-
-	Ksca=Ksca/C%dens
 	
 	return
 	end

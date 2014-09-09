@@ -52,6 +52,7 @@ c Planck functions
 	
 c particle scattering
 	integer nspike
+	real*8 cos2phi(0:360),sin2phi(0:360)
 
 c multiwav thingies
 	real*8,allocatable :: specemit(:)				! nlam
