@@ -228,8 +228,6 @@ c absorption and reemission
 		call emit(phot,spec,kp)
 	else
 c scattering
-		call randomdirection(phot%vx,phot%vy,phot%vz)
-
 		KscaR=(phot%Kext-phot%Kabs)*random(idum)
 		do izone=1,nzones
 			if(phot%inzone(izone)) then

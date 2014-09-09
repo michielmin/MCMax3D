@@ -384,7 +384,11 @@ c-----------------------------------------------------------------------
 			
 	Mtot=0d0
 	do i=1,npart
-		call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+		if(Part(i)%nsize.gt.1) then
+			call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+		else
+			w(i,1)=1d0
+		endif
 	enddo
 	
 	do ir=1,Zone(ii)%nr
@@ -604,7 +608,11 @@ c setup initial phi grid
 
 	Mtot=0d0
 	do i=1,npart
-		call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+		if(Part(i)%nsize.gt.1) then
+			call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+		else
+			w(i,1)=1d0
+		endif
 	enddo
 	
 	do ir=1,Zone(ii)%nr
