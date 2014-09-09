@@ -20,7 +20,7 @@ endif
 
 # array boundary check
 ifeq ($(debug),true)
-  DEBUGGING = -debug -check bounds -ftrapuv -fpe0 -O0 -check all,noarg_temp_created -fp-stack-check
+  DEBUGGING = -debug -check bounds -ftrapuv -fpe3 -O0 -check all,noarg_temp_created -fp-stack-check
   #DEBUGGING = -debug -ftrapuv -g -check all -fp-stack-check
   #DEBUGGING = -heap-arrays
   #DEBUGGING = -gen-interfaces -warn interfaces

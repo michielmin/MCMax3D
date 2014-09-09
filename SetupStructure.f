@@ -110,7 +110,8 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,iT,is,iBB,ilam,j
-	real*8 spec(nlam),phi,thet,tot,tot2
+	real*8 phi,thet,tot,tot2
+	real*8,allocatable :: spec(:)
 	
 	allocate(Part(ii)%rv(Part(ii)%nsize))
 	allocate(Part(ii)%rho(Part(ii)%nT))
@@ -119,6 +120,7 @@ c-----------------------------------------------------------------------
 	allocate(Part(ii)%Kext(Part(ii)%nsize,Part(ii)%nT,nlam))
 	allocate(Part(ii)%F(Part(ii)%nsize,Part(ii)%nT,nlam))
 	allocate(Part(ii)%Kp(Part(ii)%nsize,Part(ii)%nT,0:nBB))
+	allocate(spec(nlam))
 	
 	select case(Part(ii)%ptype)
 		case("COMPUTE")
@@ -136,8 +138,7 @@ c			call ReadParticle(Part(ii),ii)
 	do iBB=1,nBB
 		do is=1,Part(ii)%nsize
 			do iT=1,Part(ii)%nT
-				spec=BB(1:nlam,iBB)*Part(ii)%Kabs(is,iT,1:nlam)
-				call integrate(spec,Part(ii)%Kp(is,iT,iBB))
+				call integrate(BB(1:nlam,iBB)*Part(ii)%Kabs(is,iT,1:nlam),Part(ii)%Kp(is,iT,iBB))
 			enddo
 		enddo
 	enddo
