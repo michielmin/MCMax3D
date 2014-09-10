@@ -367,10 +367,6 @@ c read another command, so go back
 		call output("No radiative transfer")
 	endif
 
-	call output("Output dir: " // trim(outputdir))
-	write(command,'("mkdir -p ",a)') trim(outputdir)
-	call system(command)
-
 	return
 	end
 	
@@ -613,6 +609,10 @@ c===============================================================================
 	endif
 	ncla=ncla+1
 	if(readline.ne.' ') goto 1
+
+	call output("Output dir: " // trim(outputdir))
+	write(command,'("mkdir -p ",a)') trim(outputdir)
+	call system(command)
 	
 	return
 	end
