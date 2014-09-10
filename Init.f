@@ -592,7 +592,7 @@ c===============================================================================
 	use GlobalSetup
 	IMPLICIT NONE
 	integer ncla
-	character*500 readline
+	character*500 readline,command
 
 	outputdir='./'
 
