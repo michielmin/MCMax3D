@@ -257,7 +257,7 @@
 				x=phot%x0
 				y=phot%y0
 				z=phot%z0
-				call rotateZ(x,y,z,cos(MCobs(i)%phi),sin(MCobs(i)%phi))
+				call rotateZ(x,y,z,cos(-MCobs(i)%phi),sin(-MCobs(i)%phi))
 				call rotateY(x,y,z,cos(MCobs(i)%theta),sin(MCobs(i)%theta))
 				ix=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
 				iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
