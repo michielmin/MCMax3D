@@ -5,8 +5,10 @@
 
 	if(form.ne.' ') then
 		write(*,form) trim(string)
+		write(9,form) trim(string)
 	else
 		write(*,'(a)') trim(string)
+		write(9,'(a)') trim(string)
 	endif
 	
 	return
@@ -19,7 +21,8 @@ c-----------------------------------------------------------------------
 	IMPLICIT NONE
 	
 	call flush(6)
-	
+	call flush(9)
+
 	return
 	end
 
@@ -31,6 +34,7 @@ c-----------------------------------------------------------------------
 	character string*(*)
 
 	write(*,'(a)') trim(string)
+	write(9,'(a)') trim(string)
 	
 	return
 	end

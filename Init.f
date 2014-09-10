@@ -316,7 +316,6 @@ c allocate the arrays
 	open(unit=20,file=inputfile,RECL=1000)
 	
 	ncla=-1
-	outputdir='./'
 
 	key => firstkey
 	
@@ -332,14 +331,6 @@ c allocate the arrays
 			call getarg(1+ncla,readline)
 			call output("Command line argument: " // trim(readline))
 			ncla=ncla+1
-		else if(readline(1:2).eq.'-o') then
-			ncla=ncla+1
-			call getarg(1+ncla,outputdir)
-			if(outputdir(len_trim(outputdir)-1:len_trim(outputdir)).ne.'/') then
-				outputdir=trim(outputdir) // '/'
-			endif
-			ncla=ncla+1
-			goto 10
 		else
 			if(readline.ne.' ') then
 c				try to read another command line argument
@@ -599,4 +590,32 @@ c===============================================================================
 
 	return
 	end
+	
+	
+	subroutine GetOutputDir
+	use GlobalSetup
+	IMPLICIT NONE
+	integer ncla
+	character*500 readline
+
+	outputdir='./'
+
+	ncla=3
+1	continue
+	call getarg(ncla,readline)
+	if(readline(1:2).eq.'-o') then
+		call getarg(1+ncla,outputdir)
+		if(outputdir(len_trim(outputdir)-1:len_trim(outputdir)).ne.'/') then
+			outputdir=trim(outputdir) // '/'
+		endif
+		ncla=ncla+1
+		goto 1
+	endif
+	ncla=ncla+1
+	if(readline.ne.' ') goto 1
+	
+	return
+	end
+
+
 	

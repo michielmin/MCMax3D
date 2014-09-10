@@ -8,6 +8,9 @@
 
 	criticalerror=.false.
 
+	call GetOutputDir
+	open(unit=9,file=trim(outputdir) // "log.dat",RECL=6000)
+
 c terms of use
 	call output("==================================================================")
 	call output("By using MCMax3D you agree to the terms of use.")
