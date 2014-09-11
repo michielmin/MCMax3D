@@ -439,14 +439,7 @@ c-----------------------------------------------------------------------
 	do ir=1,Zone(ii)%nr
 		call tellertje(ir,Zone(ii)%nr)
 		do it=1,Zone(ii)%nt
-			njj=50
-			do ip=1,Zone(ii)%np
-				do i=1,npart
-					do ips=1,Part(i)%nsize
-						Zone(ii)%C(ir,it,ip)%densP(i,ips,:)=0d0
-					enddo
-				enddo
-			enddo
+			njj=10
 			do jj=1,njj
 				theta=Zone(ii)%theta(it)+(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))*real(jj)/real(njj+1)
 				if(Zone(ii)%shape.eq.'SPH') then
@@ -462,7 +455,7 @@ c-----------------------------------------------------------------------
 						do ips=1,Part(i)%nsize
 							ha=(1d0+delta)**(-0.25)*
      &		sqrt(Zone(ii)%alpha*Zone(ii)%gas2dust*Mtot*f1/(sqrt(2d0*pi)*Part(i)%rv(ips)*Part(i)%rho(1)))
-							ha=ha*sqrt(1d0+ha**2)*hr
+							ha=ha*hr/sqrt(1d0+ha**2)
 							f2a=exp(-(z/ha)**2)
 							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
      &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
