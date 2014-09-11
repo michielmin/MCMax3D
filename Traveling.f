@@ -380,11 +380,14 @@
 	integer i
 
 	do i=1,nzones
-		phot%xzone(i)=phot%x-Zone(i)%x0
-		phot%yzone(i)=phot%y-Zone(i)%y0
-		phot%zzone(i)=phot%z-Zone(i)%z0
-		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
+		phot%xzone(i)=phot%x
+		phot%yzone(i)=phot%y
+		phot%zzone(i)=phot%z
+		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
+		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
+		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
 		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
 	enddo
 
 	return
@@ -401,8 +404,8 @@
 		phot%vxzone(i)=phot%vx
 		phot%vyzone(i)=phot%vy
 		phot%vzzone(i)=phot%vz
-		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
 		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
 	enddo
 
 	return
