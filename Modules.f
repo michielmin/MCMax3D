@@ -87,7 +87,6 @@ c storage speed options
 	
 	type Photon
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
-		real*8,allocatable :: xzone(:),yzone(:),zzone(:),vxzone(:),vyzone(:),vzzone(:)
 		real*8 Sx,Sy,Sz,lam,nu,x0,y0,z0
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
@@ -116,7 +115,7 @@ c storage speed options
 		type(Cell),allocatable :: C(:,:,:)					! dimension nx,ny,nz
 		integer nx,ny,nz
 		integer nr,nt,np,n1,n2,n3,imidplane
-		real*8 x0,y0,z0,phi0,theta0
+		real*8 x0,y0,z0,xn,yn,zn
 		real*8 Rin,Rout,dx,dy,dz,tmax
 		character*3 shape			! CAR, SPH, CYL
 		character*10 sscaletype,mscaletype
