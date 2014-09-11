@@ -79,7 +79,7 @@ c storage speed options
 
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
-		real*8 Etrace
+		real*8 Etrace,gasdens
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
@@ -122,7 +122,7 @@ c storage speed options
 		real*8 sscale,mscale
 		character*10 denstype		! DISK, SHELL
 		logical iter
-		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp
+		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp,gas2dust
 		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)

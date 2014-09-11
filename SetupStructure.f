@@ -370,7 +370,8 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
-	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns)
+	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta
+	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
 		call output("A disk on a rectangular grid... Let's don't and say we did.")
@@ -396,7 +397,14 @@ c-----------------------------------------------------------------------
 		call tellertje(ir,Zone(ii)%nr)
 		do it=1,Zone(ii)%nt
 			njj=10
-			Zone(ii)%C(ir,it,:)%dens=0d0
+			Zone(ii)%C(ir,it,:)%gasdens=0d0
+			do ip=1,Zone(ii)%np
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						Zone(ii)%C(ir,it,ip)%densP(i,ips,:)=0d0
+					enddo
+				enddo
+			enddo
 			do jj=1,njj
 				theta=Zone(ii)%theta(it)+(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))*real(jj)/real(njj+1)
 				if(Zone(ii)%shape.eq.'SPH') then
@@ -409,31 +417,77 @@ c-----------------------------------------------------------------------
 				f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 				f2=exp(-(z/hr)**2)
 				do ip=1,Zone(ii)%np
-					Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens+f1*f2/hr/real(njj)
+					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens+f1*f2/hr/real(njj)
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
-				if(Zone(ii)%C(ir,it,ip)%dens.lt.1d-40) Zone(ii)%C(ir,it,ip)%dens=1d-40
-				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%gasdens*Zone(ii)%C(ir,it,ip)%V
+			enddo
+		enddo
+	enddo
+	Mtot=Zone(ii)%Mdust/Mtot
+	do ir=1,Zone(ii)%nr
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%gas2dust*Zone(ii)%C(ir,it,ip)%gasdens*Mtot
 			enddo
 		enddo
 	enddo
 	do ir=1,Zone(ii)%nr
+		call tellertje(ir,Zone(ii)%nr)
 		do it=1,Zone(ii)%nt
+			njj=50
 			do ip=1,Zone(ii)%np
-				Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%Mdust/Mtot
 				do i=1,npart
 					do ips=1,Part(i)%nsize
-						Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*Zone(ii)%abun(i)*Zone(ii)%C(ir,it,ip)%dens
-						do ipt=2,Part(i)%nT
-							Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=0d0
+						Zone(ii)%C(ir,it,ip)%densP(i,ips,:)=0d0
+					enddo
+				enddo
+			enddo
+			do jj=1,njj
+				theta=Zone(ii)%theta(it)+(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))*real(jj)/real(njj+1)
+				if(Zone(ii)%shape.eq.'SPH') then
+					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*sin(theta)
+				else if(Zone(ii)%shape.eq.'CYL') then
+					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+				endif
+				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
+				hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+				f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+				do ip=1,Zone(ii)%np
+					do i=1,npart
+						do ips=1,Part(i)%nsize
+							ha=(1d0+delta)**(-0.25)*
+     &		sqrt(Zone(ii)%alpha*Zone(ii)%gas2dust*Mtot*f1/(sqrt(2d0*pi)*Part(i)%rv(ips)*Part(i)%rho(1)))
+							ha=ha*sqrt(1d0+ha**2)*hr
+							f2a=exp(-(z/ha)**2)
+							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
+     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
 						enddo
 					enddo
 				enddo
-				Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
 			enddo
 		enddo
 	enddo
+
+	Mtot=0d0
+	do ir=1,Zone(ii)%nr
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				Zone(ii)%C(ir,it,ip)%dens=0d0
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens+Zone(ii)%C(ir,it,ip)%densP(i,ips,1)
+					enddo
+				enddo
+				if(Zone(ii)%C(ir,it,ip)%dens.lt.1d-40) Zone(ii)%C(ir,it,ip)%dens=1d-40
+			enddo
+			do ip=1,Zone(ii)%np
+				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+			enddo
+		enddo
+	enddo
+	print*,Mtot/Msun
 
 	return
 	end
@@ -711,6 +765,5 @@ c-----------------------------------------------------------------------
 	
 	return
 	end
-
 
 

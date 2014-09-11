@@ -172,6 +172,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%Mdust
 		case("alpha")
 			read(key%value,*) Zone(key%nr1)%alpha
+		case("gas2dust")
+			read(key%value,*) Zone(key%nr1)%gas2dust
 		case("sh")
 			read(key%value,*) Zone(key%nr1)%sh
 		case("rsh")
@@ -487,6 +489,7 @@ c===============================================================================
 		Zone(i)%gamma_exp=1d0
 		Zone(i)%Mdust=1d-4
 		Zone(i)%alpha=1d-2
+		Zone(i)%gas2dust=100d0
 		Zone(i)%sh=0.1
 		Zone(i)%Rsh=1.0
 		Zone(i)%shpow=1.1
