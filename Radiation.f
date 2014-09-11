@@ -283,6 +283,8 @@ c						KscaTotal(izone,l)=GetKsca(l,C)
 	phot%y0=phot%y
 	phot%z0=phot%z
 
+	call TranslatePhotonV(phot)
+
 	return
 	end
 	
