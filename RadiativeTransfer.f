@@ -12,6 +12,12 @@
 	allocate(phot%inzone(nzones))
 	allocate(phot%edgeNr(nzones))
 	allocate(phot%KabsZ(nzones))
+	allocate(phot%xzone(nzones))
+	allocate(phot%yzone(nzones))
+	allocate(phot%zzone(nzones))
+	allocate(phot%vxzone(nzones))
+	allocate(phot%vyzone(nzones))
+	allocate(phot%vzzone(nzones))
 
 	call InitRadiativeTransfer
 	
@@ -129,9 +135,7 @@
 		minv=tau0/phot%Kext
 		phot%edgeNr=0
 		call increaseColumn(phot,minv)
-		phot%x=phot%x+minv*phot%vx
-		phot%y=phot%y+minv*phot%vy
-		phot%z=phot%z+minv*phot%vz
+		call TravelPhotonX(phot,minv)
 		call AddEtrace(phot,minv)
 		call Interact(phot)
 		tau0=-log(random(idum))
@@ -139,9 +143,7 @@
 	endif
 
 	call increaseColumn(phot,minv)
-	phot%x=phot%x+minv*phot%vx
-	phot%y=phot%y+minv*phot%vy
-	phot%z=phot%z+minv*phot%vz
+	call TravelPhotonX(phot,minv)
 	call AddEtrace(phot,minv)
 	tau0=tau0-phot%Kext*minv
 
@@ -320,6 +322,9 @@
 	phot%x0=phot%x
 	phot%y0=phot%y
 	phot%z0=phot%z
+
+	call TranslatePhotonX(phot)
+	call TranslatePhotonV(phot)
 	
 	return
 	end

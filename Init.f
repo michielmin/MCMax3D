@@ -132,12 +132,10 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%y0
 		case("z")
 			read(key%value,*) Zone(key%nr1)%z0
-		case("xn")
-			read(key%value,*) Zone(key%nr1)%xn
-		case("yn")
-			read(key%value,*) Zone(key%nr1)%yn
-		case("zn")
-			read(key%value,*) Zone(key%nr1)%zn
+		case("theta")
+			read(key%value,*) Zone(key%nr1)%theta
+		case("phi")
+			read(key%value,*) Zone(key%nr1)%phi
 		case("nx")
 			read(key%value,*) Zone(key%nr1)%nx
 		case("ny")
@@ -477,9 +475,8 @@ c===============================================================================
 		Zone(i)%x0=0d0
 		Zone(i)%y0=0d0
 		Zone(i)%z0=0d0
-		Zone(i)%xn=0d0
-		Zone(i)%yn=0d0
-		Zone(i)%zn=1d0
+		Zone(i)%theta=0d0
+		Zone(i)%phi=0d0
 		Zone(i)%Rin=1d0
 		Zone(i)%Rout=500d0
 		Zone(i)%Rexp=100d0

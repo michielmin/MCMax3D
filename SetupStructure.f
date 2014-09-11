@@ -262,6 +262,9 @@ c-----------------------------------------------------------------------
 	integer ii,i1,i2,i3
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
+
+	Zone(ii)%theta0=Zone(ii)%theta0*pi/180d0
+	Zone(ii)%phi0=Zone(ii)%phi0*pi/180d0
 	
 	call output("allocating memory")
 	select case(Zone(ii)%shape)
@@ -289,10 +292,10 @@ c-----------------------------------------------------------------------
 			call output("Interesting shape option ("// Zone(ii)%shape //"). But I don't get it...")
 			stop
 	end select
-	do i1=1,Zone(ii)%nr
+	do i1=1,Zone(ii)%n1
 		call tellertje(i1,Zone(ii)%nr)
-		do i2=1,Zone(ii)%nt
-			do i3=1,Zone(ii)%np
+		do i2=1,Zone(ii)%n2
+			do i3=1,Zone(ii)%n3
 				allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
 			enddo
 		enddo
