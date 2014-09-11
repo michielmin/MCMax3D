@@ -12,6 +12,12 @@
 	allocate(phot%inzone(nzones))
 	allocate(phot%edgeNr(nzones))
 	allocate(phot%KabsZ(nzones))
+	allocate(phot%xzone(nzones))
+	allocate(phot%yzone(nzones))
+	allocate(phot%zzone(nzones))
+	allocate(phot%vxzone(nzones))
+	allocate(phot%vyzone(nzones))
+	allocate(phot%vzzone(nzones))
 
 	call InitRadiativeTransfer
 	
@@ -54,7 +60,7 @@
 	integer i
 	
 	do i=1,nzones
-		r=sqrt((phot%x-Zone(i)%x0)**2+(phot%y-Zone(i)%y0)**2+(phot%z-Zone(i)%z0)**2)
+		r=sqrt(phot%xzone(i)**2+phot%yzone(i)**2+phot%zzone(i)**2)
 		phot%inzone(i)=.false.
 		if(r.lt.Zone(i)%Rout.and.r.gt.Zone(i)%Rin) then
 			phot%inzone(i)=.true.
@@ -129,9 +135,7 @@
 		minv=tau0/phot%Kext
 		phot%edgeNr=0
 		call increaseColumn(phot,minv)
-		phot%x=phot%x+minv*phot%vx
-		phot%y=phot%y+minv*phot%vy
-		phot%z=phot%z+minv*phot%vz
+		call TravelPhotonX(phot,minv)
 		call AddEtrace(phot,minv)
 		call Interact(phot)
 		tau0=-log(random(idum))
@@ -139,9 +143,7 @@
 	endif
 
 	call increaseColumn(phot,minv)
-	phot%x=phot%x+minv*phot%vx
-	phot%y=phot%y+minv*phot%vy
-	phot%z=phot%z+minv*phot%vz
+	call TravelPhotonX(phot,minv)
 	call AddEtrace(phot,minv)
 	tau0=tau0-phot%Kext*minv
 
@@ -320,6 +322,9 @@
 	phot%x0=phot%x
 	phot%y0=phot%y
 	phot%z0=phot%z
+
+	call TranslatePhotonX(phot)
+	call TranslatePhotonV(phot)
 	
 	return
 	end
@@ -469,9 +474,9 @@ c This function gives the scattering cross section per cm in a certain angle
 	
 	select case(Zone(izone)%shape)
 		case("SPH")
-			r2=(phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2+(phot%z-Zone(izone)%z0)**2
+			r2=phot%xzone(izone)**2+phot%yzone(izone)**2+phot%zzone(izone)**2
 		case("CYL")
-			r2=(phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2
+			r2=phot%xzone(izone)**2+phot%yzone(izone)**2
 	end select
 
 	do i=1,Zone(izone)%nr
@@ -491,8 +496,8 @@ c This function gives the scattering cross section per cm in a certain angle
 	real*8 theta,r
 	type(Photon) phot
 	
-	r=sqrt((phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2+(phot%z-Zone(izone)%z0)**2)
-	theta=acos((phot%z-Zone(izone)%z0)/r)
+	r=sqrt(phot%xzone(izone)**2+phot%yzone(izone)**2+phot%zzone(izone)**2)
+	theta=acos(phot%zzone(izone)/r)
 	
 	do i=1,Zone(izone)%nt
 		if(theta.ge.Zone(izone)%theta(i).and.theta.le.Zone(izone)%theta(i+1)) exit
@@ -510,9 +515,9 @@ c This function gives the scattering cross section per cm in a certain angle
 	real*8 phi,r
 	type(Photon) phot
 	
-	r=sqrt((phot%x-Zone(izone)%x0)**2+(phot%y-Zone(izone)%y0)**2)
-	phi=acos((phot%x-Zone(izone)%x0)/r)
-	if((phot%y-Zone(izone)%y0).lt.0d0) phi=2d0*pi-phi
+	r=sqrt(phot%xzone(izone)**2+phot%yzone(izone)**2)
+	phi=acos(phot%xzone(izone)/r)
+	if(phot%yzone(izone).lt.0d0) phi=2d0*pi-phi
 	
 	do i=1,Zone(izone)%nr
 		if(phi.ge.Zone(izone)%phi(i).and.phi.le.Zone(izone)%phi(i+1)) exit

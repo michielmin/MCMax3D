@@ -9,11 +9,14 @@
 	real*8 b,r,R1,R2,T1,T2,vR1,vR2,vT1,vT2,vP1,vP2
 	logical hitR1,hitR2,hitR,hitT1,hitT2,hitT,hitTsame
 	logical hitP1,hitP2,hitP,i1midplane,i2midplane
-	real*8 xt,yt,zt,tanx1,tanx2,tany1,tany2
+	real*8 xt,yt,zt,tanx1,tanx2,tany1,tany2,vxt,vyt,vzt
 
-	xt=phot%x-Zone(izone)%x0
-	yt=phot%y-Zone(izone)%y0
-	zt=phot%z-Zone(izone)%z0
+	xt=phot%xzone(izone)
+	yt=phot%yzone(izone)
+	zt=phot%zzone(izone)
+	vxt=phot%vxzone(izone)
+	vyt=phot%vyzone(izone)
+	vzt=phot%vzzone(izone)
 
 	r=xt**2+yt**2+zt**2
 	R1=Zone(izone)%R2(phot%i1(izone))
@@ -25,7 +28,7 @@
 	tany1=Zone(izone)%tany(phot%i3(izone))
 	tany2=Zone(izone)%tany(phot%i3(izone)+1)
 
-	b=2d0*(xt*phot%vx+yt*phot%vy+zt*phot%vz)
+	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
 
 	i1midplane=(phot%i2(izone).eq.Zone(izone)%imidplane)
 	i2midplane=((phot%i2(izone)+1).eq.Zone(izone)%imidplane)
@@ -35,18 +38,18 @@
 			hitR1=.false.
 			vR1=1d200
 			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(2)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=.true.
 			vR2=-b
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(3)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
@@ -54,46 +57,46 @@
 				hitT1=.false.
 				vT1=1d200
 			else
-				hitT1=hitTsame(zt,phot%vz,T1,r,b,vT1)
+				hitT1=hitTsame(zt,vzt,T1,r,b,vT1)
 			endif
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(4)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
 			if(Zone(izone)%theta(phot%i2(izone)+1).ge.(pi/2d0).or.i2midplane) then
 				hitT2=.false.
 				vT2=1d200
 			else
-				hitT2=hitTsame(zt,phot%vz,T2,r,b,vT2)
+				hitT2=hitTsame(zt,vzt,T2,r,b,vT2)
 			endif
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(5)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
 			hitP1=.false.
 			vP1=1d200
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(6)
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=.false.
 			vP2=1d200
 		case default
 			hitR1=hitR(R1,r,b,vR1)
 			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,phot%vz,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,phot%vz,T2,r,b,vT2,i2midplane)
-			hitP1=hitP(tanx1,tany1,xt,phot%vx,yt,phot%vy,vP1)
-			hitP2=hitP(tanx2,tany2,xt,phot%vx,yt,phot%vy,vP2)
+			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
+			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 	end select
 
 	if(.not.hitR2) then
@@ -152,11 +155,7 @@
 		if(Trac%i3next.gt.Zone(izone)%np) Trac%i3next=1
 		Trac%edgenext=5
 	endif
-c	if(i1midplane.or.i2midplane) then
-c		print*,i1midplane,i2midplane
-c		print*,Trac%v/AU,hitT1,hitT2,Trac%edgenext
-c		print*,phot%z/phot%vz/AU
-c	endif	
+
 	return
 	end
 	
@@ -169,17 +168,20 @@ c	endif
 	integer izone
 	real*8 R1,R2,vR1,vR2,r,b
 	logical hitR1,hitR2,hitRin,hitRout
-	real*8 xt,yt,zt
+	real*8 xt,yt,zt,vxt,vyt,vzt
 
-	xt=phot%x-Zone(izone)%x0
-	yt=phot%y-Zone(izone)%y0
-	zt=phot%z-Zone(izone)%z0
+	xt=phot%xzone(izone)
+	yt=phot%yzone(izone)
+	zt=phot%zzone(izone)
+	vxt=phot%vxzone(izone)
+	vyt=phot%vyzone(izone)
+	vzt=phot%vzzone(izone)
 
 	r=xt**2+yt**2+zt**2
 	R1=Zone(izone)%R2(1)
 	R2=Zone(izone)%R2(Zone(izone)%nr+1)
 
-	b=2d0*(xt*phot%vx+yt*phot%vy+zt*phot%vz)
+	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
 
 	hitR1=hitRin(R1,r,b,vR1)
 	hitR2=hitRout(R2,r,b,vR2)
@@ -370,5 +372,66 @@ c	endif
 !c-----------------------------------------------------------------------
 !c-----------------------------------------------------------------------
 
+
+	subroutine TranslatePhotonX(phot)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i
+
+	do i=1,nzones
+		phot%xzone(i)=phot%x
+		phot%yzone(i)=phot%y
+		phot%zzone(i)=phot%z
+		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
+		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
+		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
+		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
+	enddo
+
+	return
+	end
+	
+
+	subroutine TranslatePhotonV(phot)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i
+
+	do i=1,nzones
+		phot%vxzone(i)=phot%vx
+		phot%vyzone(i)=phot%vy
+		phot%vzzone(i)=phot%vz
+		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
+	enddo
+
+	return
+	end
+	
+	
+
+	subroutine TravelPhotonX(phot,v)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i
+	real*8 v
+
+	phot%x=phot%x+v*phot%vx
+	phot%y=phot%y+v*phot%vy
+	phot%z=phot%z+v*phot%vz
+	do i=1,nzones
+		phot%xzone(i)=phot%xzone(i)+phot%vxzone(i)*v
+		phot%yzone(i)=phot%yzone(i)+phot%vyzone(i)*v
+		phot%zzone(i)=phot%zzone(i)+phot%vzzone(i)*v
+	enddo
+
+	return
+	end
+	
+	
 	
 	
