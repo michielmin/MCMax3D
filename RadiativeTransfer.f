@@ -101,10 +101,10 @@
 		endif
 	enddo
 
-	if(iter.ge.100000) then
-		print*,'overflow'
-		goto 3
-	endif
+c	if(iter.ge.100000) then
+c		print*,'overflow'
+c		goto 3
+c	endif
 
 	do izone=1,nzones
 		if(phot%inzone(izone)) then

@@ -462,7 +462,7 @@ c-----------------------------------------------------------------------
 					do i=1,npart
 						do ips=1,Part(i)%nsize
 							ha=(1d0+delta)**(-0.25)*
-     &		sqrt(Zone(ii)%alpha*Zone(ii)%gas2dust*Mtot*f1/(sqrt(2d0*pi)*Part(i)%rv(ips)*Part(i)%rho(1)))
+     &		sqrt(Zone(ii)%alpha*Zone(ii)%gas2dust*Mtot*f1/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
 							f2a=exp(-(z/ha)**2)
 							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
