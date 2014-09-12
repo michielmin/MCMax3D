@@ -117,7 +117,7 @@ c storage speed options
 		integer nx,ny,nz
 		integer nr,nt,np,n1,n2,n3,imidplane
 		real*8 x0,y0,z0,phi0,theta0,xscale,yscale,zscale
-		real*8 Rin,Rout,dx,dy,dz,tmax
+		real*8 Rin,Rout,dx,dy,dz,tmax,sint0,cost0,sinp0,cosp0
 		character*3 shape			! CAR, SPH, CYL
 		character*10 sscaletype,mscaletype
 		real*8 sscale,mscale
@@ -133,7 +133,7 @@ c storage speed options
 		integer npix
 		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
-		real*8 x,y,z,theta,phi,opening
+		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones

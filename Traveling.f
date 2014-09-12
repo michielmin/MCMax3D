@@ -389,8 +389,8 @@
 c		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
 c		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
 c		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
-		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
-		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
+		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
 
 	return
@@ -407,8 +407,8 @@ c		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
 		phot%vxzone(i)=phot%vx
 		phot%vyzone(i)=phot%vy
 		phot%vzzone(i)=phot%vz
-		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
-		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
+		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
+		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
 
 	return

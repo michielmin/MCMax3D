@@ -22,11 +22,15 @@ c setup the blackbodies to use
 c setup the observation direction
 	do i=1,nMCobs
 		MCobs(i)%theta=MCobs(i)%theta*pi/180d0
+		MCobs(i)%cost=cos(MCobs(i)%theta)
+		MCobs(i)%sint=sin(MCobs(i)%theta)
 		MCobs(i)%phi=MCobs(i)%phi*pi/180d0
+		MCobs(i)%cosp=cos(MCobs(i)%phi)
+		MCobs(i)%sinp=sin(MCobs(i)%phi)
 		MCobs(i)%opening=cos(MCobs(i)%opening*pi/180d0)
-		MCobs(i)%x=cos(MCobs(i)%phi)*sin(MCobs(i)%theta)
-		MCobs(i)%y=sin(MCobs(i)%phi)*sin(MCobs(i)%theta)
-		MCobs(i)%z=cos(MCobs(i)%theta)
+		MCobs(i)%x=MCobs(i)%cosp*MCobs(i)%sint
+		MCobs(i)%y=MCobs(i)%sinp*MCobs(i)%sint
+		MCobs(i)%z=MCobs(i)%cost
 		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
 		allocate(MCobs(i)%spec(nlam))
 	enddo
@@ -264,7 +268,11 @@ c-----------------------------------------------------------------------
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
 
 	Zone(ii)%theta0=Zone(ii)%theta0*pi/180d0
+	Zone(ii)%cost0=cos(Zone(ii)%theta0)
+	Zone(ii)%sint0=sin(Zone(ii)%theta0)
 	Zone(ii)%phi0=Zone(ii)%phi0*pi/180d0
+	Zone(ii)%cosp0=cos(Zone(ii)%phi0)
+	Zone(ii)%sinp0=sin(Zone(ii)%phi0)
 	
 	call output("allocating memory")
 	select case(Zone(ii)%shape)
