@@ -192,7 +192,7 @@ c	endif
 			do isize=1,Part(ipart)%nsize
 				do iT=1,Part(ipart)%nT
 					column(ipart,isize,iT)=column(ipart,isize,iT)
-     &		+Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%densP(ipart,isize,iT)
+     &		+Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%densP(ipart,isize,iT)*v
 				enddo
 			enddo
 		enddo
@@ -239,7 +239,7 @@ c	endif
 				do isize=1,Part(ipart)%nsize
 					do iT=1,Part(ipart)%nT
 						do j=1,nlam
-							ext=ext+column(ipart,isize,iT)*Part(ipart)%Kext(isize,iT,j)
+							ext(j)=ext(j)+column(ipart,isize,iT)*Part(ipart)%Kext(isize,iT,j)
 						enddo
 					enddo
 				enddo
