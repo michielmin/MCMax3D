@@ -136,6 +136,12 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%theta0
 		case("phi")
 			read(key%value,*) Zone(key%nr1)%phi0
+		case("xscale")
+			read(key%value,*) Zone(key%nr1)%xscale
+		case("yscale")
+			read(key%value,*) Zone(key%nr1)%yscale
+		case("zscale")
+			read(key%value,*) Zone(key%nr1)%zscale
 		case("nx")
 			read(key%value,*) Zone(key%nr1)%nx
 		case("ny")
@@ -477,6 +483,9 @@ c===============================================================================
 		Zone(i)%z0=0d0
 		Zone(i)%theta0=0d0
 		Zone(i)%phi0=0d0
+		Zone(i)%xscale=1d0
+		Zone(i)%yscale=1d0
+		Zone(i)%zscale=1d0
 		Zone(i)%Rin=1d0
 		Zone(i)%Rout=500d0
 		Zone(i)%Rexp=100d0

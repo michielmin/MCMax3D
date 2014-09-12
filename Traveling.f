@@ -386,6 +386,9 @@
 		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
 		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
 		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
+c		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
+c		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
+c		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
 		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(-Zone(i)%phi0),sin(-Zone(i)%phi0))
 		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cos(Zone(i)%theta0),sin(Zone(i)%theta0))
 	enddo

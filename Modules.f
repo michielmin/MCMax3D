@@ -116,7 +116,7 @@ c storage speed options
 		type(Cell),allocatable :: C(:,:,:)					! dimension nx,ny,nz
 		integer nx,ny,nz
 		integer nr,nt,np,n1,n2,n3,imidplane
-		real*8 x0,y0,z0,phi0,theta0
+		real*8 x0,y0,z0,phi0,theta0,xscale,yscale,zscale
 		real*8 Rin,Rout,dx,dy,dz,tmax
 		character*3 shape			! CAR, SPH, CYL
 		character*10 sscaletype,mscaletype

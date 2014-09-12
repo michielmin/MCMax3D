@@ -473,6 +473,9 @@ c-----------------------------------------------------------------------
 				Zone(ii)%C(ir,it,ip)%dens=0d0
 				do i=1,npart
 					do ips=1,Part(i)%nsize
+						do ipt=1,Part(i)%nT
+							if(Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt).lt.1d-50) Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=1d-50
+						enddo
 						Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens+Zone(ii)%C(ir,it,ip)%densP(i,ips,1)
 					enddo
 				enddo
@@ -483,7 +486,6 @@ c-----------------------------------------------------------------------
 			enddo
 		enddo
 	enddo
-	print*,Mtot/Msun
 
 	return
 	end
@@ -628,6 +630,7 @@ c setup initial phi grid
 				if(Zone(ii)%shape.eq.'SPH') then
 					Zone(ii)%C(ir,it,ip)%V=(2d0*pi/3d0)*(Zone(ii)%R(ir+1)**3-Zone(ii)%R(ir)**3)*
      &					abs(cos(Zone(ii)%theta(it))-cos(Zone(ii)%theta(it+1)))/real(Zone(ii)%np)
+     				Zone(ii)%C(ir,it,ip)%V=Zone(ii)%C(ir,it,ip)%V*Zone(ii)%xscale*Zone(ii)%yscale*Zone(ii)%zscale
 				else if(Zone(ii)%shape.eq.'CYL') then
 					call output("Still have to do this...")
 					stop
