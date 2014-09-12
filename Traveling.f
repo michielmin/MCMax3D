@@ -6,7 +6,7 @@
 	type(Travel) Trac
 	integer izone
 
-	real*8 b,r,R1,R2,T1,T2,vR1,vR2,vT1,vT2,vP1,vP2
+	real*8 a,b,r,R1,R2,T1,T2,vR1,vR2,vT1,vT2,vP1,vP2
 	logical hitR1,hitR2,hitR,hitT1,hitT2,hitT,hitTsame
 	logical hitP1,hitP2,hitP,i1midplane,i2midplane
 	real*8 xt,yt,zt,tanx1,tanx2,tany1,tany2,vxt,vyt,vzt
@@ -29,6 +29,7 @@
 	tany2=Zone(izone)%tany(phot%i3(izone)+1)
 
 	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
+	a=vxt**2+vyt**2+vzt**2
 
 	i1midplane=(phot%i2(izone).eq.Zone(izone)%imidplane)
 	i2midplane=((phot%i2(izone)+1).eq.Zone(izone)%imidplane)
@@ -37,64 +38,64 @@
 		case(1)
 			hitR1=.false.
 			vR1=1d200
-			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitR2=hitR(R2,r,a,b,vR2)
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(2)
-			hitR1=hitR(R1,r,b,vR1)
+			hitR1=hitR(R1,r,a,b,vR1)
 			hitR2=.true.
-			vR2=-b
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			vR2=-b/a
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(3)
-			hitR1=hitR(R1,r,b,vR1)
-			hitR2=hitR(R2,r,b,vR2)
+			hitR1=hitR(R1,r,a,b,vR1)
+			hitR2=hitR(R2,r,a,b,vR2)
 			if(Zone(izone)%theta(phot%i2(izone)).le.(pi/2d0).or.i1midplane) then
 				hitT1=.false.
 				vT1=1d200
 			else
-				hitT1=hitTsame(zt,vzt,T1,r,b,vT1)
+				hitT1=hitTsame(zt,vzt,T1,r,a,b,vT1)
 			endif
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(4)
-			hitR1=hitR(R1,r,b,vR1)
-			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
+			hitR1=hitR(R1,r,a,b,vR1)
+			hitR2=hitR(R2,r,a,b,vR2)
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
 			if(Zone(izone)%theta(phot%i2(izone)+1).ge.(pi/2d0).or.i2midplane) then
 				hitT2=.false.
 				vT2=1d200
 			else
-				hitT2=hitTsame(zt,vzt,T2,r,b,vT2)
+				hitT2=hitTsame(zt,vzt,T2,r,a,b,vT2)
 			endif
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(5)
-			hitR1=hitR(R1,r,b,vR1)
-			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitR1=hitR(R1,r,a,b,vR1)
+			hitR2=hitR(R2,r,a,b,vR2)
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=.false.
 			vP1=1d200
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 		case(6)
-			hitR1=hitR(R1,r,b,vR1)
-			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitR1=hitR(R1,r,a,b,vR1)
+			hitR2=hitR(R2,r,a,b,vR2)
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=.false.
 			vP2=1d200
 		case default
-			hitR1=hitR(R1,r,b,vR1)
-			hitR2=hitR(R2,r,b,vR2)
-			hitT1=hitT(zt,vzt,T1,r,b,vT1,i1midplane)
-			hitT2=hitT(zt,vzt,T2,r,b,vT2,i2midplane)
+			hitR1=hitR(R1,r,a,b,vR1)
+			hitR2=hitR(R2,r,a,b,vR2)
+			hitT1=hitT(zt,vzt,T1,r,a,b,vT1,i1midplane)
+			hitT2=hitT(zt,vzt,T2,r,a,b,vT2,i2midplane)
 			hitP1=hitP(tanx1,tany1,xt,vxt,yt,vyt,vP1)
 			hitP2=hitP(tanx2,tany2,xt,vxt,yt,vyt,vP2)
 	end select
@@ -166,7 +167,7 @@
 	type(Photon) phot
 	type(Travel) Trac
 	integer izone
-	real*8 R1,R2,vR1,vR2,r,b
+	real*8 R1,R2,vR1,vR2,r,a,b
 	logical hitR1,hitR2,hitRin,hitRout
 	real*8 xt,yt,zt,vxt,vyt,vzt
 
@@ -181,10 +182,11 @@
 	R1=Zone(izone)%R2(1)
 	R2=Zone(izone)%R2(Zone(izone)%nr+1)
 
+	a=vxt**2+vyt**2+vzt**2
 	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
 
-	hitR1=hitRin(R1,r,b,vR1)
-	hitR2=hitRout(R2,r,b,vR2)
+	hitR1=hitRin(R1,r,a,b,vR1)
+	hitR2=hitRout(R2,r,a,b,vR2)
 
 	Trac%v=1d200
 	if(hitR1.and.vR1.lt.Trac%v) then
@@ -208,15 +210,15 @@
 	
 	
 	
-	logical function hitR(Rad,r,b,v)
+	logical function hitR(Rad,r,a,b,v)
 	IMPLICIT NONE
-	real*8 Rad,r,b,cc,discr,vr1,vr2,v,q
+	real*8 Rad,r,a,b,cc,discr,vr1,vr2,v,q
 	
 	hitR=.false.
 	v=1d200
 
 	cc=r-Rad
-	discr=(b**2-4d0*cc)
+	discr=(b**2-4d0*cc*a)
 	if(discr.ge.0d0) then
 		discr=sqrt(discr)
 		if(b.gt.0d0) then
@@ -224,7 +226,7 @@
 		else
 			q=-0.5d0*(b-discr)
 		endif
-		vr1=q
+		vr1=q/a
 		vr2=cc/q
 		if(vr1.gt.0d0) then
 			v=vr1
@@ -240,15 +242,15 @@
 
 
 	
-	logical function hitRin(Rad,r,b,v)
+	logical function hitRin(Rad,r,a,b,v)
 	IMPLICIT NONE
-	real*8 Rad,r,b,cc,discr,vr1,vr2,v,q
+	real*8 Rad,r,a,b,cc,discr,vr1,vr2,v,q
 	
 	hitRin=.false.
 	v=1d200
 
 	cc=r-Rad
-	discr=(b**2-4d0*cc)
+	discr=(b**2-4d0*cc*a)
 	if(discr.ge.0d0) then
 		discr=sqrt(discr)
 		if(b.gt.0d0) then
@@ -256,7 +258,7 @@
 		else
 			q=-0.5d0*(b-discr)
 		endif
-		vr1=q
+		vr1=q/a
 		vr2=cc/q
 		v=vr1
 		hitRin=.true.
@@ -272,15 +274,15 @@
 
 
 	
-	logical function hitRout(Rad,r,b,v)
+	logical function hitRout(Rad,r,a,b,v)
 	IMPLICIT NONE
-	real*8 Rad,r,b,cc,discr,vr1,vr2,v,q
+	real*8 Rad,r,a,b,cc,discr,vr1,vr2,v,q
 	
 	hitRout=.false.
 	v=1d200
 
 	cc=r-Rad
-	discr=(b**2-4d0*cc)
+	discr=(b**2-4d0*cc*a)
 	if(discr.ge.0d0) then
 		discr=sqrt(discr)
 		if(b.gt.0d0) then
@@ -288,7 +290,7 @@
 		else
 			q=-0.5d0*(b-discr)
 		endif
-		vr1=q
+		vr1=q/a
 		vr2=cc/q
 		v=vr1
 		hitRout=.true.
@@ -302,9 +304,9 @@
 	end
 
 
-	logical function hitT(z,vz,Thet,r,b,v,midplane)
+	logical function hitT(z,vz,Thet,r,a,b,v,midplane)
 	IMPLICIT NONE
-	real*8 Thet,r,b,at,bt,ct,discr,vt1,vt2,v,q,z,vz
+	real*8 Thet,r,a,b,at,bt,ct,discr,vt1,vt2,v,q,z,vz
 	logical midplane
 
 	hitT=.false.
@@ -316,7 +318,7 @@
 		return
 	endif
 
-	at=Thet-vz*vz
+	at=Thet*a-vz*vz
 	bt=Thet*b-2d0*z*vz
 	ct=Thet*r-z*z
 	discr=bt*bt-4d0*at*ct
@@ -341,15 +343,15 @@
 	return
 	end
 
-	logical function hitTsame(z,vz,Thet,r,b,v)
+	logical function hitTsame(z,vz,Thet,r,a,b,v)
 	IMPLICIT NONE
-	real*8 Thet,r,b,at,bt,v,z,vz
+	real*8 Thet,r,a,b,at,bt,v,z,vz
 
 	hitTsame=.true.
 	v=1d200
 
 	bt=Thet*b-2d0*z*vz
-	at=Thet-vz**2
+	at=Thet*a-vz**2
 	v=-bt/at
 	if(v.le.0d0) hitTsame=.false.
 
@@ -386,9 +388,9 @@
 		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
 		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
 		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
-c		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
-c		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
-c		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
+		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
+		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
+		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
 		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
 		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
@@ -407,6 +409,9 @@ c		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
 		phot%vxzone(i)=phot%vx
 		phot%vyzone(i)=phot%vy
 		phot%vzzone(i)=phot%vz
+		phot%vxzone(i)=phot%vxzone(i)/Zone(i)%xscale
+		phot%vyzone(i)=phot%vyzone(i)/Zone(i)%yscale
+		phot%vzzone(i)=phot%vzzone(i)/Zone(i)%zscale
 		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
 		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
