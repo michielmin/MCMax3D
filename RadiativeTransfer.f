@@ -83,10 +83,8 @@
 	type(Travel) Trac(nzones)
 	type(Cell),pointer :: C
 	type(Photon) phot
-	integer iter
 
 	tau0=-log(random(idum))
-	iter=0
 1	continue
 
 	phot%Kext=0d0
@@ -100,11 +98,6 @@
 			phot%Kabs=phot%Kabs+phot%KabsZ(izone)
 		endif
 	enddo
-
-c	if(iter.ge.100000) then
-c		print*,'overflow'
-c		goto 3
-c	endif
 
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
@@ -139,6 +132,14 @@ c	endif
 		call AddEtrace(phot,minv)
 		call Interact(phot)
 		tau0=-log(random(idum))
+		if(random(idum).lt.fstop) then
+			phot%sI=0d0
+			goto 3
+		endif
+		phot%sI=phot%sI/(1d0-fstop)
+		phot%sQ=phot%sQ/(1d0-fstop)
+		phot%sU=phot%sU/(1d0-fstop)
+		phot%sV=phot%sV/(1d0-fstop)
 		goto 1
 	endif
 

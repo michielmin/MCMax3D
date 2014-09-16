@@ -54,7 +54,7 @@ c setup the observation direction
 	enddo
 	
 	distance=distance*parsec
-	
+		
 	return
 	end
 

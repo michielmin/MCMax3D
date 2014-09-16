@@ -67,6 +67,8 @@ c allocate the arrays
 			read(key%value,*) distance
 		case("dirparticle","particledir")
 			particledir=trim(key%value)
+		case("fstop")
+			read(key%value,*) fstop
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -459,6 +461,7 @@ c===============================================================================
 	zlam2=35
 	nzlam=0
 	distance=150d0
+	fstop=0d0
 	
 	particledir=' '
 	

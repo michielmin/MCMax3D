@@ -57,6 +57,7 @@ c particle scattering
 c multiwav thingies
 	real*8,allocatable :: specemit(:)				! nlam
 	real*8,allocatable :: column(:,:,:)				! npart,nsize,iT
+	real*8 fstop									! limit number of interactions
 	
 c storage speed options
 	real*8,allocatable :: KabsTotal(:,:),KscaTotal(:,:)		! nzones,nlam
