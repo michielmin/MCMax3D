@@ -55,6 +55,14 @@ c setup the observation direction
 	
 	distance=distance*parsec
 		
+	do i=1,nMCobs
+		if(MCobs(i)%maxR.lt.0d0) then
+			MCobs(i)%maxR=maxR
+		else
+			MCobs(i)%maxR=MCobs(i)%maxR*AU
+		endif
+	enddo
+
 	return
 	end
 

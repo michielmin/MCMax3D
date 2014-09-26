@@ -45,8 +45,6 @@
 	call cpu_time(stoptime)
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 
-	call OutputMCobs
-
 	call DetermineTemperatures
 
 	return
@@ -262,8 +260,8 @@
 				z=phot%z0
 				call rotateZ(x,y,z,MCobs(i)%cosp,-MCobs(i)%sinp)
 				call rotateY(x,y,z,MCobs(i)%cost,MCobs(i)%sint)
-				ix=real(MCobs(i)%npix)*(y+maxR)/(2d0*maxR)
-				iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+maxR)/(2d0*maxR)
+				ix=real(MCobs(i)%npix)*(y+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
+				iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
 				if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
 					MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
 				endif

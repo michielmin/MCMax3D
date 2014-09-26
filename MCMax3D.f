@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	logical converged
-	integer iter
+	integer iter,i
 	character*500 VersionGIT
 
 	criticalerror=.false.
@@ -48,8 +48,12 @@ c		call OutputStructure(iter,converged)
 	endif
 
 c ok, structure is done, now let's see what this looks like
-c	call Observations
+	do i=1,nMCobs
+		if(MCobs(i)%raytrace) call Raytrace(i)
+	enddo
 	
+	call OutputMCobs
+
 c well that's it. we seem to be done!
 c have a good day
 	call output("==================================================================")

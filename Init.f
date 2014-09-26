@@ -261,6 +261,21 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%opening
 		case("npix")
 			read(key%value,*) MCobs(key%nr1)%npix
+		case("maxr")
+			read(key%value,*) MCobs(key%nr1)%maxR
+		case("raytrace")
+			read(key%value,*) MCobs(key%nr1)%raytrace
+		case("nphot")
+			read(key%value,*) MCobs(key%nr1)%Nphot
+		case("lam")
+			select case(key%nr2)
+				case(1)
+					read(key%value,*) MCobs(key%nr1)%lam1
+				case(2)
+					read(key%value,*) MCobs(key%nr1)%lam2
+				case default
+					call output("Unknown MCobs:lam value")
+			end select
 		case default
 			call output("Unknown MCobs keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -529,6 +544,10 @@ c===============================================================================
 		MCobs(i)%phi=0d0
 		MCobs(i)%opening=5d0
 		MCobs(i)%npix=500
+		MCobs(i)%raytrace=.false.
+		MCobs(i)%Nphot=100000
+		MCobs(i)%lam1=0.1d0
+		MCobs(i)%lam2=3000d0
 	enddo
 	
 	return

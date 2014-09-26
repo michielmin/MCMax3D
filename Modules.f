@@ -84,6 +84,7 @@ c storage speed options
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
+		real*8 Escatt,Elam,KabsL			! for the raytracing
 	end type Cell
 	
 	type Photon
@@ -96,6 +97,7 @@ c storage speed options
 		real*8 wl1,wl2,Kext,Kabs
 		real*8,allocatable :: KabsZ(:)						! dimension nzones
 		logical scatt,pol
+		integer iscat		! scattering angle for raytracer
 	end type Photon
 
 	type Particle
@@ -134,7 +136,10 @@ c storage speed options
 		integer npix
 		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
-		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp
+		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR
+		logical raytrace
+		real*8 lam1,lam2
+		integer Nphot
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones
