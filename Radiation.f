@@ -325,7 +325,7 @@ c------------------------------------------------------------------------
 
 	IF11=M%IF11*180d0
 	IF12=M%IF12*180d0
-
+	
 	if(phot%pol) then
 c Integrate the total scattered intensity over all phi angles
 c sin2phi and cos2phi are initialized already to be sin(2*phi) and cos(2*phi)

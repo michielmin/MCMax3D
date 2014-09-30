@@ -75,10 +75,11 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer izone,imin
-	logical leave
+	integer izone,imin,istar
+	logical leave,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs
 	type(Travel) Trac(nzones)
+	type(Travel) TracStar(nstars)
 	type(Cell),pointer :: C
 	type(Photon) phot
 
@@ -110,6 +111,10 @@
 			end select
 		endif
 	enddo
+	do istar=1,nstars
+		call HitStar(phot,istar,TracStar(istar))
+	enddo
+
 	minv=20d0*maxR
 	leave=.true.
 	do izone=1,nzones
@@ -117,6 +122,14 @@
 			minv=Trac(izone)%v
 			imin=izone
 			leave=.false.
+		endif
+	enddo
+	hitstar0=.false.
+	do istar=1,nstars
+		if(TracStar(istar)%v.gt.0d0.and.TracStar(istar)%v.lt.minv) then
+			minv=TracStar(istar)%v
+			imin=0
+			hitstar0=.true.
 		endif
 	enddo
 
@@ -145,6 +158,8 @@
 	call TravelPhotonX(phot,minv)
 	call AddEtrace(phot,minv)
 	tau0=tau0-phot%Kext*minv
+
+	if(hitstar0) goto 3
 
 	do izone=1,nzones
 		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then

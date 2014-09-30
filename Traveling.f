@@ -209,6 +209,46 @@
 	end
 	
 	
+
+	subroutine HitStar(phot,istar,Trac)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	type(Travel) Trac
+	integer istar
+	real*8 R1,vR1,r,a,b
+	logical hitRout,hitR1
+	real*8 xt,yt,zt,vxt,vyt,vzt
+
+	xt=phot%x-Star(istar)%x
+	yt=phot%y-Star(istar)%y
+	zt=phot%z-Star(istar)%z
+	vxt=phot%vx
+	vyt=phot%vy
+	vzt=phot%vz
+
+	r=xt**2+yt**2+zt**2
+	R1=Star(istar)%R
+
+	a=vxt**2+vyt**2+vzt**2
+	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
+
+	hitR1=hitRout(R1,r,a,b,vR1)
+
+	Trac%v=1d200
+	if(hitR1.and.vR1.lt.Trac%v) then
+		Trac%v=vR1
+		Trac%i1next=-1
+		Trac%i2next=-1
+		Trac%i3next=-1
+		Trac%edgenext=0
+	endif
+	
+	
+	return
+	end
+	
+	
 	
 	logical function hitR(Rad,r,a,b,v)
 	IMPLICIT NONE
@@ -394,6 +434,29 @@
 		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
 		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
+
+	return
+	end
+	
+
+!c-----------------------------------------------------------------------
+!c-----------------------------------------------------------------------
+
+
+	subroutine TranslatePhotonXinverse(phot,i)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i
+
+	call rotateY(phot%x,phot%y,phot%z,Zone(i)%cost0,-Zone(i)%sint0)
+	call rotateZ(phot%x,phot%y,phot%z,Zone(i)%cosp0,Zone(i)%sinp0)
+	phot%x=phot%x*Zone(i)%xscale
+	phot%y=phot%y*Zone(i)%yscale
+	phot%z=phot%z*Zone(i)%zscale
+	phot%x=phot%x+Zone(i)%x0
+	phot%y=phot%y+Zone(i)%y0
+	phot%z=phot%z+Zone(i)%z0
 
 	return
 	end

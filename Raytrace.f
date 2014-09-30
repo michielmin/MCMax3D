@@ -39,15 +39,31 @@
 	use GlobalSetup
 	IMPLICIT NONE
 	integer iobs,ilam,izone,iT,i,i1,i2,i3,iphot,istar
-	real*8 GetKabs,Etot,Erandom,random
+	real*8 GetKabs,Etot,Erandom,random,x,y,z,r
 	logical emitfromstar
 	type(Cell),pointer :: C
 	type(Photon) phot
 	
+	allocate(phot%i1(nzones))
+	allocate(phot%i2(nzones))
+	allocate(phot%i3(nzones))
+	allocate(phot%inzone(nzones))
+	allocate(phot%edgeNr(nzones))
+	allocate(phot%KabsZ(nzones))
+	allocate(phot%xzone(nzones))
+	allocate(phot%yzone(nzones))
+	allocate(phot%zzone(nzones))
+	allocate(phot%vxzone(nzones))
+	allocate(phot%vyzone(nzones))
+	allocate(phot%vzzone(nzones))
+
 	Etot=0d0
 	do i=1,nstars
 		Etot=Etot+Star(i)%F(ilam)
 	enddo
+	
+	call output("Tracing wavelength: " // dbl2string(lam(ilam),'(f10.4)') // " micron")
+	call output("number " // int2string(ilam,'(i6)'))
 	
 	do izone=1,nzones
 		do i1=1,Zone(izone)%n1
@@ -67,12 +83,17 @@
 	enddo
 
 	do iphot=1,MCobs(iobs)%Nphot
+		call tellertje(iphot,MCobs(iobs)%Nphot)
 		phot%sI=Etot/real(MCobs(iobs)%Nphot)
+		phot%sQ=0d0
+		phot%sU=0d0
+		phot%sV=0d0
 		phot%ilam1=ilam
+		phot%pol=.false.
 2		Erandom=Etot*random(idum)
 		emitfromstar=.false.
 		do istar=1,nstars
-			Erandom=Erandom-Star(i)%F(ilam)
+			Erandom=Erandom-Star(istar)%F(ilam)
 			if(Erandom.lt.0d0) then
 				emitfromstar=.true.
 				goto 1
@@ -92,10 +113,18 @@
 		goto 2
 1		continue
 		if(emitfromstar) then
-			call EmitPhotonStar(istar)
+			call EmitPhotonStar(phot,istar)
 		else
-			call EmitPhotonMatter(izone,i1,i2,i3)
+			call EmitPhotonMatter(phot,izone,i1,i2,i3)
 		endif
+		x=-phot%vy
+		y=phot%vx
+		z=0d0
+		r=sqrt(x**2+y**2+z**2)
+		phot%Sx=x/r
+		phot%Sy=y/r
+		phot%Sz=z/r
+		call InWhichZones(phot)
 		call TravelPhotonMono(phot,iobs)
 	enddo
 	
@@ -103,19 +132,69 @@
 	end
 
 
-	subroutine EmitPhotonStar(istar)
+	subroutine EmitPhotonStar(phot,istar)
 	use GlobalSetup
 	IMPLICIT NONE
 	integer istar
+	type(Photon) phot
 	
+	call randomdirection(phot%x,phot%y,phot%z)
+
+	phot%x=Star(istar)%R*phot%x
+	phot%y=Star(istar)%R*phot%y
+	phot%z=Star(istar)%R*phot%z
+
+	call randomdirection(phot%vx,phot%vy,phot%vz)
+
+	if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
+		phot%vx=-phot%vx
+		phot%vy=-phot%vy
+		phot%vz=-phot%vz
+	endif
+
+	phot%x=phot%x+Star(istar)%x
+	phot%y=phot%y+Star(istar)%y
+	phot%z=phot%z+Star(istar)%z
+	
+	phot%edgeNr=0
+	phot%inzone=.false.
+
+	call TranslatePhotonX(phot)
+	call TranslatePhotonV(phot)
+
 	return
 	end
 	
 	
-	subroutine EmitPhotonMatter(izone,i1,i2,i3)
+	subroutine EmitPhotonMatter(phot,izone,i1,i2,i3)
 	use GlobalSetup
 	IMPLICIT NONE
 	integer izone,i1,i2,i3	
+	real*8 R,theta,phi,random
+	type(Photon) phot
+	
+	select case(Zone(izone)%shape)
+		case("SPH")
+			R=Zone(izone)%R(i1)+(Zone(izone)%R(i1+1)-Zone(izone)%R(i1))*random(idum)
+			theta=Zone(izone)%theta(i2)+(Zone(izone)%theta(i2+1)-Zone(izone)%theta(i2))*random(idum)
+			phi=Zone(izone)%phi(i3)+(Zone(izone)%phi(i3+1)-Zone(izone)%phi(i3))*random(idum)
+			phot%x=R*cos(phi)*sin(theta)
+			phot%y=R*sin(phi)*sin(theta)
+			phot%z=R*cos(theta)
+		case default
+			call output("Raytracing on non-spherical zones not yet possible")
+			stop
+	end select
+
+	call randomdirection(phot%vx,phot%vy,phot%vz)
+
+	call TranslatePhotonXinverse(phot,izone)
+
+	phot%edgeNr=0
+	phot%inzone=.false.
+
+	call TranslatePhotonX(phot)
+	call TranslatePhotonV(phot)
 	
 	return
 	end
@@ -128,7 +207,7 @@
 	use Constants
 	IMPLICIT NONE
 	integer izone,imin,iobs
-	logical leave
+	logical leave,inany
 	real*8 minv,tau0,tau,GetKext,random,GetKabs,fstopmono,albedo,theta
 	type(Travel) Trac(nzones)
 	type(Cell),pointer :: C
@@ -145,18 +224,24 @@
 
 	phot%Kext=0d0
 	phot%Kabs=0d0
+	inany=.false.
 	do izone=1,nzones
 		phot%KabsZ(izone)=0d0
 		if(phot%inzone(izone)) then
+			inany=.true.
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
 			phot%Kext=phot%Kext+GetKext(phot%ilam1,C)
 			phot%KabsZ(izone)=GetKabs(phot%ilam1,C)
 			phot%Kabs=phot%Kabs+phot%KabsZ(izone)
 		endif
 	enddo
-
-	albedo=(phot%Kext-phot%Kabs)/phot%Kext
-	fstopmono=1d0-albedo**0.25
+	if(inany) then
+		albedo=(phot%Kext-phot%Kabs)/phot%Kext
+		fstopmono=1d0-albedo**0.25
+	else
+		albedo=0d0
+		fstopmono=1d0
+	endif
 
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
@@ -205,7 +290,7 @@
 	endif
 
 	call TravelPhotonX(phot,minv)
-	call AddEtraceMono(phot,minv)
+	if(inany) call AddEtraceMono(phot,minv)
 	tau0=tau0-phot%Kext*minv
 
 	do izone=1,nzones
@@ -251,6 +336,7 @@
 	
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
 			C%Escatt=C%Escatt+v*GetF11(phot%ilam1,phot%iscat,C)*phot%sI
 		endif
 	enddo
@@ -290,6 +376,7 @@
 	enddo
 
 1	continue
+
 	call scatangle(phot,M,iscat)
 
 	call TranslatePhotonV(phot)
@@ -302,10 +389,283 @@
 
 	subroutine FormalSolution(iobs,ilam)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam
+	integer iobs,ilam,izone,nr,np,maxnr,ir,ip,i,j,ix,iy
+	real*8,allocatable :: R(:)
+	real*8 random,phi,x,y,z,flux,A,R1,R2,Rad
+	type(ZoneType),pointer :: Zo
+	type(Photon) phot
+
+	allocate(phot%i1(nzones))
+	allocate(phot%i2(nzones))
+	allocate(phot%i3(nzones))
+	allocate(phot%inzone(nzones))
+	allocate(phot%edgeNr(nzones))
+	allocate(phot%KabsZ(nzones))
+	allocate(phot%xzone(nzones))
+	allocate(phot%yzone(nzones))
+	allocate(phot%zzone(nzones))
+	allocate(phot%vxzone(nzones))
+	allocate(phot%vyzone(nzones))
+	allocate(phot%vzzone(nzones))
+
+
+	maxnr=0
+	do izone=1,nzones
+		nr=Zone(izone)%nR*Zone(izone)%nt+100
+		if(nr.gt.maxnr) maxnr=nr
+	enddo
+	allocate(R(maxnr))
+	
+	MCobs(iobs)%image(:,:,ilam)=0d0
+	phot%ilam1=ilam
+	
+	do izone=1,nzones
+		Zo => Zone(izone)
+		np=Zo%np*2
+		ir=0
+		do i=1,300
+			ir=ir+1
+			R(ir)=Zo%R(1)*real(i)/301d0
+		enddo
+		do j=1,Zo%nt
+			ir=ir+1
+			R(ir)=abs(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0))
+			ir=ir+1
+			R(ir)=abs(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0))
+		enddo
+		do i=1,Zo%nR
+			ir=ir+1
+			R(ir)=abs(sqrt(Zo%R(i)*Zo%R(i+1)))
+		enddo
+		nr=ir
+1		call sort(R,nr)
+		do ir=1,nr-1
+			if(R(ir).eq.R(ir+1)) then
+				if(ir.eq.1) then
+					R(ir)=Zo%Rin+random(idum)*(Zo%Rout-Zo%Rin)
+				else
+					R(ir)=sqrt(R(ir-1)*R(ir))
+				endif
+				goto 1
+			endif
+		enddo
+		x=Zo%x0
+		y=Zo%y0
+		z=Zo%z0
+		call rotateZ(x,y,z,MCobs(iobs)%cosp,-MCobs(iobs)%sinp)
+		call rotateY(x,y,z,MCobs(iobs)%cost,MCobs(iobs)%sint)
+
+		print*,nr
+		do ir=1,nr
+			call tellertje(ir,nr)
+			do ip=1,np
+				if(ir.eq.1) then
+					R1=R(ir)
+					R2=sqrt(R(ir)*R(ir+1))
+				else if(ir.eq.nr) then
+					R1=sqrt(R(ir)*R(ir-1))
+					R2=R(ir)
+				else
+					R1=sqrt(R(ir)*R(ir-1))
+					R2=sqrt(R(ir)*R(ir+1))
+				endif
+				Rad=R1+random(idum)*(R2-R1)
+				phi=2d0*pi*(real(ip-1)+random(idum))/real(np)
+				phot%x=Rad*cos(phi)+x
+				phot%y=Rad*sin(phi)+y
+				phot%z=0d0+z
+
+				ix=real(MCobs(iobs)%npix)*(phot%y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+				iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(phot%x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+				if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+
+				call rotateY(phot%x,phot%y,phot%z,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+				call rotateZ(phot%x,phot%y,phot%z,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+				phot%vx=0d0
+				phot%vy=0d0
+				phot%vz=-1d0
+				call rotateY(phot%vx,phot%vy,phot%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+				call rotateZ(phot%vx,phot%vy,phot%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+
+				call TravelPhotonX(phot,-maxR)
+
+				call TranslatePhotonX(phot)
+				call TranslatePhotonV(phot)
+				call RaytraceFlux(phot,flux,ilam,izone)
+				if(ir.eq.1) then
+					A=2d0*pi*(R(ir+1)*R(ir)-R(ir)**2)/real(np)
+				else if(ir.eq.nr) then
+					A=2d0*pi*(R(ir)**2-R(ir)*R(ir-1))/real(np)
+				else
+					A=2d0*pi*(R(ir+1)*R(ir)-R(ir)*R(ir-1))/real(np)
+				endif
+
+
+				do i=1,1000
+					Rad=R1+random(idum)*(R2-R1)
+					phi=2d0*pi*(real(ip-1)+random(idum))/real(np)
+					phot%x=Rad*cos(phi)+x
+					phot%y=Rad*sin(phi)+y
+					phot%z=0d0+z
+
+					ix=real(MCobs(iobs)%npix)*(phot%y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(phot%x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+
+					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+flux*A/1000d0
+					endif
+				enddo
+				endif
+			enddo
+		enddo
+	enddo
+		
+	
 	
 	return
 	end
-		
+
+
+
+	subroutine RaytraceFlux(phot,flux,ilam,izone0)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	real*8 flux
+	integer ilam,izone0,istar
+
+
+	integer izone,imin,iobs,iT
+	logical leave,inany,hitstar0
+	real*8 minv,tau0,tau,GetKext,random,GetKabs,theta,tau_e,fact,exptau,frac
+	real*8 albedo,emis,scat
+	type(Travel) Trac(nzones),TracStar(nstars)
+	type(Cell),pointer :: C
+
+	tau0=0d0
+	phot%inzone=.false.
+	phot%edgeNr=0
+	fact=1d0
+	flux=0d0
+	
+1	continue
+
+	phot%Kext=0d0
+	phot%Kabs=0d0
+	inany=.false.
+	do izone=1,nzones
+		phot%KabsZ(izone)=0d0
+		if(phot%inzone(izone)) then
+			inany=.true.
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			phot%Kext=phot%Kext+GetKext(phot%ilam1,C)
+			phot%KabsZ(izone)=GetKabs(phot%ilam1,C)
+			phot%Kabs=phot%Kabs+phot%KabsZ(izone)
+		endif
+	enddo
+	albedo=(phot%Kext-phot%Kabs)/phot%Kext
+
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call TravelSph(phot,izone,Trac(izone))
+			end select
+		else
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call HitSph(phot,izone,Trac(izone))
+			end select
+		endif
+	enddo
+	do istar=1,nstars
+		call HitStar(phot,istar,TracStar(istar))
+	enddo
+
+	minv=20d0*maxR
+	leave=.true.
+	do izone=1,nzones
+		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
+			minv=Trac(izone)%v
+			imin=izone
+			leave=.false.
+		endif
+	enddo
+	hitstar0=.false.
+	do istar=1,nstars
+		if(TracStar(istar)%v.gt.0d0.and.TracStar(istar)%v.lt.minv) then
+			minv=TracStar(istar)%v
+			imin=0
+			hitstar0=.true.
+		endif
+	enddo
+
+	if(leave) goto 3
+
+	call TravelPhotonX(phot,minv)
+
+	if(inany) then
+		tau_e=phot%Kext*minv
+
+		emis=0d0
+		scat=0d0
+		if(phot%inzone(izone0)) then
+			C => Zone(izone0)%C(phot%i1(izone0),phot%i2(izone0),phot%i3(izone0))
+			iT=(C%T+0.5d0)/dTBB
+			if(iT.lt.1) iT=1
+			if(iT.gt.nBB) iT=nBB
+			emis=emis+BB(ilam,iT)*phot%KabsZ(izone0)
+			scat=scat+C%Escatt/C%V
+		endif
+		emis=emis*(1d0-albedo)/phot%Kabs
+		scat=scat*albedo/phot%Kext
+
+		if(tau_e.lt.1d-6) then
+			flux=flux+(2d0*scat+emis)*tau_e*fact
+			fact=fact*(1d0-tau_e)
+		else
+			exptau=exp(-tau_e)
+			frac=(1d0-exptau)
+			flux=flux+(2d0*scat+emis)*frac*fact
+			fact=fact*exptau
+		endif
+		tau0=tau0+tau_e	
+	endif
+
+	if(hitstar0) goto 3
+
+	do izone=1,nzones
+		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
+			phot%i1(izone)=Trac(izone)%i1next
+			phot%i2(izone)=Trac(izone)%i2next
+			phot%i3(izone)=Trac(izone)%i3next
+
+			if(phot%i1(izone).eq.-1) call determine_i1(phot,izone)
+			if(phot%i2(izone).eq.-1) call determine_i2(phot,izone)
+			if(phot%i3(izone).eq.-1) call determine_i3(phot,izone)
+
+			phot%edgeNr(izone)=Trac(izone)%edgenext
+			phot%inzone(izone)=.true.
+			if(phot%i1(izone).gt.Zone(izone)%n1.or.
+     &			phot%i2(izone).gt.Zone(izone)%n2.or.
+     &			phot%i3(izone).gt.Zone(izone)%n3.or.
+     &			phot%i1(izone).lt.1.or.
+     &			phot%i2(izone).lt.1.or.
+     &			phot%i3(izone).lt.1) then
+				phot%inzone(izone)=.false.
+			endif
+		else
+			phot%edgeNr(izone)=0
+		endif
+	enddo
+
+	goto 1
+3	continue
+	
+
+	return
+	end
+
 	
