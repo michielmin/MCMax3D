@@ -158,6 +158,14 @@ c storage speed options
 		real*8 v
 		integer i1next,i2next,i3next,edgenext
 	end type Travel
+
+	type Path
+		real*8 v
+		logical,allocatable :: inzone(:)
+		integer,allocatable :: i1(:),i2(:),i3(:)
+		logical last
+		type(Path),pointer :: next
+	end type Path
 	
 	end module GlobalSetup
 

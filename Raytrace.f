@@ -43,6 +43,9 @@
 	logical emitfromstar
 	type(Cell),pointer :: C
 	type(Photon) phot
+	integer ispat,nspat
+	integer,allocatable :: zspat(:),i1spat(:),i2spat(:),i3spat(:)
+	real*8,allocatable :: Espat(:)
 	
 	allocate(phot%i1(nzones))
 	allocate(phot%i2(nzones))
@@ -65,6 +68,24 @@
 	call output("Tracing wavelength: " // dbl2string(lam(ilam),'(f10.4)') // " micron")
 	call output("number " // int2string(ilam,'(i6)'))
 	
+	nspat=0
+	do izone=1,nzones
+		do i1=1,Zone(izone)%n1
+		do i2=1,Zone(izone)%n2
+		do i3=1,Zone(izone)%n3
+			nspat=nspat+1
+		enddo
+		enddo
+		enddo
+	enddo
+
+	allocate(Espat(nspat+1))
+	allocate(zspat(nspat))
+	allocate(i1spat(nspat))
+	allocate(i2spat(nspat))
+	allocate(i3spat(nspat))
+	nspat=0
+	Espat(1)=0d0
 	do izone=1,nzones
 		do i1=1,Zone(izone)%n1
 		do i2=1,Zone(izone)%n2
@@ -77,6 +98,14 @@
 			C%KabsL=GetKabs(ilam,C)
 			C%Elam=C%KabsL*BB(ilam,iT)*C%V
 			Etot=Etot+C%Elam
+			if(C%Elam.gt.0d0) then
+				nspat=nspat+1
+				Espat(nspat+1)=Espat(nspat)+C%Elam
+				zspat(nspat)=izone
+				i1spat(nspat)=i1
+				i2spat(nspat)=i2
+				i3spat(nspat)=i3
+			endif
 		enddo
 		enddo
 		enddo
@@ -99,18 +128,12 @@
 				goto 1
 			endif
 		enddo
-		do izone=1,nzones
-			do i1=1,Zone(izone)%n1
-			do i2=1,Zone(izone)%n2
-			do i3=1,Zone(izone)%n3
-				Erandom=Erandom-Zone(izone)%C(i1,i2,i3)%Elam
-				if(Erandom.lt.0d0) goto 1
-			enddo
-			enddo
-			enddo
-		enddo
-		call output("something is wrong...")
-		goto 2
+
+		call hunt(Espat,nspat+1,Erandom,ispat)
+		izone=zspat(ispat)
+		i1=i1spat(ispat)
+		i2=i2spat(ispat)
+		i3=i3spat(ispat)
 1		continue
 		if(emitfromstar) then
 			call EmitPhotonStar(phot,istar)
@@ -391,9 +414,9 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam,izone,nr,np,maxnr,ir,ip,i,j,ix,iy
+	integer iobs,ilam,izone,nr,np,maxnr,ir,ip,i,j,ix,iy,ii
 	real*8,allocatable :: R(:)
-	real*8 random,phi,x,y,z,flux,A,R1,R2,Rad
+	real*8 random,phi,x,y,z,flux,A,R1,R2,Rad,scale(3)
 	type(ZoneType),pointer :: Zo
 	type(Photon) phot
 
@@ -413,7 +436,7 @@
 
 	maxnr=0
 	do izone=1,nzones
-		nr=Zone(izone)%nR*Zone(izone)%nt+100
+		nr=3*(2*Zone(izone)%nR+2*Zone(izone)%nt+200)
 		if(nr.gt.maxnr) maxnr=nr
 	enddo
 	allocate(R(maxnr))
@@ -425,29 +448,35 @@
 		Zo => Zone(izone)
 		np=Zo%np*2
 		ir=0
-		do i=1,300
+		scale(1)=Zo%xscale
+		scale(2)=Zo%yscale
+		scale(3)=Zo%zscale
+		do ii=1,3
+		do i=1,200
 			ir=ir+1
-			R(ir)=Zo%R(1)*real(i)/301d0
+			R(ir)=scale(ii)*Zo%R(1)*real(i)/201d0
 		enddo
 		do j=1,Zo%nt
 			ir=ir+1
-			R(ir)=abs(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0))
+			R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
 			ir=ir+1
-			R(ir)=abs(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0))
+			R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
 		enddo
 		do i=1,Zo%nR
 			ir=ir+1
-			R(ir)=abs(sqrt(Zo%R(i)*Zo%R(i+1)))
+			R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1)))
+			ir=ir+1
+			R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1))*sin(MCobs(iobs)%theta-Zo%theta0))
+		enddo
 		enddo
 		nr=ir
 1		call sort(R,nr)
 		do ir=1,nr-1
 			if(R(ir).eq.R(ir+1)) then
-				if(ir.eq.1) then
-					R(ir)=Zo%Rin+random(idum)*(Zo%Rout-Zo%Rin)
-				else
-					R(ir)=sqrt(R(ir-1)*R(ir))
-				endif
+				do i=ir+1,nr-1
+					R(i)=R(i+1)
+				enddo
+				nr=nr-1
 				goto 1
 			endif
 		enddo
@@ -456,8 +485,9 @@
 		z=Zo%z0
 		call rotateZ(x,y,z,MCobs(iobs)%cosp,-MCobs(iobs)%sinp)
 		call rotateY(x,y,z,MCobs(iobs)%cost,MCobs(iobs)%sint)
-
-		print*,nr
+		call output("Tracing zone " // trim(int2string(izone,'(i4)')))
+		call output("Number of rays: nr x nphi = " // trim(int2string(nr,'(i4)')) // "x" 
+     &				// trim(int2string(np,'(i4)')) // " = "  // trim(int2string(nr*np,'(i8)')))
 		do ir=1,nr
 			call tellertje(ir,nr)
 			do ip=1,np
@@ -495,11 +525,11 @@
 				call TranslatePhotonV(phot)
 				call RaytraceFlux(phot,flux,ilam,izone)
 				if(ir.eq.1) then
-					A=2d0*pi*(R(ir+1)*R(ir)-R(ir)**2)/real(np)
+					A=pi*(R(ir+1)*R(ir)-R(ir)**2)/real(np)
 				else if(ir.eq.nr) then
-					A=2d0*pi*(R(ir)**2-R(ir)*R(ir-1))/real(np)
+					A=pi*(R(ir)**2-R(ir)*R(ir-1))/real(np)
 				else
-					A=2d0*pi*(R(ir+1)*R(ir)-R(ir)*R(ir-1))/real(np)
+					A=pi*(R(ir+1)*R(ir)-R(ir)*R(ir-1))/real(np)
 				endif
 
 
@@ -514,7 +544,7 @@
 					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(phot%x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
 
 					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+flux*A/1000d0
+						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+1d23*flux*A/1000d0/(4d0*pi)
 					endif
 				enddo
 				endif
@@ -623,12 +653,12 @@
 		scat=scat*albedo/phot%Kext
 
 		if(tau_e.lt.1d-6) then
-			flux=flux+(2d0*scat+emis)*tau_e*fact
+			flux=flux+(scat+emis)*tau_e*fact
 			fact=fact*(1d0-tau_e)
 		else
 			exptau=exp(-tau_e)
 			frac=(1d0-exptau)
-			flux=flux+(2d0*scat+emis)*frac*fact
+			flux=flux+(scat+emis)*frac*fact
 			fact=fact*exptau
 		endif
 		tau0=tau0+tau_e	

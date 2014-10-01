@@ -24,6 +24,7 @@
 		MCfile=trim(outputdir) // "MCSpec" // trim(int2string(i,'(i0.4)')) // ".dat"
 		open(unit=20,file=MCfile)
 		do j=1,nlam
+			MCobs(i)%spec(j)=sum(MCobs(i)%image(:,:,j))
 			write(20,*) lam(j),MCobs(i)%spec(j)/distance**2/f
 		enddo
 		close(unit=20)
