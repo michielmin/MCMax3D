@@ -228,7 +228,7 @@ c absorption and reemission
 		call emit(phot,spec,kp)
 	else
 c scattering
-		KscaR=(phot%Kext-phot%Kabs)*random(idum)
+2		KscaR=(phot%Kext-phot%Kabs)*random(idum)
 		do izone=1,nzones
 			if(phot%inzone(izone)) then
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
@@ -252,27 +252,29 @@ c scattering
 			enddo
 			endif
 		enddo
-
+		goto 2
 1		continue
 		call scatangle(phot,M,iscat)
 
-		Ksca=0d0
-		do izone=1,nzones
-			if(phot%inzone(izone)) then
-				if(i1totalSca(izone).ne.phot%i1(izone).or.
-     &			   i2totalSca(izone).ne.phot%i2(izone).or.
-     &			   i3totalSca(izone).ne.phot%i3(izone)) then
-					C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-					do l=1,nlam
-c						KscaTotal(izone,l)=GetKsca(l,C)
-						KscaTotal(izone,l)=GetF11(l,iscat,C)
-					enddo
-					i1totalSca(izone)=phot%i1(izone)
-					i2totalSca(izone)=phot%i2(izone)
-					i3totalSca(izone)=phot%i3(izone)
-				endif
-				Ksca(1:nlam)=Ksca(1:nlam)+KscaTotal(izone,1:nlam)
-			endif
+c		Ksca=0d0
+c		do izone=1,nzones
+c			if(phot%inzone(izone)) then
+c				if(i1totalSca(izone).ne.phot%i1(izone).or.
+c     &			   i2totalSca(izone).ne.phot%i2(izone).or.
+c     &			   i3totalSca(izone).ne.phot%i3(izone)) then
+c					C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+c					do l=1,nlam
+c						KscaTotal(izone,l)=GetF11(l,iscat,C)
+c					enddo
+c					i1totalSca(izone)=phot%i1(izone)
+c					i2totalSca(izone)=phot%i2(izone)
+c					i3totalSca(izone)=phot%i3(izone)
+c				endif
+c				Ksca(1:nlam)=Ksca(1:nlam)+KscaTotal(izone,1:nlam)
+c			endif
+c		enddo
+		do l=1,nlam
+			Ksca(l)=Part(ipart)%F(isize,iT,l)%F11(iscat)
 		enddo
 		specemit(1:nlam)=specemit(1:nlam)*Ksca(1:nlam)
 		call integrate(specemit,tot)

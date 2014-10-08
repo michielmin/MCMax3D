@@ -163,6 +163,14 @@ c			call ReadParticle(Part(ii),ii)
 	do ilam=1,nlam
 		do is=1,Part(ii)%nsize
 			do iT=1,Part(ii)%nT
+				do j=1,180
+					Part(ii)%F(is,iT,ilam)%F11(j)=1d0
+					Part(ii)%F(is,iT,ilam)%F12(j)=0d0
+					Part(ii)%F(is,iT,ilam)%F22(j)=0d0
+					Part(ii)%F(is,iT,ilam)%F33(j)=0d0
+					Part(ii)%F(is,iT,ilam)%F34(j)=0d0
+					Part(ii)%F(is,iT,ilam)%F44(j)=0d0
+				enddo
 				tot=0d0
 				tot2=0d0
 				do j=1,180

@@ -159,13 +159,26 @@ c storage speed options
 		integer i1next,i2next,i3next,edgenext
 	end type Travel
 
+	type CellPointer
+		type(Cell),pointer :: C
+	end type CellPointer
+
 	type Path
 		real*8 v
 		logical,allocatable :: inzone(:)
-		integer,allocatable :: i1(:),i2(:),i3(:)
+		type(CellPointer),allocatable :: C(:)
 		logical last
 		type(Path),pointer :: next
 	end type Path
+
+	type PathImage
+		type(Path),allocatable :: P(:,:)
+		real*8,allocatable :: R(:)
+		real*8 x,y
+		integer nr,np
+	end type PathImage
+	
+	type(PathImage),allocatable :: Pimage(:)		! dimension nzones
 	
 	end module GlobalSetup
 

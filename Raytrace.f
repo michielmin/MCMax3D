@@ -24,6 +24,7 @@
 		enddo
 	endif
 
+	call SetupPaths(iobs)
 	do ilam=1,nlam
 		if((lam(ilam).ge.MCobs(iobs)%lam1.and.lam(ilam).le.MCobs(iobs)%lam2)
      &			.or.ilam.eq.ilam0) then
@@ -31,6 +32,8 @@
 			call FormalSolution(iobs,ilam)
 		endif
 	enddo
+
+	call deallocatePaths
 	
 	return
 	end
@@ -42,23 +45,28 @@
 	real*8 GetKabs,Etot,Erandom,random,x,y,z,r
 	logical emitfromstar
 	type(Cell),pointer :: C
-	type(Photon) phot
+	type(Photon),allocatable :: phot(:)
 	integer ispat,nspat
 	integer,allocatable :: zspat(:),i1spat(:),i2spat(:),i3spat(:)
 	real*8,allocatable :: Espat(:)
-	
-	allocate(phot%i1(nzones))
-	allocate(phot%i2(nzones))
-	allocate(phot%i3(nzones))
-	allocate(phot%inzone(nzones))
-	allocate(phot%edgeNr(nzones))
-	allocate(phot%KabsZ(nzones))
-	allocate(phot%xzone(nzones))
-	allocate(phot%yzone(nzones))
-	allocate(phot%zzone(nzones))
-	allocate(phot%vxzone(nzones))
-	allocate(phot%vyzone(nzones))
-	allocate(phot%vzzone(nzones))
+	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
+
+	maxnopenmp=omp_get_max_threads()+1
+	allocate(phot(maxnopenmp))	
+	do i=1,maxnopenmp
+		allocate(phot(i)%i1(nzones))
+		allocate(phot(i)%i2(nzones))
+		allocate(phot(i)%i3(nzones))
+		allocate(phot(i)%inzone(nzones))
+		allocate(phot(i)%edgeNr(nzones))
+		allocate(phot(i)%KabsZ(nzones))
+		allocate(phot(i)%xzone(nzones))
+		allocate(phot(i)%yzone(nzones))
+		allocate(phot(i)%zzone(nzones))
+		allocate(phot(i)%vxzone(nzones))
+		allocate(phot(i)%vyzone(nzones))
+		allocate(phot(i)%vzzone(nzones))
+	enddo
 
 	Etot=0d0
 	do i=1,nstars
@@ -66,7 +74,7 @@
 	enddo
 	
 	call output("Tracing wavelength: " // dbl2string(lam(ilam),'(f10.4)') // " micron")
-	call output("number " // int2string(ilam,'(i6)'))
+	call output("  number " // int2string(ilam,'(i6)'))
 	
 	nspat=0
 	do izone=1,nzones
@@ -111,14 +119,23 @@
 		enddo
 	enddo
 
+	call tellertje(1,100)
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
+!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,idum,nstars,ilam)
+!$OMP DO
 	do iphot=1,MCobs(iobs)%Nphot
-		call tellertje(iphot,MCobs(iobs)%Nphot)
-		phot%sI=Etot/real(MCobs(iobs)%Nphot)
-		phot%sQ=0d0
-		phot%sU=0d0
-		phot%sV=0d0
-		phot%ilam1=ilam
-		phot%pol=.false.
+!$OMP CRITICAL
+		call tellertje(iphot+1,MCobs(iobs)%Nphot+2)
+!$OMP END CRITICAL
+		iopenmp=omp_get_thread_num()+1
+		phot(iopenmp)%sI=Etot/real(MCobs(iobs)%Nphot)
+		phot(iopenmp)%sQ=0d0
+		phot(iopenmp)%sU=0d0
+		phot(iopenmp)%sV=0d0
+		phot(iopenmp)%ilam1=ilam
+		phot(iopenmp)%pol=.false.
 2		Erandom=Etot*random(idum)
 		emitfromstar=.false.
 		do istar=1,nstars
@@ -136,20 +153,25 @@
 		i3=i3spat(ispat)
 1		continue
 		if(emitfromstar) then
-			call EmitPhotonStar(phot,istar)
+			call EmitPhotonStar(phot(iopenmp),istar)
 		else
-			call EmitPhotonMatter(phot,izone,i1,i2,i3)
+			call EmitPhotonMatter(phot(iopenmp),izone,i1,i2,i3)
 		endif
-		x=-phot%vy
-		y=phot%vx
+		x=-phot(iopenmp)%vy
+		y=phot(iopenmp)%vx
 		z=0d0
 		r=sqrt(x**2+y**2+z**2)
-		phot%Sx=x/r
-		phot%Sy=y/r
-		phot%Sz=z/r
-		call InWhichZones(phot)
-		call TravelPhotonMono(phot,iobs)
+		phot(iopenmp)%Sx=x/r
+		phot(iopenmp)%Sy=y/r
+		phot(iopenmp)%Sz=z/r
+		call InWhichZones(phot(iopenmp))
+		call TravelPhotonMono(phot(iopenmp),iobs)
 	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+
+	call tellertje(100,100)
 	
 	return
 	end
@@ -379,7 +401,7 @@
 	type(Mueller) M
 	type(Cell),pointer :: C
 	
-	KscaR=(phot%Kext-phot%Kabs)*random(idum)
+2	KscaR=(phot%Kext-phot%Kabs)*random(idum)
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 		C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
@@ -397,7 +419,7 @@
 		enddo
 		endif
 	enddo
-
+	goto 2
 1	continue
 
 	call scatangle(phot,M,iscat)
@@ -410,43 +432,41 @@
 
 
 
-	subroutine FormalSolution(iobs,ilam)
+	subroutine SetupPaths(iobs)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam,izone,nr,np,maxnr,ir,ip,i,j,ix,iy,ii
-	real*8,allocatable :: R(:)
+	integer iobs,izone,ir,ip,i,j,ix,iy,ii
 	real*8 random,phi,x,y,z,flux,A,R1,R2,Rad,scale(3)
 	type(ZoneType),pointer :: Zo
-	type(Photon) phot
+	type(Photon),allocatable :: phot(:)
+	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
 
-	allocate(phot%i1(nzones))
-	allocate(phot%i2(nzones))
-	allocate(phot%i3(nzones))
-	allocate(phot%inzone(nzones))
-	allocate(phot%edgeNr(nzones))
-	allocate(phot%KabsZ(nzones))
-	allocate(phot%xzone(nzones))
-	allocate(phot%yzone(nzones))
-	allocate(phot%zzone(nzones))
-	allocate(phot%vxzone(nzones))
-	allocate(phot%vyzone(nzones))
-	allocate(phot%vzzone(nzones))
-
-
-	maxnr=0
-	do izone=1,nzones
-		nr=3*(2*Zone(izone)%nR+2*Zone(izone)%nt+200)
-		if(nr.gt.maxnr) maxnr=nr
+	maxnopenmp=omp_get_max_threads()+1
+	allocate(phot(maxnopenmp))	
+	do i=1,maxnopenmp
+		allocate(phot(i)%i1(nzones))
+		allocate(phot(i)%i2(nzones))
+		allocate(phot(i)%i3(nzones))
+		allocate(phot(i)%inzone(nzones))
+		allocate(phot(i)%edgeNr(nzones))
+		allocate(phot(i)%KabsZ(nzones))
+		allocate(phot(i)%xzone(nzones))
+		allocate(phot(i)%yzone(nzones))
+		allocate(phot(i)%zzone(nzones))
+		allocate(phot(i)%vxzone(nzones))
+		allocate(phot(i)%vyzone(nzones))
+		allocate(phot(i)%vzzone(nzones))
 	enddo
-	allocate(R(maxnr))
 	
-	MCobs(iobs)%image(:,:,ilam)=0d0
-	phot%ilam1=ilam
+	allocate(Pimage(nzones))
 	
 	do izone=1,nzones
 		Zo => Zone(izone)
-		np=Zo%np*2
+		Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
+		Pimage(izone)%np=Zo%np*2
+		allocate(Pimage(izone)%R(Pimage(izone)%nr))
+		allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 		ir=0
 		scale(1)=Zo%xscale
 		scale(2)=Zo%yscale
@@ -454,29 +474,29 @@
 		do ii=1,3
 		do i=1,200
 			ir=ir+1
-			R(ir)=scale(ii)*Zo%R(1)*real(i)/201d0
+			Pimage(izone)%R(ir)=scale(ii)*Zo%R(1)*real(i)/201d0
 		enddo
 		do j=1,Zo%nt
 			ir=ir+1
-			R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
+			Pimage(izone)%R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
 			ir=ir+1
-			R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
+			Pimage(izone)%R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
 		enddo
 		do i=1,Zo%nR
 			ir=ir+1
-			R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1)))
+			Pimage(izone)%R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1)))
 			ir=ir+1
-			R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1))*sin(MCobs(iobs)%theta-Zo%theta0))
+			Pimage(izone)%R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1))*sin(MCobs(iobs)%theta-Zo%theta0))
 		enddo
 		enddo
-		nr=ir
-1		call sort(R,nr)
-		do ir=1,nr-1
-			if(R(ir).eq.R(ir+1)) then
-				do i=ir+1,nr-1
-					R(i)=R(i+1)
+		Pimage(izone)%nr=ir
+1		call sort(Pimage(izone)%R,Pimage(izone)%nr)
+		do ir=1,Pimage(izone)%nr-1
+			if(Pimage(izone)%R(ir).eq.Pimage(izone)%R(ir+1)) then
+				do i=ir+1,Pimage(izone)%nr-1
+					Pimage(izone)%R(i)=Pimage(izone)%R(i+1)
 				enddo
-				nr=nr-1
+				Pimage(izone)%nr=Pimage(izone)%nr-1
 				goto 1
 			endif
 		enddo
@@ -485,71 +505,61 @@
 		z=Zo%z0
 		call rotateZ(x,y,z,MCobs(iobs)%cosp,-MCobs(iobs)%sinp)
 		call rotateY(x,y,z,MCobs(iobs)%cost,MCobs(iobs)%sint)
-		call output("Tracing zone " // trim(int2string(izone,'(i4)')))
-		call output("Number of rays: nr x nphi = " // trim(int2string(nr,'(i4)')) // "x" 
-     &				// trim(int2string(np,'(i4)')) // " = "  // trim(int2string(nr*np,'(i8)')))
-		do ir=1,nr
-			call tellertje(ir,nr)
-			do ip=1,np
+		Pimage(izone)%x=x
+		Pimage(izone)%y=y
+		call output("Paths for zone " // trim(int2string(izone,'(i4)')))
+		call output("Number of rays: nr x nphi = " // trim(int2string(Pimage(izone)%nr,'(i4)')) // "x" 
+     &				// trim(int2string(Pimage(izone)%np,'(i4)')) // " = "  
+     &				// trim(int2string(Pimage(izone)%nr*Pimage(izone)%np,'(i8)')))
+		call tellertje(1,100)
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp)
+!$OMP& SHARED(Pimage,izone,MCobs,idum,iobs,phot,maxR,x,y,z)
+!$OMP DO
+		do ir=1,Pimage(izone)%nr
+			iopenmp=omp_get_thread_num()+1
+!$OMP CRITICAL
+			call tellertje(ir+1,Pimage(izone)%nr+2)
+!$OMP END CRITICAL
+			do ip=1,Pimage(izone)%np
 				if(ir.eq.1) then
-					R1=R(ir)
-					R2=sqrt(R(ir)*R(ir+1))
-				else if(ir.eq.nr) then
-					R1=sqrt(R(ir)*R(ir-1))
-					R2=R(ir)
+					R1=Pimage(izone)%R(ir)
+					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
+				else if(ir.eq.Pimage(izone)%nr) then
+					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
+					R2=Pimage(izone)%R(ir)
 				else
-					R1=sqrt(R(ir)*R(ir-1))
-					R2=sqrt(R(ir)*R(ir+1))
+					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
+					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
 				endif
 				Rad=R1+random(idum)*(R2-R1)
-				phi=2d0*pi*(real(ip-1)+random(idum))/real(np)
-				phot%x=Rad*cos(phi)+x
-				phot%y=Rad*sin(phi)+y
-				phot%z=0d0+z
+				phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
 
-				ix=real(MCobs(iobs)%npix)*(phot%y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
-				iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(phot%x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
-				if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+				phot(iopenmp)%x=Rad*cos(phi)+x
+				phot(iopenmp)%y=Rad*sin(phi)+y
+				phot(iopenmp)%z=0d0+z
 
-				call rotateY(phot%x,phot%y,phot%z,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
-				call rotateZ(phot%x,phot%y,phot%z,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
-				phot%vx=0d0
-				phot%vy=0d0
-				phot%vz=-1d0
-				call rotateY(phot%vx,phot%vy,phot%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
-				call rotateZ(phot%vx,phot%vy,phot%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+				call rotateY(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+				call rotateZ(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+				phot(iopenmp)%vx=0d0
+				phot(iopenmp)%vy=0d0
+				phot(iopenmp)%vz=-1d0
+				call rotateY(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+				call rotateZ(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
 
-				call TravelPhotonX(phot,-maxR)
+				call TravelPhotonX(phot(iopenmp),-maxR)
 
-				call TranslatePhotonX(phot)
-				call TranslatePhotonV(phot)
-				call RaytraceFlux(phot,flux,ilam,izone)
-				if(ir.eq.1) then
-					A=pi*(R(ir+1)*R(ir)-R(ir)**2)/real(np)
-				else if(ir.eq.nr) then
-					A=pi*(R(ir)**2-R(ir)*R(ir-1))/real(np)
-				else
-					A=pi*(R(ir+1)*R(ir)-R(ir)*R(ir-1))/real(np)
-				endif
-
-
-				do i=1,1000
-					Rad=R1+random(idum)*(R2-R1)
-					phi=2d0*pi*(real(ip-1)+random(idum))/real(np)
-					phot%x=Rad*cos(phi)+x
-					phot%y=Rad*sin(phi)+y
-					phot%z=0d0+z
-
-					ix=real(MCobs(iobs)%npix)*(phot%y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
-					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(phot%x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
-
-					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+1d23*flux*A/1000d0/(4d0*pi)
-					endif
-				enddo
-				endif
+				call TranslatePhotonX(phot(iopenmp))
+				call TranslatePhotonV(phot(iopenmp))
+				
+				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip))
 			enddo
 		enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+		call tellertje(100,100)
 	enddo
 		
 	
@@ -559,7 +569,83 @@
 
 
 
-	subroutine RaytraceFlux(phot,flux,ilam,izone0)
+	subroutine RaytraceFlux(P,flux,ilam,izone0)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Path),target :: P
+	type(Path),pointer :: Pnow
+	real*8 flux
+	integer ilam,izone0,istar
+	type(Cell),pointer :: C
+
+
+	integer izone,imin,iobs,iT
+	logical leave,inany,hitstar0
+	real*8 minv,tau0,tau,GetKext,random,GetKabs,theta,tau_e,fact,exptau,frac
+	real*8 albedo,emis,scat,Kext,Kabs,KabsZ(nzones)
+
+	Pnow => P
+
+	tau0=0d0
+	fact=1d0
+	flux=0d0
+	
+1	continue
+
+	Kext=0d0
+	Kabs=0d0
+	inany=.false.
+	do izone=1,nzones
+		KabsZ(izone)=0d0
+		if(Pnow%inzone(izone)) then
+			inany=.true.
+			C => Pnow%C(izone)%C
+			Kext=Kext+GetKext(ilam,C)
+			KabsZ(izone)=GetKabs(ilam,C)
+			Kabs=Kabs+KabsZ(izone)
+		endif
+	enddo
+	albedo=(Kext-Kabs)/Kext
+
+	if(inany) then
+		tau_e=Kext*Pnow%v
+
+		emis=0d0
+		scat=0d0
+		if(Pnow%inzone(izone0)) then
+			C => Pnow%C(izone0)%C
+			iT=(C%T+0.5d0)/dTBB
+			if(iT.lt.1) iT=1
+			if(iT.gt.nBB) iT=nBB
+			emis=emis+BB(ilam,iT)*KabsZ(izone0)
+			scat=scat+C%Escatt/C%V
+		endif
+		emis=emis*(1d0-albedo)/Kabs
+		scat=scat*albedo/Kext
+
+		if(tau_e.lt.1d-6) then
+			flux=flux+(scat+emis)*tau_e*fact
+			fact=fact*(1d0-tau_e)
+		else
+			exptau=exp(-tau_e)
+			frac=(1d0-exptau)
+			flux=flux+(scat+emis)*frac*fact
+			fact=fact*exptau
+		endif
+		tau0=tau0+tau_e	
+	endif
+
+	if(.not.Pnow%last) then
+		Pnow => Pnow%next
+		goto 1
+	endif	
+
+	return
+	end
+
+
+
+	subroutine RaytraceFluxOld(phot,flux,ilam,izone0)
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
@@ -698,4 +784,222 @@
 	return
 	end
 
+
+
+	subroutine RaytracePath(phot,P)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	type(Path),target :: P
+	type(Path),pointer :: Pnow
+	integer istar
+
+
+	integer izone,imin,iobs
+	logical leave,inany,hitstar0
+	real*8 minv,theta
+	type(Travel) Trac(nzones),TracStar(nstars)
+	type(Cell),pointer :: C
+
+	phot%inzone=.false.
+	phot%edgeNr=0
+
+	Pnow => P
 	
+1	continue
+
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call TravelSph(phot,izone,Trac(izone))
+			end select
+		else
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call HitSph(phot,izone,Trac(izone))
+			end select
+		endif
+	enddo
+	do istar=1,nstars
+		call HitStar(phot,istar,TracStar(istar))
+	enddo
+
+	minv=20d0*maxR
+	leave=.true.
+	do izone=1,nzones
+		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
+			minv=Trac(izone)%v
+			imin=izone
+			leave=.false.
+		endif
+	enddo
+	hitstar0=.false.
+	do istar=1,nstars
+		if(TracStar(istar)%v.gt.0d0.and.TracStar(istar)%v.lt.minv) then
+			minv=TracStar(istar)%v
+			imin=0
+			hitstar0=.true.
+		endif
+	enddo
+
+	allocate(Pnow%inzone(nzones))
+	allocate(Pnow%C(nzones))
+	allocate(Pnow%next)
+	do izone=1,nzones
+		Pnow%inzone(izone)=phot%inzone(izone)
+		if(Pnow%inzone(izone)) then
+			Pnow%C(izone)%C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+		endif
+	enddo
+	Pnow%v=minv
+	Pnow%last=.false.
+
+	if(leave) goto 3
+		
+	call TravelPhotonX(phot,minv)
+
+	if(inany) then
+		
+	endif
+
+	if(hitstar0) goto 3
+
+	do izone=1,nzones
+		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
+			phot%i1(izone)=Trac(izone)%i1next
+			phot%i2(izone)=Trac(izone)%i2next
+			phot%i3(izone)=Trac(izone)%i3next
+
+			if(phot%i1(izone).eq.-1) call determine_i1(phot,izone)
+			if(phot%i2(izone).eq.-1) call determine_i2(phot,izone)
+			if(phot%i3(izone).eq.-1) call determine_i3(phot,izone)
+
+			phot%edgeNr(izone)=Trac(izone)%edgenext
+			phot%inzone(izone)=.true.
+			if(phot%i1(izone).gt.Zone(izone)%n1.or.
+     &			phot%i2(izone).gt.Zone(izone)%n2.or.
+     &			phot%i3(izone).gt.Zone(izone)%n3.or.
+     &			phot%i1(izone).lt.1.or.
+     &			phot%i2(izone).lt.1.or.
+     &			phot%i3(izone).lt.1) then
+				phot%inzone(izone)=.false.
+			endif
+		else
+			phot%edgeNr(izone)=0
+		endif
+	enddo
+
+	Pnow => Pnow%next
+
+	goto 1
+3	continue
+	
+	Pnow%last=.true.
+
+	return
+	end
+
+
+
+
+	subroutine FormalSolution(iobs,ilam)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii
+	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3)
+	type(ZoneType),pointer :: Zo
+
+	MCobs(iobs)%image(:,:,ilam)=0d0
+	
+	do izone=1,nzones
+		Zo => Zone(izone)
+		call output("Formal solution zone " // trim(int2string(izone,'(i4)')))
+
+		call tellertje(1,100)
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy)
+!$OMP& SHARED(Pimage,izone,ilam,MCobs,idum,iobs)
+!$OMP DO
+		do ir=1,Pimage(izone)%nr
+!$OMP CRITICAL
+			call tellertje(ir+1,Pimage(izone)%nr+2)
+!$OMP END CRITICAL
+			do ip=1,Pimage(izone)%np
+				if(ir.eq.1) then
+					R1=Pimage(izone)%R(ir)
+					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
+				else if(ir.eq.Pimage(izone)%nr) then
+					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
+					R2=Pimage(izone)%R(ir)
+				else
+					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
+					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
+				endif
+				
+				call RaytraceFlux(Pimage(izone)%P(ir,ip),flux,ilam,izone)
+
+				if(ir.eq.1) then
+					A=pi*(Pimage(izone)%R(ir+1)*Pimage(izone)%R(ir)-Pimage(izone)%R(ir)**2)/real(Pimage(izone)%np)
+				else if(ir.eq.Pimage(izone)%nr) then
+					A=pi*(Pimage(izone)%R(ir)**2-Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))/real(Pimage(izone)%np)
+				else
+					A=pi*(Pimage(izone)%R(ir+1)*Pimage(izone)%R(ir)-Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))/real(Pimage(izone)%np)
+				endif
+
+
+				do i=1,1000
+					Rad=R1+random(idum)*(R2-R1)
+					phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
+					x=Rad*cos(phi)+Pimage(izone)%x
+					y=Rad*sin(phi)+Pimage(izone)%y
+
+					ix=real(MCobs(iobs)%npix)*(y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+
+					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+1d23*flux*A/1000d0/(32d0*pi)
+					endif
+				enddo
+			enddo
+		enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+		call tellertje(100,100)
+	enddo
+	
+	return
+	end
+
+
+	subroutine deallocatePaths
+	use GlobalSetup
+	IMPLICIT NONE
+	integer izone,ir,ip
+	type(Path),pointer :: Pnow
+	
+	do izone=1,nzones
+		do ir=1,Pimage(izone)%nr
+			do ip=1,Pimage(izone)%np
+				deallocate(Pimage(izone)%P(ir,ip)%inzone)
+				deallocate(Pimage(izone)%P(ir,ip)%C)
+				Pnow => Pimage(izone)%P(ir,ip)%next
+1				continue
+				if(Pnow%last) goto 2
+				deallocate(Pnow%inzone)
+				deallocate(Pnow%C)
+				if(.not.Pnow%last) then
+					Pnow => Pnow%next
+					goto 1
+				endif
+			enddo
+		enddo
+	enddo
+	
+2	deallocate(Pimage)
+	
+	return
+	end
