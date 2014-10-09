@@ -268,7 +268,7 @@
 			call integrate(specemit,tot)
 			if(tot.gt.1d-100) then
 				specemit=specemit/tot
-				specemit=1d23*phot%sI*specemit
+				specemit=1d23*phot%sI*specemit/MCobs(i)%f
 				MCobs(i)%spec(1:nlam)=MCobs(i)%spec(1:nlam)+specemit(1:nlam)
 				x=phot%x0
 				y=phot%y0

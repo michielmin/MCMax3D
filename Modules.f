@@ -136,14 +136,14 @@ c storage speed options
 		integer npix
 		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
-		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR
+		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f
 		logical raytrace
 		real*8 lam1,lam2
 		integer Nphot
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones
-	type(StarType),allocatable :: Star(:)						! dimension nstars
+	type(StarType),allocatable,target :: Star(:)						! dimension nstars
 	type(Particle),allocatable :: Part(:)						! dimension npart
 	type(MCobsType),allocatable :: MCobs(:)						! dimension nMCobs
 
@@ -169,6 +169,7 @@ c storage speed options
 		type(CellPointer),allocatable :: C(:)
 		logical last
 		type(Path),pointer :: next
+		integer istar
 	end type Path
 
 	type PathImage

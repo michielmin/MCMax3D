@@ -47,12 +47,12 @@ c		call OutputStructure(iter,converged)
 	enddo
 	endif
 
+	call OutputMCobs
+
 c ok, structure is done, now let's see what this looks like
 	do i=1,nMCobs
 		if(MCobs(i)%raytrace) call Raytrace(i)
 	enddo
-	
-	call OutputMCobs
 
 c well that's it. we seem to be done!
 c have a good day

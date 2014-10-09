@@ -2,8 +2,9 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer i,j
+	integer i,j,nf
 	real*8 T,Planck
+	real*8 x,y,z,inp
 	
 	maxR=0d0
 	
@@ -33,6 +34,14 @@ c setup the observation direction
 		MCobs(i)%z=MCobs(i)%cost
 		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
 		allocate(MCobs(i)%spec(nlam))
+		MCobs(i)%f=0d0
+		nf=100000
+		do j=1,nf
+			call randomdirection(x,y,z)
+			inp=MCobs(i)%x*x+MCobs(i)%y*y+MCobs(i)%z*z
+			if(inp.gt.MCobs(i)%opening) MCobs(i)%f=MCobs(i)%f+1d0
+		enddo
+		MCobs(i)%f=4d0*pi*MCobs(i)%f/real(nf)
 	enddo
 	
 	call output("==================================================================")
@@ -163,14 +172,6 @@ c			call ReadParticle(Part(ii),ii)
 	do ilam=1,nlam
 		do is=1,Part(ii)%nsize
 			do iT=1,Part(ii)%nT
-				do j=1,180
-					Part(ii)%F(is,iT,ilam)%F11(j)=1d0
-					Part(ii)%F(is,iT,ilam)%F12(j)=0d0
-					Part(ii)%F(is,iT,ilam)%F22(j)=0d0
-					Part(ii)%F(is,iT,ilam)%F33(j)=0d0
-					Part(ii)%F(is,iT,ilam)%F34(j)=0d0
-					Part(ii)%F(is,iT,ilam)%F44(j)=0d0
-				enddo
 				tot=0d0
 				tot2=0d0
 				do j=1,180

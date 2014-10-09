@@ -228,7 +228,7 @@
 	vzt=phot%vz
 
 	r=xt**2+yt**2+zt**2
-	R1=Star(istar)%R
+	R1=Star(istar)%R**2
 
 	a=vxt**2+vyt**2+vzt**2
 	b=2d0*(xt*vxt+yt*vyt+zt*vzt)
