@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
-	real*8 dlmin,fluxZ(nzones)
+	real*8 dlmin,fluxZ(nzones+nstars)
 	logical simpleobs
 	character*500 MCfile
 
@@ -39,7 +39,7 @@
 	enddo
 	close(unit=20)
 
-	MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // ".fits"
+	MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // ".fits.gz"
 	call writefitsfile(MCfile,MCobs(iobs)%image,nlam,MCobs(iobs)%npix)
 
 	call deallocatePaths
