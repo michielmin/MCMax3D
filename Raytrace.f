@@ -18,8 +18,8 @@
 	if(.not.simpleobs) then
 		dlmin=lam(nlam)-lam(1)
 		do ilam=1,ilam
-			if(abs(lam(ilam)-(lam1+lam2)/2d0).lt.dlmin) then
-				dlmin=abs(lam(ilam)-(lam1+lam2)/2d0)
+			if(abs(lam(ilam)-(MCobs(iobs)%lam1+MCobs(iobs)%lam2)/2d0).lt.dlmin) then
+				dlmin=abs(lam(ilam)-(MCobs(iobs)%lam1+MCobs(iobs)%lam2)/2d0)
 				ilam0=ilam
 			endif
 		enddo
