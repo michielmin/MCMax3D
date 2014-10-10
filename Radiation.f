@@ -139,7 +139,7 @@ c not found, starting from 1 K
 
 
 
-	real*8 function determineT(C)
+	real*8 function determineTslow(C)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
@@ -151,19 +151,97 @@ c not found, starting from 1 K
 	
 	kp0=0d0
 
-	determineT=0d0
+	determineTslow=0d0
 	do i=1,nBB-1
 		kp1=GetKp(i+1,C)
 		if(kp0.le.E1.and.kp1.ge.E1) then
-			determineT=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
+			determineTslow=(real(i)**4+(real(i+1)**4-real(i)**4)*(E1-kp0)/(kp1-kp0))**(0.25d0)*dTBB
 			return
 		endif
 		kp0=kp1
 	enddo
-	determineT=real(nBB)*dTBB
+	determineTslow=real(nBB)*dTBB
 
 	return
 	end
+
+
+
+	real*8 function determineT(C)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Cell) C
+	real*8 E1,E,T,Emin,Emax,GetKp
+	integer i,ii,iopac,iTmin,iTmax,iT0,iT,niter
+
+	E1=C%Etrace/C%V
+	iTmin=1
+	iTmax=nBB
+
+	iT=C%T/dTBB
+	if(iT.lt.1) iT=1
+	if(iT.gt.nBB-1) iT=nBB-1
+
+	E=GetKp(iT,C)
+	Emax=GetKp(iTmax,C)
+	Emin=GetKp(1,C)
+
+	if(IsNaN(E1)) then
+		determineT=3d0
+		return
+	endif
+
+	if(E1.gt.Emax) then
+		iT=nBB-1
+		determineT=real(iT)*dTBB
+		return
+	endif
+
+	if(E1.lt.Emin) then
+		iT=1
+		determineT=real(iT)*dTBB
+		return
+	endif
+
+	iT0=iT
+	niter=0
+	do while(abs(iTmax-iTmin).gt.1.and.niter.le.nBB)
+		niter=niter+1
+		iT=(E1/E)**(0.25)*iT
+		if(iT.eq.iT0) then
+			if(E1.lt.E) iT=iT0-1
+			if(E1.gt.E) iT=iT0+1
+		endif
+1		continue
+		if(iT.le.iTmin) then
+			iT=iTmin+1
+			goto 1
+		endif
+		if(iT.ge.iTmax) then
+			iT=iTmax-1
+			goto 1
+		endif
+		E=GetKp(iT,C)
+		if(E.ge.E1) then
+			iTmax=iT
+			Emax=E
+		endif
+		if(E.le.E1) then
+			iTmin=iT
+			Emin=E
+		endif
+		iT0=iT
+	enddo
+
+	if(iTmin.eq.iTmax) then
+		determineT=real(iTmin)*dTBB
+	else
+		determineT=(real(iTmin)**4+(real(iTmax)**4-real(iTmin)**4)*(E1-Emin)/(Emax-Emin))**(0.25d0)*dTBB
+	endif
+	
+	return
+	end
+
 
 
 

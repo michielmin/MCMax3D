@@ -202,6 +202,22 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%amax
 		case("apow")
 			read(key%value,*) Zone(key%nr1)%apow
+		case("adens")
+			read(key%value,*) Zone(key%nr1)%Adens
+		case("aheight")
+			read(key%value,*) Zone(key%nr1)%Aheight
+		case("aalpha")
+			read(key%value,*) Zone(key%nr1)%Aalpha
+		case("rspiral")
+			read(key%value,*) Zone(key%nr1)%r_spiral
+		case("phispiral")
+			read(key%value,*) Zone(key%nr1)%phi_spiral
+		case("alphaspiral")
+			read(key%value,*) Zone(key%nr1)%alpha_spiral
+		case("betaspiral")
+			read(key%value,*) Zone(key%nr1)%beta_spiral
+		case("wspiral")
+			read(key%value,*) Zone(key%nr1)%w_spiral
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -524,6 +540,15 @@ c===============================================================================
 		Zone(i)%amin=0.05
 		Zone(i)%amax=3000d0
 		Zone(i)%apow=3.5
+
+		Zone(i)%Adens=0d0			! Amplitude of wave in density
+		Zone(i)%Aheight=0d0			! Amplitude of wave in scaleheight
+		Zone(i)%Aalpha=0d0			! Amplitude of wave in alpha
+		Zone(i)%r_spiral=5d0		! launching point
+		Zone(i)%phi_spiral=0d0		! launching point
+		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
+		Zone(i)%beta_spiral=-0.4d0	! Value from Muto = 0.4, setting it to negative computes it
+		Zone(i)%w_spiral=0.2d0		! in terms of orbits
 	enddo
 
 	do i=1,npart

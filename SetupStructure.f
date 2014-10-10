@@ -291,6 +291,14 @@ c-----------------------------------------------------------------------
 	Zone(ii)%cosp0=cos(Zone(ii)%phi0)
 	Zone(ii)%sinp0=sin(Zone(ii)%phi0)
 	
+c spiral waves
+	Zone(ii)%r_spiral=Zone(ii)%r_spiral*AU
+	Zone(ii)%w_spiral=Zone(ii)%w_spiral*2d0*pi
+	Zone(ii)%phi_spiral=Zone(ii)%phi_spiral*pi/180d0
+	if(Zone(ii)%beta_spiral.lt.0d0) then
+		Zone(ii)%beta_spiral=1.5d0-Zone(ii)%shpow
+	endif
+	
 	call output("allocating memory")
 	select case(Zone(ii)%shape)
 		case("SPH","CYL")
@@ -398,7 +406,8 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
-	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta
+	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
+	real*8,allocatable :: Aspiral(:)
 	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
@@ -420,9 +429,12 @@ c-----------------------------------------------------------------------
 			w(i,1)=1d0
 		endif
 	enddo
+
+	allocate(Aspiral(Zone(ii)%np))
 	
 	do ir=1,Zone(ii)%nr
 		call tellertje(ir,Zone(ii)%nr)
+		call ComputeAspiral(ii,ir,Aspiral,Zone(ii)%np)
 		do it=1,Zone(ii)%nt
 			njj=10
 			Zone(ii)%C(ir,it,:)%gasdens=0d0
@@ -441,11 +453,12 @@ c-----------------------------------------------------------------------
 					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 				endif
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
-				hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-				f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
-				f2=exp(-(z/hr)**2)
 				do ip=1,Zone(ii)%np
-					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens+f1*f2/hr/real(njj)
+					hr=(1d0+Zone(ii)%Aheight*Aspiral(ip))*Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+					f2=exp(-(z/hr)**2)
+					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens
+     &							+(1d0+Zone(ii)%Adens*Aspiral(ip))*f1*f2/hr/real(njj)
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
@@ -461,8 +474,17 @@ c-----------------------------------------------------------------------
 			enddo
 		enddo
 	enddo
+	call tellertje(1,100)
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ir,it,jj,njj,Aspiral,theta,r,z,hr,f1,f2a,ha)
+!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii)
+!$OMP DO
 	do ir=1,Zone(ii)%nr
-		call tellertje(ir,Zone(ii)%nr)
+!$OMP CRITICAL
+		call tellertje(ir+1,Zone(ii)%nr+2)
+!$OMP END CRITICAL
+		call ComputeAspiral(ii,ir,Aspiral,Zone(ii)%np)
 		do it=1,Zone(ii)%nt
 			njj=10
 			do jj=1,njj
@@ -473,23 +495,29 @@ c-----------------------------------------------------------------------
 					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 				endif
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
-				hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-				f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 				do ip=1,Zone(ii)%np
+					hr=(1d0+Zone(ii)%Aheight*Aspiral(ip))*Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 					do i=1,npart
 						do ips=1,Part(i)%nsize
 							ha=(1d0+delta)**(-0.25)*
-     &		sqrt(Zone(ii)%alpha*Zone(ii)%gas2dust*Mtot*f1/(Part(i)%rv(ips)*Part(i)%rho(1)))
+     &		sqrt(Zone(ii)%alpha*(1d0+Zone(ii)%Aalpha*Aspiral(ip))*
+     &			Zone(ii)%gas2dust*(1d0+Zone(ii)%Adens*Aspiral(ip))*Mtot*f1
+     &			/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
 							f2a=exp(-(z/ha)**2)
 							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
-     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
+     &		(1d0+Zone(ii)%Adens*Aspiral(ip))*Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
 						enddo
 					enddo
 				enddo
 			enddo
 		enddo
 	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+	call tellertje(100,100)
 
 	Mtot=0d0
 	do ir=1,Zone(ii)%nr
@@ -511,10 +539,38 @@ c-----------------------------------------------------------------------
 			enddo
 		enddo
 	enddo
+	
+	deallocate(Aspiral)
 
 	return
 	end
 	
+	subroutine ComputeAspiral(ii,ir,Aspiral,np)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ip,njj,jj,ii,ir,np
+	real*8 r,hr,phi0,Aspiral(np),phi
+	
+	r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+	hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
+	phi0=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
+     &			(r/Zone(ii)%r_spiral)**(1d0+Zone(ii)%beta_spiral)*
+     &			(1d0/(1d0+Zone(ii)%beta_spiral)-(1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral))*
+     &			(r/Zone(ii)%r_spiral)**(-Zone(ii)%alpha_spiral))
+     &			-(1d0/(1d0+Zone(ii)%beta_spiral)-1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral)))
+	do ip=1,np
+		Aspiral(ip)=0d0
+		njj=10
+		do jj=1,njj
+			phi=2d0*pi*(real(ip-1)+(real(jj)-0.5)/real(njj))/real(np-1)
+			phi=mod(phi-phi0+pi,2d0*pi)-pi
+			Aspiral(ip)=Aspiral(ip)+exp(-(phi/Zone(ii)%w_spiral)**2)/real(njj)
+		enddo
+	enddo
+
+	return
+	end
 
 	subroutine SetupRadGrid(ii)
 	use GlobalSetup

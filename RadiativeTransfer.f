@@ -591,6 +591,11 @@ c	endif
 	type(Cell),pointer :: C
 	
 	do izone=1,nzones
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(i1,i2,i3,C)
+!$OMP& SHARED(Zone,izone)
+!$OMP DO
 		do i1=1,Zone(izone)%n1
 			do i2=1,Zone(izone)%n2
 				do i3=1,Zone(izone)%n3
@@ -599,6 +604,9 @@ c	endif
 				enddo
 			enddo
 		enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
 	enddo
 	
 	return

@@ -85,6 +85,8 @@ c storage speed options
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
 		real*8 Escatt,Elam,KabsL			! for the raytracing
+c parameters for spiral density wave
+		real*8 Fdens,Fheight,Falpha
 	end type Cell
 	
 	type Photon
@@ -130,6 +132,9 @@ c storage speed options
 		real*8 amin,amax,apow
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)
+c parameters for a spiral wave
+		real*8 Adens,Aheight,Aalpha
+		real*8 r_spiral,phi_spiral,alpha_spiral,beta_spiral,w_spiral
 	end type ZoneType
 
 	type MCobsType
