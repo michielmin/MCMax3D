@@ -448,6 +448,7 @@
 	IMPLICIT NONE
 	integer iobs,izone,ir,ip,i,j,ix,iy,ii
 	real*8 random,phi,x,y,z,flux,A,R1,R2,Rad,scale(3)
+	real*8,allocatable :: Rtau1(:)
 	type(ZoneType),pointer :: Zo
 	type(StarType),pointer :: St
 	type(Photon),allocatable :: phot(:)
@@ -475,11 +476,13 @@
 	do izone=1,nzones+nstars
 		if(izone.le.nzones) then
 			Zo => Zone(izone)
+			allocate(Rtau1(Zo%nt))
+			call ComputeRtau1(Rtau1,Zo%nt,izone)
 			x=Zo%x0
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=min(max(Zo%np*2,50),90)
+			Pimage(izone)%np=min(max(Zo%np*2,50),135)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0
@@ -492,10 +495,12 @@
 			enddo
 			do ii=1,3
 			do j=1,Zo%nt
-				ir=ir+1
-				Pimage(izone)%R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
-				ir=ir+1
-				Pimage(izone)%R(ir)=abs(scale(ii)*(sqrt(Zo%R(1)*Zo%R(2))*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
+				if(Rtau1(j).gt.0d0) then
+					ir=ir+1
+					Pimage(izone)%R(ir)=abs(scale(ii)*(Rtau1(j)*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
+					ir=ir+1
+					Pimage(izone)%R(ir)=abs(scale(ii)*(Rtau1(j)*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
+				endif
 			enddo
 			do i=1,Zo%nR
 				ir=ir+1
@@ -505,6 +510,7 @@
 			enddo
 			enddo
 			Pimage(izone)%nr=ir
+			deallocate(Rtau1)
 		else
 			St => Star(izone-nzones)
 			x=St%x
@@ -599,6 +605,34 @@
 	end
 
 
+	subroutine ComputeRtau1(Rtau1,nt,izone)
+	use GlobalSetup
+	IMPLICIT NONE
+	integer nt,izone,it,ilam,ir
+	real*8 Rtau1(nt),tau,GetKext,tau_tot,d
+
+	do ilam=1,nlam-1
+		if(lam(ilam).lt.0.55.and.lam(ilam+1).ge.0.55) exit
+	enddo
+	
+	do it=1,nt
+		Rtau1(it)=-1d0
+		tau_tot=0d0
+		do ir=1,Zone(izone)%nr
+			d=Zone(izone)%R(ir+1)-Zone(izone)%R(ir)
+			tau=d*GetKext(ilam,Zone(izone)%C(ir,it,1))
+			if(tau_tot+tau.gt.1d0) then
+				Rtau1(it)=Zone(izone)%R(ir)+(Zone(izone)%R(ir+1)-Zone(izone)%R(ir))*(1d0-tau_tot)/tau
+				goto 1
+			endif
+			tau_tot=tau_tot+tau
+		enddo
+1		continue
+	enddo
+		
+	return
+	end
+	
 
 	subroutine RaytraceFluxZone(P,flux,ilam,izone0)
 	use GlobalSetup
