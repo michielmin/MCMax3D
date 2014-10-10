@@ -479,7 +479,7 @@
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=max(Zo%np*2,60)
+			Pimage(izone)%np=min(max(Zo%np*2,50),90)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0
