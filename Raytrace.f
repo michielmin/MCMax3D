@@ -502,7 +502,7 @@
 					Pimage(izone)%R(ir)=abs(scale(ii)*(Rtau1(j)*sin(MCobs(iobs)%theta-Zo%theta0+(Zo%theta(j)+Zo%theta(j+1))/2d0)))
 				endif
 			enddo
-			do i=1,Zo%nR
+			do i=1,Zo%nR,MCobs(iobs)%nr
 				ir=ir+1
 				Pimage(izone)%R(ir)=abs(scale(ii)*sqrt(Zo%R(i)*Zo%R(i+1)))
 				ir=ir+1

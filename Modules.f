@@ -144,7 +144,7 @@ c parameters for a spiral wave
 		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f
 		logical raytrace
 		real*8 lam1,lam2
-		integer Nphot
+		integer Nphot,nr
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones

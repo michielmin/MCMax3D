@@ -69,6 +69,8 @@ c allocate the arrays
 			particledir=trim(key%value)
 		case("fstop")
 			read(key%value,*) fstop
+		case("nspike")
+			read(key%value,*) nspike
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -283,6 +285,8 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%raytrace
 		case("nphot")
 			read(key%value,*) MCobs(key%nr1)%Nphot
+		case("nr")
+			read(key%value,*) MCobs(key%nr1)%nr
 		case("lam")
 			select case(key%nr2)
 				case(1)
@@ -493,6 +497,7 @@ c===============================================================================
 	nzlam=0
 	distance=150d0
 	fstop=0d0
+	nspike=0
 	
 	particledir=' '
 	
@@ -574,6 +579,7 @@ c===============================================================================
 		MCobs(i)%lam1=0.1d0
 		MCobs(i)%lam2=3000d0
 		MCobs(i)%maxR=-1d0
+		MCobs(i)%nr=1
 	enddo
 	
 	return

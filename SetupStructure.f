@@ -131,7 +131,7 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,iT,is,iBB,ilam,j
-	real*8 phi,thet,tot,tot2
+	real*8 phi,thet,tot,tot2,fact
 	real*8,allocatable :: spec(:)
 	
 	allocate(Part(ii)%rv(Part(ii)%nsize))
@@ -169,6 +169,7 @@ c			call ReadParticle(Part(ii),ii)
 		enddo
 	enddo
 
+	if(nspike.gt.0.and.nspike.le.180) call output("making the first " // trim(int2string(nspike,'(i3)')) // " degrees isotropic")
 	do ilam=1,nlam
 		do is=1,Part(ii)%nsize
 			do iT=1,Part(ii)%nT
@@ -186,6 +187,36 @@ c			call ReadParticle(Part(ii),ii)
 					Part(ii)%F(is,iT,ilam)%F34(j)=tot2*Part(ii)%F(is,iT,ilam)%F34(j)/tot
 					Part(ii)%F(is,iT,ilam)%F44(j)=tot2*Part(ii)%F(is,iT,ilam)%F44(j)/tot
 				enddo
+
+				if(nspike.gt.0.and.nspike.le.180) then
+c the nspike parameter removes the n degree spike in the forward direction.
+					do j=1,nspike
+						fact=Part(ii)%F(is,iT,ilam)%F11(nspike+1)/Part(ii)%F(is,iT,ilam)%F11(j)
+						Part(ii)%F(is,iT,ilam)%F12(j)=Part(ii)%F(is,iT,ilam)%F12(j)*fact
+						Part(ii)%F(is,iT,ilam)%F22(j)=Part(ii)%F(is,iT,ilam)%F22(j)*fact
+						Part(ii)%F(is,iT,ilam)%F33(j)=Part(ii)%F(is,iT,ilam)%F33(j)*fact
+						Part(ii)%F(is,iT,ilam)%F34(j)=Part(ii)%F(is,iT,ilam)%F34(j)*fact
+						Part(ii)%F(is,iT,ilam)%F44(j)=Part(ii)%F(is,iT,ilam)%F44(j)*fact
+						Part(ii)%F(is,iT,ilam)%F11(j)=Part(ii)%F(is,iT,ilam)%F11(nspike+1)
+					enddo
+
+					tot=0d0
+					tot2=0d0
+					do j=1,180
+						tot=tot+Part(ii)%F(is,iT,ilam)%F11(j)*sin(pi*(real(j)-0.5)/180d0)
+						tot2=tot2+sin(pi*(real(j)-0.5)/180d0)
+					enddo
+					Part(ii)%Ksca(is,iT,ilam)=Part(ii)%Ksca(is,iT,ilam)*tot/tot2
+					Part(ii)%Kext(is,iT,ilam)=Part(ii)%Kabs(is,iT,ilam)+Part(ii)%Ksca(is,iT,ilam)
+					do j=1,180
+						Part(ii)%F(is,iT,ilam)%F11(j)=tot2*Part(ii)%F(is,iT,ilam)%F11(j)/tot
+						Part(ii)%F(is,iT,ilam)%F12(j)=tot2*Part(ii)%F(is,iT,ilam)%F12(j)/tot
+						Part(ii)%F(is,iT,ilam)%F22(j)=tot2*Part(ii)%F(is,iT,ilam)%F22(j)/tot
+						Part(ii)%F(is,iT,ilam)%F33(j)=tot2*Part(ii)%F(is,iT,ilam)%F33(j)/tot
+						Part(ii)%F(is,iT,ilam)%F34(j)=tot2*Part(ii)%F(is,iT,ilam)%F34(j)/tot
+						Part(ii)%F(is,iT,ilam)%F44(j)=tot2*Part(ii)%F(is,iT,ilam)%F44(j)/tot
+					enddo
+				endif
 			enddo
 		enddo
 	enddo
@@ -549,23 +580,27 @@ c spiral waves
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ip,njj,jj,ii,ir,np
-	real*8 r,hr,phi0,Aspiral(np),phi
+	integer ip,njj,jj,ii,ir,np,nkk,kk
+	real*8 r,hr,phi0,Aspiral(np),phi,f
 	
-	r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
-	hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
-	phi0=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
+	njj=10
+	nkk=10
+	do ip=1,np
+		Aspiral(ip)=0d0
+		do kk=1,nkk
+			f=(real(kk)-0.5)/real(nkk)
+			r=sqrt(Zone(ii)%R(ir)**(2d0*f)*Zone(ii)%R(ir+1)**(2d0-2d0*f))
+			hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
+			phi0=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
      &			(r/Zone(ii)%r_spiral)**(1d0+Zone(ii)%beta_spiral)*
      &			(1d0/(1d0+Zone(ii)%beta_spiral)-(1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral))*
      &			(r/Zone(ii)%r_spiral)**(-Zone(ii)%alpha_spiral))
      &			-(1d0/(1d0+Zone(ii)%beta_spiral)-1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral)))
-	do ip=1,np
-		Aspiral(ip)=0d0
-		njj=10
-		do jj=1,njj
-			phi=2d0*pi*(real(ip-1)+(real(jj)-0.5)/real(njj))/real(np-1)
-			phi=mod(phi-phi0+pi,2d0*pi)-pi
-			Aspiral(ip)=Aspiral(ip)+exp(-(phi/Zone(ii)%w_spiral)**2)/real(njj)
+			do jj=1,njj
+				phi=2d0*pi*(real(ip-1)+(real(jj)-0.5)/real(njj))/real(np-1)
+				phi=mod(phi-phi0+pi,2d0*pi)-pi
+				Aspiral(ip)=Aspiral(ip)+exp(-(phi/Zone(ii)%w_spiral)**2)/real(njj)/real(nkk)
+			enddo
 		enddo
 	enddo
 

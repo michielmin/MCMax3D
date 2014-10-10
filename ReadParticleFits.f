@@ -177,47 +177,13 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 		p%F(isize,iT,j)=p%F(isize,iT,i-1)
 	enddo
 
-
-	if(nspike.gt.0.and.nspike.lt.180) then
-c the nspike parameter removes the n degree spike in the forward direction.
-		call output("Making first " // trim(int2string(nspike,'(i2)')) // " degrees isotropic")
-	endif
-
 	do j=1,nlam
-	tot=0d0
-	tot2=0d0
-	do i=1,180
-		tot=tot+p%F(isize,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
-		tot2=tot2+sin(pi*(real(i)-0.5)/180d0)
-	enddo
-	do i=1,180
-		p%F(isize,iT,j)%F11(i)=tot2*p%F(isize,iT,j)%F11(i)/tot
-		p%F(isize,iT,j)%F12(i)=tot2*p%F(isize,iT,j)%F12(i)/tot
-		p%F(isize,iT,j)%F22(i)=tot2*p%F(isize,iT,j)%F22(i)/tot
-		p%F(isize,iT,j)%F33(i)=tot2*p%F(isize,iT,j)%F33(i)/tot
-		p%F(isize,iT,j)%F34(i)=tot2*p%F(isize,iT,j)%F34(i)/tot
-		p%F(isize,iT,j)%F44(i)=tot2*p%F(isize,iT,j)%F44(i)/tot
-	enddo
-
-	if(nspike.gt.0.and.nspike.lt.180) then
-c the nspike parameter removes the n degree spike in the forward direction.
-		do i=1,nspike
-			p%F(isize,iT,j)%F12(i)=p%F(isize,iT,j)%F12(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
-			p%F(isize,iT,j)%F22(i)=p%F(isize,iT,j)%F22(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
-			p%F(isize,iT,j)%F33(i)=p%F(isize,iT,j)%F33(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
-			p%F(isize,iT,j)%F34(i)=p%F(isize,iT,j)%F34(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
-			p%F(isize,iT,j)%F44(i)=p%F(isize,iT,j)%F44(i)*p%F(isize,iT,j)%F11(nspike+1)/p%F(isize,iT,j)%F11(i)
-			p%F(isize,iT,j)%F11(i)=p%F(isize,iT,j)%F11(nspike+1)
-		enddo
-
 		tot=0d0
 		tot2=0d0
 		do i=1,180
 			tot=tot+p%F(isize,iT,j)%F11(i)*sin(pi*(real(i)-0.5)/180d0)
 			tot2=tot2+sin(pi*(real(i)-0.5)/180d0)
 		enddo
-		p%Ksca(isize,iT,j)=p%Ksca(isize,iT,j)*tot/tot2
-		p%Kext(isize,iT,j)=p%Kabs(isize,iT,j)+p%Ksca(isize,iT,j)
 		do i=1,180
 			p%F(isize,iT,j)%F11(i)=tot2*p%F(isize,iT,j)%F11(i)/tot
 			p%F(isize,iT,j)%F12(i)=tot2*p%F(isize,iT,j)%F12(i)/tot
@@ -226,8 +192,6 @@ c the nspike parameter removes the n degree spike in the forward direction.
 			p%F(isize,iT,j)%F34(i)=tot2*p%F(isize,iT,j)%F34(i)/tot
 			p%F(isize,iT,j)%F44(i)=tot2*p%F(isize,iT,j)%F44(i)/tot
 		enddo
-	endif
-
 	enddo
 
 	deallocate(p0%Kabs)
