@@ -25,10 +25,15 @@ C     create the new empty FITS file
 C     initialize parameters about the FITS image (IMDIM x IMDIM 64-bit reals)
       simple=.true.
       bitpix=-64
-      naxis=3
-      naxes(1)=n
-      naxes(2)=n
-      naxes(3)=nlam
+	naxes(1)=n
+	naxes(2)=n
+	if(nlam.gt.1) then
+		naxis=3
+		naxes(3)=nlam
+	else
+		naxis=2
+		naxes(3)=1
+	endif
       extend=.true.
 
 C     write the required header keywords

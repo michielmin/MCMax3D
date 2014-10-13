@@ -533,7 +533,7 @@ c This function gives the scattering cross section per cm in a certain angle
 	phi=acos(phot%xzone(izone)/r)
 	if(phot%yzone(izone).lt.0d0) phi=2d0*pi-phi
 	
-	do i=1,Zone(izone)%nr
+	do i=1,Zone(izone)%np
 		if(phi.ge.Zone(izone)%phi(i).and.phi.le.Zone(izone)%phi(i+1)) exit
 	enddo
 	phot%i3(izone)=i

@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
-	real*8 dlmin,fluxZ(nzones+nstars)
+	real*8 dlmin,fluxZ(nzones+nstars),fov0
 	logical simpleobs
 	character*500 MCfile
 
@@ -33,14 +33,22 @@
      &			.or.ilam.eq.ilam0) then
 			call TraceScattField(iobs,ilam)
 			call FormalSolution(iobs,ilam,fluxZ)
+			MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // "_" // 
+     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
+			call writefitsfile(MCfile,MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),1,MCobs(iobs)%npix)
+			if(MCobs(iobs)%telescope) then
+				fov0=(2d0*MCobs(iobs)%maxR/AU)/(Distance/parsec)
+				call Convolution(MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),MCobs(iobs)%npix,lam(ilam),
+     &					MCobs(iobs)%D,MCobs(iobs)%D2,MCobs(iobs)%SpW,fov0,MCobs(iobs)%width,MCobs(iobs)%snoise)
+				MCfile=trim(outputdir) // "RToutObs" // trim(int2string(iobs,'(i0.4)')) // "_" // 
+     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
+				call writefitsfile(MCfile,MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),1,MCobs(iobs)%npix)
+			endif
 		endif
 		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))
 		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam)/distance**2,fluxZ(1:nzones+nstars)/distance**2
 	enddo
 	close(unit=20)
-
-	MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // ".fits.gz"
-	call writefitsfile(MCfile,MCobs(iobs)%image,nlam,MCobs(iobs)%npix)
 
 	call deallocatePaths
 	
@@ -148,7 +156,7 @@
 2		Erandom=Etot*random(idum)
 		emitfromstar=.false.
 		do istar=1,nstars
-			Erandom=Erandom-2d0*Star(istar)%F(ilam)
+			Erandom=Erandom-Star(istar)%F(ilam)
 			if(Erandom.lt.0d0) then
 				emitfromstar=.true.
 				goto 1
@@ -260,10 +268,11 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer izone,imin,iobs
-	logical leave,inany
+	integer izone,imin,iobs,istar
+	logical leave,inany,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs,fstopmono,albedo,theta
 	type(Travel) Trac(nzones)
+	type(Travel) TracStar(nstars)
 	type(Cell),pointer :: C
 	type(Photon) phot
 
@@ -310,6 +319,10 @@
 			end select
 		endif
 	enddo
+	do istar=1,nstars
+		call HitStar(phot,istar,TracStar(istar))
+	enddo
+
 	minv=20d0*maxR
 	leave=.true.
 	do izone=1,nzones
@@ -317,6 +330,14 @@
 			minv=Trac(izone)%v
 			imin=izone
 			leave=.false.
+		endif
+	enddo
+	hitstar0=.false.
+	do istar=1,nstars
+		if(TracStar(istar)%v.gt.0d0.and.TracStar(istar)%v.lt.minv) then
+			minv=TracStar(istar)%v
+			imin=0
+			hitstar0=.true.
 		endif
 	enddo
 
@@ -346,6 +367,8 @@
 	call TravelPhotonX(phot,minv)
 	if(inany) call AddEtraceMono(phot,minv)
 	tau0=tau0-phot%Kext*minv
+
+	if(hitstar0) goto 3
 
 	do izone=1,nzones
 		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
@@ -1064,6 +1087,7 @@
 					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,ilam,izone)
 				else
 					call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
+					flux=flux*MCobs(iobs)%fstar
 				endif
 
 				if(ir.eq.1) then

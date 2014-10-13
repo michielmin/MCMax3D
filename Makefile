@@ -66,7 +66,8 @@ OBJS	      = Modules.o \
 				writeFITS.o \
 				Traveling.o \
 				OutputMCobs.o \
-				Raytrace.o 
+				Raytrace.o \
+				Convolution.o 
 
 # program name and install location
 PROGRAM       = MCMax3D

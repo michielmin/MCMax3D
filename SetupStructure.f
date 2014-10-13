@@ -572,7 +572,7 @@ c spiral waves
 	enddo
 	
 	deallocate(Aspiral)
-
+	
 	return
 	end
 	

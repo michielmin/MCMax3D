@@ -296,6 +296,20 @@ c allocate the arrays
 				case default
 					call output("Unknown MCobs:lam value")
 			end select
+		case("d")
+			read(key%value,*) MCobs(key%nr1)%D
+		case("d2")
+			read(key%value,*) MCobs(key%nr1)%D2
+		case("spw")
+			read(key%value,*) MCobs(key%nr1)%SpW
+		case("width")
+			read(key%value,*) MCobs(key%nr1)%width
+		case("snoise")
+			read(key%value,*) MCobs(key%nr1)%snoise
+		case("fstar")
+			read(key%value,*) MCobs(key%nr1)%fstar
+		case("telescope")
+			read(key%value,*) MCobs(key%nr1)%telescope
 		case default
 			call output("Unknown MCobs keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -580,6 +594,12 @@ c===============================================================================
 		MCobs(i)%lam2=3000d0
 		MCobs(i)%maxR=-1d0
 		MCobs(i)%nr=1
+		MCobs(i)%telescope=.false.
+		MCobs(i)%D=0d0
+		MCobs(i)%D2=0d0
+		MCobs(i)%SpW=0d0
+		MCobs(i)%width=0d0
+		MCobs(i)%snoise=0d0
 	enddo
 	
 	return

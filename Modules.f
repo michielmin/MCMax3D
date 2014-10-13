@@ -145,6 +145,8 @@ c parameters for a spiral wave
 		logical raytrace
 		real*8 lam1,lam2
 		integer Nphot,nr
+		logical telescope						! do a telescope sim?
+		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones
