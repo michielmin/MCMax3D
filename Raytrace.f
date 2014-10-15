@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
-	real*8 dlmin,fluxZ(nzones+nstars),fov0
+	real*8 dlmin,fluxZ(nzones+nstars),fov0,zscale
 	logical simpleobs
 	character*500 MCfile
 
@@ -25,6 +25,13 @@
 		enddo
 	endif
 
+	fov0=(2d0*MCobs(iobs)%maxR/AU)/(Distance/parsec)
+	zscale=1d3*(MCobs(iobs)%npix/fov0)**2
+
+	do ilam=1,nlam
+		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))/distance**2
+	enddo
+
 	call SetupPaths(iobs)
 	MCfile=trim(outputdir) // "RTSpec" // trim(int2string(iobs,'(i0.4)')) // ".dat"
 	open(unit=20,file=MCfile,RECL=6000)
@@ -35,18 +42,25 @@
 			call FormalSolution(iobs,ilam,fluxZ)
 			MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // "_" // 
      &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
-			call writefitsfile(MCfile,MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),1,MCobs(iobs)%npix)
+			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)=
+     &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)/distance**2
+			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,4)=sqrt(
+     &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,2)**2+
+     &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
+			call writefitsfile(MCfile,zscale*MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4),4,MCobs(iobs)%npix)
 			if(MCobs(iobs)%telescope) then
-				fov0=(2d0*MCobs(iobs)%maxR/AU)/(Distance/parsec)
-				call Convolution(MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),MCobs(iobs)%npix,lam(ilam),
+				call Convolution(MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:3),MCobs(iobs)%npix,lam(ilam),
      &					MCobs(iobs)%D,MCobs(iobs)%D2,MCobs(iobs)%SpW,fov0,MCobs(iobs)%width,MCobs(iobs)%snoise)
+				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,4)=sqrt(
+     &				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,2)**2+
+     &				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
 				MCfile=trim(outputdir) // "RToutObs" // trim(int2string(iobs,'(i0.4)')) // "_" // 
      &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
-				call writefitsfile(MCfile,MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,ilam),1,MCobs(iobs)%npix)
+				call writefitsfile(MCfile,zscale*MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4),4,MCobs(iobs)%npix)
 			endif
+			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
 		endif
-		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))
-		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam)/distance**2,fluxZ(1:nzones+nstars)/distance**2
+		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
 	enddo
 	close(unit=20)
 
@@ -174,9 +188,9 @@
 		else
 			call EmitPhotonMatter(phot(iopenmp),izone,i1,i2,i3)
 		endif
-		x=-phot(iopenmp)%vy
-		y=phot(iopenmp)%vx
-		z=0d0
+		x=MCobs(iobs)%y*phot(iopenmp)%vz-MCobs(iobs)%z*phot(iopenmp)%vy
+		y=MCobs(iobs)%z*phot(iopenmp)%vx-MCobs(iobs)%x*phot(iopenmp)%vz
+		z=MCobs(iobs)%x*phot(iopenmp)%vy-MCobs(iobs)%y*phot(iopenmp)%vx
 		r=sqrt(x**2+y**2+z**2)
 		phot(iopenmp)%Sx=x/r
 		phot(iopenmp)%Sy=y/r
@@ -270,11 +284,12 @@
 	IMPLICIT NONE
 	integer izone,imin,iobs,istar
 	logical leave,inany,hitstar0
-	real*8 minv,tau0,tau,GetKext,random,GetKabs,fstopmono,albedo,theta
+	real*8 minv,tau0,tau,GetKext,random,GetKabs,fstopmono,albedo,theta,sin2t,cos2t
 	type(Travel) Trac(nzones)
 	type(Travel) TracStar(nstars)
 	type(Cell),pointer :: C
 	type(Photon) phot
+	real*8 x,y,z,r
 
 	tau0=-log(random(idum))
 	
@@ -282,6 +297,9 @@
 	phot%iscat=180d0*theta/pi
 	if(phot%iscat.lt.1) phot%iscat=1
 	if(phot%iscat.gt.180) phot%iscat=180
+
+	call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
+     &		MCobs(iobs)%x,MCobs(iobs)%y,MCobs(iobs)%z,sin2t,cos2t)
 	
 1	continue
 
@@ -347,8 +365,21 @@
 		minv=tau0/phot%Kext
 		phot%edgeNr=0
 		call TravelPhotonX(phot,minv)
-		call AddEtraceMono(phot,minv)
+		call AddEtraceMono(phot,minv,sin2t,cos2t)
 		call InteractMono(phot)
+		x=MCobs(iobs)%y*phot%vz-MCobs(iobs)%z*phot%vy
+		y=MCobs(iobs)%z*phot%vx-MCobs(iobs)%x*phot%vz
+		z=MCobs(iobs)%x*phot%vy-MCobs(iobs)%y*phot%vx
+		r=sqrt(x**2+y**2+z**2)
+		x=x/r
+		y=y/r
+		z=z/r
+		call RotateStokes(phot,x,y,z)
+		phot%Sx=x
+		phot%Sy=y
+		phot%Sz=z
+		call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
+     &			MCobs(iobs)%x,MCobs(iobs)%y,MCobs(iobs)%z,sin2t,cos2t)
 		theta=acos(MCobs(iobs)%x*phot%vx+MCobs(iobs)%y*phot%vy+MCobs(iobs)%z*phot%vz)
 		phot%iscat=180d0*theta/pi
 		if(phot%iscat.lt.1) phot%iscat=1
@@ -365,7 +396,7 @@
 	endif
 
 	call TravelPhotonX(phot,minv)
-	if(inany) call AddEtraceMono(phot,minv)
+	if(inany) call AddEtraceMono(phot,minv,sin2t,cos2t)
 	tau0=tau0-phot%Kext*minv
 
 	if(hitstar0) goto 3
@@ -403,22 +434,53 @@
 
 
 
-	subroutine AddEtraceMono(phot,v)
+	subroutine AddEtraceMono(phot,v,sin2t,cos2t)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
-	integer izone
-	real*8 v,GetF11
+	integer izone,ipart,isize,iT,iscat,ilam
+	real*8 v,GetF11,F11,F12,F22,F33,F34,F44,f,sI,sQ,sU,sV,Qt,Ut
+	real*8 sin2t,cos2t
 	type(Cell),pointer :: C
 	
+	iscat=phot%iscat
+	ilam=phot%ilam1
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			C%Escatt=C%Escatt+v*GetF11(phot%ilam1,phot%iscat,C)*phot%sI
+			F11=0d0
+			F12=0d0
+			F22=0d0
+			F33=0d0
+			F34=0d0
+			F44=0d0
+			do ipart=1,npart
+				do isize=1,Part(ipart)%nsize
+					do iT=1,Part(ipart)%nT
+						f=C%densP(ipart,isize,iT)*Part(ipart)%Ksca(isize,iT,ilam)
+						F11=F11+f*Part(ipart)%F(isize,iT,ilam)%F11(iscat)
+						F12=F12+f*Part(ipart)%F(isize,iT,ilam)%F12(iscat)
+						F22=F22+f*Part(ipart)%F(isize,iT,ilam)%F22(iscat)
+						F33=F33+f*Part(ipart)%F(isize,iT,ilam)%F33(iscat)
+						F34=F34+f*Part(ipart)%F(isize,iT,ilam)%F34(iscat)
+						F44=F44+f*Part(ipart)%F(isize,iT,ilam)%F44(iscat)
+					enddo
+				enddo
+			enddo
+			sI=F11*phot%sI+F12*phot%sQ
+			Qt=F12*phot%sI+F22*phot%sQ
+			Ut=F34*phot%sV+F33*phot%sU
+			sQ=Qt*cos2t+Ut*sin2t
+			sU=-Qt*sin2t+Ut*cos2t
+			sV=-F34*phot%sU+F44*phot%sV
+			C%Escatt=C%Escatt+v*sI
+			C%Qscatt=C%Qscatt+v*sQ
+			C%Uscatt=C%Uscatt+v*sU
+			C%Vscatt=C%Vscatt+v*sV
 		endif
 	enddo
-  
+
 	return
 	end
 	
@@ -657,26 +719,29 @@
 	end
 	
 
-	subroutine RaytraceFluxZone(P,flux,ilam,izone0)
+	subroutine RaytraceFluxZone(P,flux,Q,U,V,ilam,izone0)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 	type(Path),target :: P
 	type(Path),pointer :: Pnow
-	real*8 flux
+	real*8 flux,Q,U,V
 	integer ilam,izone0,istar
 	type(Cell),pointer :: C
 
 	integer izone,imin,iobs,iT
 	logical leave,inany,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs,theta,tau_e,fact,exptau,frac
-	real*8 albedo,emis,scat,Kext,Kabs,KabsZ(nzones),Ksca
+	real*8 albedo,emis,scat(4),Kext,Kabs,KabsZ(nzones),Ksca
 
 	Pnow => P
 
 	tau0=0d0
 	fact=1d0
 	flux=0d0
+	Q=0d0
+	U=0d0
+	V=0d0
 	
 1	continue
 
@@ -707,18 +772,27 @@
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
 			emis=emis+BB(ilam,iT)*KabsZ(izone0)
-			scat=scat+C%Escatt/C%V
+			scat(1)=scat(1)+C%Escatt/C%V
+			scat(2)=scat(2)+C%Qscatt/C%V
+			scat(3)=scat(3)+C%Uscatt/C%V
+			scat(4)=scat(4)+C%Vscatt/C%V
 		endif
 		emis=emis*(1d0-albedo)/Kabs
 		scat=scat/Kext
 
 		if(tau_e.lt.1d-6) then
-			flux=flux+(scat+emis)*tau_e*fact
+			flux=flux+(scat(1)+emis)*tau_e*fact
+			Q=Q+scat(2)*tau_e*fact
+			U=U+scat(3)*tau_e*fact
+			V=V+scat(4)*tau_e*fact
 			fact=fact*(1d0-tau_e)
 		else
 			exptau=exp(-tau_e)
 			frac=(1d0-exptau)
-			flux=flux+(scat+emis)*frac*fact
+			flux=flux+(scat(1)+emis)*frac*fact
+			Q=Q+scat(2)*frac*fact
+			U=U+scat(3)*frac*fact
+			V=V+scat(4)*frac*fact
 			fact=fact*exptau
 		endif
 		tau0=tau0+tau_e
@@ -1046,10 +1120,10 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar
-	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars)
+	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint
+	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars),Q,U,V
 
-	MCobs(iobs)%image(:,:,ilam)=0d0
+	MCobs(iobs)%image(:,:,1:4)=0d0		! us the wavelength dimension for the Stokes vectors
 	
 	do izone=1,nzones+nstars
 		fluxZ(izone)=0d0
@@ -1064,7 +1138,7 @@
 		call tellertje(1,100)
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy)
+!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V)
 !$OMP& SHARED(Pimage,izone,ilam,MCobs,idum,iobs,nzones,istar,fluxZ)
 !$OMP DO
 		do ir=1,Pimage(izone)%nr
@@ -1084,10 +1158,13 @@
 				endif
 				
 				if(izone.le.nzones) then
-					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,ilam,izone)
+					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone)
 				else
 					call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
 					flux=flux*MCobs(iobs)%fstar
+					Q=0d0
+					U=0d0
+					V=0d0
 				endif
 
 				if(ir.eq.1) then
@@ -1098,8 +1175,14 @@
 					A=pi*(Pimage(izone)%R(ir+1)*Pimage(izone)%R(ir)-Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))/real(Pimage(izone)%np)
 				endif
 
-
-				do i=1,1000
+				nint=25d0*A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
+				if(nint.lt.25) nint=25
+				if(nint.gt.1000) nint=1000
+				flux=1d23*flux*A/(real(nint)*4d0*pi)
+				Q=-1d23*Q*A/(real(nint)*4d0*pi)
+				U=-1d23*U*A/(real(nint)*4d0*pi)
+				V=1d23*V*A/(real(nint)*4d0*pi)
+				do i=1,nint
 					Rad=R1+random(idum)*(R2-R1)
 					phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
 					x=Rad*cos(phi)+Pimage(izone)%x
@@ -1109,7 +1192,10 @@
 					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
 
 					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-						MCobs(iobs)%image(ix,iy,ilam)=MCobs(iobs)%image(ix,iy,ilam)+1d23*flux*A/1000d0/(4d0*pi)
+						MCobs(iobs)%image(ix,iy,1)=MCobs(iobs)%image(ix,iy,1)+flux
+						MCobs(iobs)%image(ix,iy,2)=MCobs(iobs)%image(ix,iy,2)+Q
+						MCobs(iobs)%image(ix,iy,3)=MCobs(iobs)%image(ix,iy,3)+U
+						MCobs(iobs)%image(ix,iy,4)=MCobs(iobs)%image(ix,iy,4)+V
 					endif
 				enddo
 				fluxZ(izone)=fluxZ(izone)+1d23*flux*A/(4d0*pi)
@@ -1151,5 +1237,30 @@
 	
 2	deallocate(Pimage)
 	
+	return
+	end
+
+
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+
+	subroutine MakeRotateStokes(phot,x,y,z,vx,vy,vz,sin2t,cos2t)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(photon) phot
+	real*8 x,y,z,cost,sint,cos2t,sin2t,een,vx,vy,vz
+	
+	cost=phot%Sx*x+phot%Sy*y+phot%Sz*z
+	sint=(x-
+     &	(phot%Sx*(vy**2+vz**2)-vx*(vy*phot%Sy+vz*phot%Sz))*cost)/
+     &	(vy*phot%Sz-vz*phot%Sy)
+	
+	cos2t=cost**2-sint**2
+	sin2t=2d0*sint*cost
+
+	een=sqrt(sin2t**2+cos2t**2)
+	sin2t=sin2t/een
+	cos2t=cos2t/een
+
 	return
 	end

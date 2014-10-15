@@ -7,7 +7,7 @@
 	complex*16,allocatable :: psf(:,:),image(:,:),seeing(:,:)
 	complex*16 ic
 	parameter(ic=(0d0,1d0))
-	real*8 bessj1,x,y,r,rscale,im(IMDIM,IMDIM),tot,tot2,tot3
+	real*8 bessj1,x,y,r,rscale,im(IMDIM,IMDIM,3),tot,tot2,tot3
 	integer nn(2),ndim,i,j,ix,iy,nsplit,isplit,isign,ii,jj,nsplitpix,n2
 	real*8 lam0,Diam,fov0,fov,width,width0,phi,rw,Diam2,SpW,dx,psf2
 	integer*8 plan
@@ -16,7 +16,7 @@
 	real*8 gasdev,ran2,snoise
 	character*500 filename
 	complex*16 ctot1,ctot2
-	complex*16,allocatable :: CimI(:,:)
+	complex*16,allocatable :: CimI(:,:),CimQ(:,:)
 
 	nsplitpix=0
 	fov=fov0
@@ -267,7 +267,7 @@ c	call writefitsfile(filename,psf(1:IMDIM,1:IMDIM),IMDIM)
 		r=sqrt(x**2+y**2)*fov/real(n)
 		do ii=1,nsplitpix
 		do jj=1,nsplitpix
-			image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj)=im(i,j)/real(nsplitpix*nsplitpix)
+			image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj)=im(i,j,1)/real(nsplitpix*nsplitpix)
 		enddo
 		enddo
 	enddo
@@ -297,12 +297,83 @@ c	call writefitsfile(filename,psf(1:IMDIM,1:IMDIM),IMDIM)
 	enddo
 	enddo
 
-	im=cdabs(CimI)
+	im(:,:,1)=cdabs(CimI)
+
+	allocate(CimQ(IMDIM,IMDIM))
+	image=0d0
+	do i=1,IMDIM
+	do j=1,IMDIM
+		do ii=1,nsplitpix
+		do jj=1,nsplitpix
+			image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj)=im(i,j,2)/real(nsplitpix*nsplitpix)
+		enddo
+		enddo
+	enddo
+	enddo
+	isign=1
+	call dfftw_plan_dft_2d(plan, n,n, image,image,
+     &                       isign, FFTW_ESTIMATE)
+	call dfftw_execute_dft(plan, image, image)
+	call dfftw_destroy_plan(plan)
+	image=image*psf*seeing
+	isign=-1
+	call dfftw_plan_dft_2d(plan, n,n, image,image,
+     &                       isign, FFTW_ESTIMATE)
+	call dfftw_execute_dft(plan, image, image)
+	call dfftw_destroy_plan(plan)
+	do i=1,IMDIM
+	do j=1,IMDIM
+		CimQ(i,j)=0d0
+		do ii=1,nsplitpix
+		do jj=1,nsplitpix
+			CimQ(i,j)=CimQ(i,j)+(image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj))
+		enddo
+		enddo
+	enddo
+	enddo
+		
+	im(:,:,2)=(cdabs(CimI+CimQ)-cdabs(CimI-CimQ))/2d0
+
+	image=0d0
+	do i=1,IMDIM
+	do j=1,IMDIM
+		do ii=1,nsplitpix
+		do jj=1,nsplitpix
+			image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj)=im(i,j,3)/real(nsplitpix*nsplitpix)
+		enddo
+		enddo
+	enddo
+	enddo
+	isign=1
+	call dfftw_plan_dft_2d(plan, n,n, image,image,
+     &                       isign, FFTW_ESTIMATE)
+	call dfftw_execute_dft(plan, image, image)
+	call dfftw_destroy_plan(plan)
+	image=image*psf*seeing
+	isign=-1
+	call dfftw_plan_dft_2d(plan, n,n, image,image,
+     &                       isign, FFTW_ESTIMATE)
+	call dfftw_execute_dft(plan, image, image)
+	call dfftw_destroy_plan(plan)
+	do i=1,IMDIM
+	do j=1,IMDIM
+		CimQ(i,j)=0d0
+		do ii=1,nsplitpix
+		do jj=1,nsplitpix
+			CimQ(i,j)=CimQ(i,j)+real(image((i-1)*nsplitpix+ii,(j-1)*nsplitpix+jj))
+		enddo
+		enddo
+	enddo
+	enddo
+
+	im(:,:,3)=(cdabs(CimI+CimQ)-cdabs(CimI-CimQ))/2d0
+
 
 	deallocate(psf)
 	deallocate(image)
 	deallocate(seeing)
 	deallocate(CimI)
+	deallocate(CimQ)
 	
 	return
 	end

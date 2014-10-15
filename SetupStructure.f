@@ -4,7 +4,7 @@
 	IMPLICIT NONE
 	integer i,j,nf
 	real*8 T,Planck
-	real*8 x,y,z,inp
+	real*8 x,y,z,inp,r
 	
 	maxR=0d0
 	
@@ -32,6 +32,10 @@ c setup the observation direction
 		MCobs(i)%x=MCobs(i)%cosp*MCobs(i)%sint
 		MCobs(i)%y=MCobs(i)%sinp*MCobs(i)%sint
 		MCobs(i)%z=MCobs(i)%cost
+		MCobs(i)%xup=-MCobs(i)%cosp*MCobs(i)%cost
+		MCobs(i)%yup=-MCobs(i)%sinp*MCobs(i)%cost
+		MCobs(i)%zup=MCobs(i)%sint
+		
 		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
 		allocate(MCobs(i)%spec(nlam))
 		MCobs(i)%f=0d0

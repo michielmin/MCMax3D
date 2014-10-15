@@ -84,7 +84,7 @@ c storage speed options
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
-		real*8 Escatt,Elam,KabsL			! for the raytracing
+		real*8 Escatt,Elam,KabsL,Qscatt,Uscatt,Vscatt			! for the raytracing
 c parameters for spiral density wave
 		real*8 Fdens,Fheight,Falpha
 	end type Cell
@@ -147,6 +147,7 @@ c parameters for a spiral wave
 		integer Nphot,nr
 		logical telescope						! do a telescope sim?
 		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
+		real*8 xup,yup,zup						! up vector in the image (reference for Polarization)
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones

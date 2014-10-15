@@ -600,6 +600,7 @@ c===============================================================================
 		MCobs(i)%SpW=0d0
 		MCobs(i)%width=0d0
 		MCobs(i)%snoise=0d0
+		MCobs(i)%fstar=1d0
 	enddo
 	
 	return
