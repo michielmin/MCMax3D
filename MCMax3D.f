@@ -61,6 +61,8 @@ c have a good day
 	call output("Have a nice day!")
 	call output("==================================================================")
 
+	call system("touch " // trim(outputdir) // "done")
+
 	end
 
 

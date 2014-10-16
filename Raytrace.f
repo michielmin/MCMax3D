@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
-	real*8 dlmin,fluxZ(nzones+nstars),fov0,zscale
+	real*8 dlmin,fluxZ(nzones+nstars),fov0,zscale,Reddening,compute_dlam
 	logical simpleobs
 	character*500 MCfile
 
@@ -29,7 +29,7 @@
 	zscale=1d3*(MCobs(iobs)%npix/fov0)**2
 
 	do ilam=1,nlam
-		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))/distance**2
+		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
 	enddo
 
 	call SetupPaths(iobs)
@@ -43,7 +43,7 @@
 			MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // "_" // 
      &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
 			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)=
-     &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)/distance**2
+     &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
 			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,4)=sqrt(
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,2)**2+
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)

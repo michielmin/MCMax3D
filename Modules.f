@@ -32,7 +32,7 @@ c===============================================================================
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum
 	logical criticalerror
-	real*8 maxR,distance
+	real*8 maxR,distance,Av
 	character*500 outputdir,particledir
 
 c string converting functions

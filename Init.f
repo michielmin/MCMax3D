@@ -71,6 +71,8 @@ c allocate the arrays
 			read(key%value,*) fstop
 		case("nspike")
 			read(key%value,*) nspike
+		case("av")
+			read(key%value,*) Av
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -371,6 +373,20 @@ c allocate the arrays
 	call getarg(1,inputfile)
 
 	open(unit=20,file=inputfile,RECL=1000)
+
+	call getarg(2,readline)
+	read(readline,*) Nphot
+	if(Nphot.gt.0) then
+		call output("Number of photon packages for radiative transfer: " // int2string(Nphot,'(i10)'))
+	else
+		call output("No radiative transfer")
+	endif
+
+	call system("cp " // trim(inputfile) // " " // trim(outputdir) // "input.dat")
+	if(Nphot.gt.0) then
+		open(unit=21,file=trim(outputdir) // "input.dat",RECL=1000,access='APPEND')
+		write(21,'("*** command line keywords ***")')
+	endif
 	
 	ncla=-1
 
@@ -387,6 +403,7 @@ c allocate the arrays
 			ncla=ncla+1
 			call getarg(1+ncla,readline)
 			call output("Command line argument: " // trim(readline))
+			if(Nphot.gt.0) write(21,'(a)') trim(readline)
 			ncla=ncla+1
 		else
 			if(readline.ne.' ') then
@@ -415,14 +432,6 @@ c read another command, so go back
 	allocate(key%next)
 	key => key%next
 	key%last=.true.
-
-	call getarg(2,readline)
-	read(readline,*) Nphot
-	if(Nphot.gt.0) then
-		call output("Number of photon packages for radiative transfer: " // int2string(Nphot,'(i10)'))
-	else
-		call output("No radiative transfer")
-	endif
 
 	return
 	end
@@ -512,6 +521,7 @@ c===============================================================================
 	distance=150d0
 	fstop=0d0
 	nspike=0
+	Av=0d0
 	
 	particledir=' '
 	
