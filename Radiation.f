@@ -352,7 +352,7 @@ c				Ksca(1:nlam)=Ksca(1:nlam)+KscaTotal(izone,1:nlam)
 c			endif
 c		enddo
 		do l=1,nlam
-			Ksca(l)=Part(ipart)%F(isize,iT,l)%F11(iscat)
+			Ksca(l)=Part(ipart)%Ksca(isize,iT,l)*Part(ipart)%F(isize,iT,l)%F11(iscat)
 		enddo
 		specemit(1:nlam)=specemit(1:nlam)*Ksca(1:nlam)
 		call integrate(specemit,tot)
