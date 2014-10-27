@@ -32,19 +32,21 @@ c now setup the basic structure
 
 	if(Nphot.gt.0) then
 c iterate when needed
-	do while(.not.converged.and.iter.le.maxiter)
+		do while(.not.converged.and.iter.le.maxiter)
 c compute the next iteration of the structure
-c		call EvolveStructure(iter)
+c			call EvolveStructure(iter)
 c do the radiative transfer
-		call RadiativeTransfer
+			call RadiativeTransfer
 
 c is everything converged? (or iterations not needed)
-c		converged=DetermineConverged(iter)
+c			converged=DetermineConverged(iter)
 	
 c write the structure to the output files
-c		call OutputStructure(iter,converged)
-		iter=iter+1
-	enddo
+c			call OutputStructure(iter,converged)
+			iter=iter+1
+		enddo
+	else
+c		call ReadStructure
 	endif
 
 	call OutputMCobs
