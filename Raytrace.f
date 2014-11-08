@@ -210,9 +210,15 @@
 
 	subroutine EmitPhotonStar(phot,istar)
 	use GlobalSetup
+	use Constants
 	IMPLICIT NONE
-	integer istar
+	integer istar,izone
+	real*8 sI_in,r,x0,y0,z0,xn,yn,zn,x,y,z,theta,fbeam,random
 	type(Photon) phot
+	
+	sI_in=phot%sI
+
+	fbeam=0.9
 	
 	call randomdirection(phot%x,phot%y,phot%z)
 
@@ -222,10 +228,58 @@
 
 	call randomdirection(phot%vx,phot%vy,phot%vz)
 
-	if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
-		phot%vx=-phot%vx
-		phot%vy=-phot%vy
-		phot%vz=-phot%vz
+	r=random(idum)
+	do izone=1,nzones
+		r=r-Zone(izone)%fbeamS(istar)
+		if(r.lt.0d0) exit
+	enddo
+	if(izone.le.nzones) then
+c beaming
+		x0=Zone(izone)%x0-Star(istar)%x
+		y0=Zone(izone)%y0-Star(istar)%y
+		z0=Zone(izone)%z0-Star(istar)%z
+		r=sqrt(x0**2+y0**2+z0**2)
+		x0=x0/r
+		y0=y0/r
+		z0=z0/r
+		x=random(idum)
+		y=random(idum)
+		z=random(idum)
+		xn=y0*z-z0*y
+		yn=z0*x-x0*z
+		zn=x0*y-y0*x
+		r=sqrt(xn**2+yn**2+zn**2)
+		xn=xn/r
+		yn=yn/r
+		zn=zn/r
+1		continue
+		if(random(idum).lt.fbeam) then
+			theta=acos(1d0-(1d0-Zone(izone)%ctbeamS(istar))*random(idum))
+			phot%sI=phot%sI*Zone(izone)%EfbeamS(istar)/fbeam
+		else
+			theta=acos(-1d0-(-1d0-Zone(izone)%ctbeamS(istar))*random(idum))
+			phot%sI=phot%sI*(1d0-Zone(izone)%EfbeamS(istar))/(1d0-fbeam)
+		endif
+		phot%vx=x0
+		phot%vy=y0
+		phot%vz=z0
+		call rotate(phot%vx,phot%vy,phot%vz,xn,yn,zn,theta)
+		theta=2d0*pi*random(idum)
+		call rotate(phot%vx,phot%vy,phot%vz,x0,y0,z0,theta)
+		if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
+			call randomdirection(phot%x,phot%y,phot%z)
+			phot%x=Star(istar)%R*phot%x
+			phot%y=Star(istar)%R*phot%y
+			phot%z=Star(istar)%R*phot%z
+			phot%sI=sI_in
+			goto 1
+		endif
+	else
+		if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
+			phot%vx=-phot%vx
+			phot%vy=-phot%vy
+			phot%vz=-phot%vz
+		endif
 	endif
 
 	phot%x=phot%x+Star(istar)%x

@@ -38,14 +38,7 @@ c setup the observation direction
 		
 		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
 		allocate(MCobs(i)%spec(nlam))
-		MCobs(i)%f=0d0
-		nf=100000
-		do j=1,nf
-			call randomdirection(x,y,z)
-			inp=MCobs(i)%x*x+MCobs(i)%y*y+MCobs(i)%z*z
-			if(inp.gt.MCobs(i)%opening) MCobs(i)%f=MCobs(i)%f+1d0
-		enddo
-		MCobs(i)%f=4d0*pi*MCobs(i)%f/real(nf)
+		MCobs(i)%f=2d0*pi*(1d0-MCobs(i)%opening)
 	enddo
 	
 	call output("==================================================================")
@@ -75,6 +68,8 @@ c setup the observation direction
 			MCobs(i)%maxR=MCobs(i)%maxR*AU
 		endif
 	enddo
+
+	call SetupBeaming()
 
 	return
 	end
@@ -886,3 +881,57 @@ c-----------------------------------------------------------------------
 	end
 
 
+
+	subroutine SetupBeaming()
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer izone,istar
+	real*8 f,E
+	
+	do izone=1,nzones
+		Zone(izone)%fbeam=Zone(izone)%fbeam/real(nzones)
+		call DetermineBeamZ(izone)
+	enddo
+
+	return
+	end
+	
+
+
+	subroutine DetermineBeamZ(izone)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer izone,istar,i
+	real*8 f,x,y,z,vx,vy,vz,r,d
+	
+	allocate(Zone(izone)%fbeamS(nstars))
+	allocate(Zone(izone)%tbeamS(nstars))
+	allocate(Zone(izone)%ctbeamS(nstars))
+	allocate(Zone(izone)%EfbeamS(nstars))
+
+	do istar=1,nstars
+		r=(Zone(izone)%xscale*(Star(istar)%x-Zone(izone)%x0))**2+
+     &    (Zone(izone)%yscale*(Star(istar)%y-Zone(izone)%y0))**2+
+     &    (Zone(izone)%zscale*(Star(istar)%z-Zone(izone)%z0))**2
+		if(r.lt.Zone(izone)%Rout**2) then
+			Zone(izone)%fbeamS(istar)=0d0
+			Zone(izone)%tbeamS(istar)=0d0
+			Zone(izone)%EfbeamS(istar)=0d0
+		else
+			Zone(izone)%fbeamS(istar)=Zone(izone)%fbeam
+			d=sqrt((Zone(izone)%x0-Star(istar)%x)**2
+     &	+(Zone(izone)%y0-Star(istar)%y)**2+(Zone(izone)%z0-Star(istar)%z)**2)
+			Zone(izone)%tbeamS(istar)=atan((Zone(izone)%Rout+Star(istar)%R)/d)
+			Zone(izone)%ctbeamS(istar)=cos(Zone(izone)%tbeamS(istar))
+			f=(1d0-Zone(izone)%ctbeamS(istar))/2d0
+			Zone(izone)%EfbeamS(istar)=f
+		endif
+	enddo
+	
+	return
+	end
+	
+	
+	

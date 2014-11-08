@@ -64,6 +64,9 @@ c storage speed options
 	integer,allocatable :: i1totalAbs(:),i2totalAbs(:),i3totalAbs(:)	! nzones
 	integer,allocatable :: i1totalSca(:),i2totalSca(:),i3totalSca(:)	! nzones
 
+c beaming parameter
+	real*8,allocatable :: Efnotbeam(:)
+
 	type Mueller
 		real*8 F11(180),F12(180),F22(180)
 		real*8 F33(180),F44(180),F34(180)
@@ -135,6 +138,9 @@ c parameters for spiral density wave
 c parameters for a spiral wave
 		real*8 Adens,Aheight,Aalpha
 		real*8 r_spiral,phi_spiral,alpha_spiral,beta_spiral,w_spiral
+c parameter for beaming towards this zone
+		real*8 fbeam
+		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)
 	end type ZoneType
 
 	type MCobsType

@@ -222,6 +222,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%beta_spiral
 		case("wspiral")
 			read(key%value,*) Zone(key%nr1)%w_spiral
+		case("fbeam")
+			read(key%value,*) Zone(key%nr1)%fbeam
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -578,6 +580,8 @@ c===============================================================================
 		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
 		Zone(i)%beta_spiral=-0.4d0	! Value from Muto = 0.4, setting it to negative computes it
 		Zone(i)%w_spiral=0.2d0		! in terms of orbits
+
+		Zone(i)%fbeam=0d0
 	enddo
 
 	do i=1,npart
