@@ -136,8 +136,8 @@
 			if(iT.gt.nBB) iT=nBB
 			C%KabsL=GetKabs(ilam,C)
 			C%Elam=C%KabsL*BB(ilam,iT)*C%V
-			Etot=Etot+C%Elam
 			if(C%Elam.gt.0d0) then
+				Etot=Etot+C%Elam
 				nspat=nspat+1
 				Espat(nspat+1)=Espat(nspat)+C%Elam
 				zspat(nspat)=izone
@@ -178,6 +178,7 @@
 		enddo
 
 		call hunt(Espat,nspat+1,Erandom,ispat)
+		if(ispat.eq.nspat+1) goto 2
 		izone=zspat(ispat)
 		i1=i1spat(ispat)
 		i2=i2spat(ispat)
