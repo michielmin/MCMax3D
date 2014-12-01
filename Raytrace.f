@@ -17,7 +17,7 @@
 	ilam0=0
 	if(.not.simpleobs) then
 		dlmin=lam(nlam)-lam(1)
-		do ilam=1,ilam
+		do ilam=1,nlam
 			if(abs(lam(ilam)-(MCobs(iobs)%lam1+MCobs(iobs)%lam2)/2d0).lt.dlmin) then
 				dlmin=abs(lam(ilam)-(MCobs(iobs)%lam1+MCobs(iobs)%lam2)/2d0)
 				ilam0=ilam
@@ -135,8 +135,8 @@
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
 			C%KabsL=GetKabs(ilam,C)
-			C%Elam=C%KabsL*BB(ilam,iT)*C%V
 			if(C%Elam.gt.0d0) then
+				C%Elam=C%KabsL*BB(ilam,iT)*C%V
 				Etot=Etot+C%Elam
 				nspat=nspat+1
 				Espat(nspat+1)=Espat(nspat)+C%Elam

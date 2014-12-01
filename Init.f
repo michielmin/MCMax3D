@@ -578,7 +578,7 @@ c===============================================================================
 		Zone(i)%r_spiral=5d0		! launching point
 		Zone(i)%phi_spiral=0d0		! launching point
 		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
-		Zone(i)%beta_spiral=-0.4d0	! Value from Muto = 0.4, setting it to negative computes it
+		Zone(i)%beta_spiral=0.4d0	! Value from Muto = 0.4, setting it to negative computes it
 		Zone(i)%w_spiral=0.2d0		! in terms of orbits
 
 		Zone(i)%fbeam=0d0

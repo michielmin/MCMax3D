@@ -15,7 +15,10 @@ LINKER	      = ifort
 # enforce single core compilation with:
 # cl> make multi=false
 ifeq ($(multi),true)
-  MULTICORE = -openmp -fp-model strict
+	MULTICORE = -openmp -fp-model strict
+	ifeq ($(debug),true)
+  		MULTICORE = -openmp
+	endif
 endif
 
 # array boundary check
