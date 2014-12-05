@@ -27,6 +27,8 @@ c let's initialize everything first
 c now setup the basic structure
 	call SetupStructure
 	
+	call OutputStats
+	
 	converged=.false.
 	iter=0
 

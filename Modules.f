@@ -4,7 +4,7 @@ c===============================================================================
 	module Constants
 	IMPLICIT NONE
 	real*8 pi,G,Msun,AU,clight,Rsun,mp,kb,hplanck,parsec,Lsun,sigma
-	real*8 Mearth,Rearth,Mjup,Rjup
+	real*8 Mearth,Rearth,Mjup,Rjup,year
 	parameter(pi=3.14159265358979323846264338328d0)
 	parameter(clight=2.9979245800d10) !cm/s
 	parameter(AU=1.49598d13)
@@ -21,6 +21,7 @@ c===============================================================================
 	parameter(Mjup=1.89813d30)
 	parameter(Rearth=6.3781d8)
 	parameter(Rjup=7.1492d9)
+	parameter(year=24d0*60d0*60d0*265.25d0)
 	
 	end module Constants
 

@@ -71,7 +71,9 @@ OBJS	      = Modules.o \
 				OutputMCobs.o \
 				Raytrace.o \
 				Convolution.o \
-				Reddening.o
+				Reddening.o \
+				SpecialZone.o \
+				OutputStats.o
 
 # program name and install location
 PROGRAM       = MCMax3D

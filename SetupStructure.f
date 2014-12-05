@@ -295,9 +295,9 @@ c-----------------------------------------------------------------------
 	Star(ii)%y=Star(ii)%y*AU
 	Star(ii)%z=Star(ii)%z*AU
 
-	if((Star(ii)%x+Star(ii)%R).gt.maxR) maxR=(Star(ii)%x+Star(ii)%R)
-	if((Star(ii)%y+Star(ii)%R).gt.maxR) maxR=(Star(ii)%y+Star(ii)%R)
-	if((Star(ii)%z+Star(ii)%R).gt.maxR) maxR=(Star(ii)%z+Star(ii)%R)
+	if((Star(ii)%x+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%x)+Star(ii)%R)
+	if((Star(ii)%y+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%y)+Star(ii)%R)
+	if((Star(ii)%z+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%z)+Star(ii)%R)
 	
 	return
 	end
@@ -373,8 +373,7 @@ c spiral waves
 		case("SHELL")
 			call SetupShell(ii)
 		case default
-			call output("Really? A " // trim(Zone(ii)%denstype) // "-zone? That is an awesome idea! (but not yet possible)")
-			stop
+			call SetupSpecialZone(ii)
 	end select	
 	
 	return
@@ -653,9 +652,9 @@ c setup initial radial grid
 	enddo		
 	close(unit=20)
 
-	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%x0+Zone(ii)%Rout)
-	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%y0+Zone(ii)%Rout)
-	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(Zone(ii)%z0+Zone(ii)%Rout)
+	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
+	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
+	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
 
 	do i=1,Zone(ii)%nr+1
 		Zone(ii)%R2(i)=Zone(ii)%R(i)**2
@@ -687,6 +686,48 @@ c setup initial radial grid
 c setup initial theta grid
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi/2d0
+	enddo
+
+	Zone(ii)%imidplane=Zone(ii)%nt/2+1
+
+	call sort(Zone(ii)%theta,Zone(ii)%nt+1)
+
+	open(unit=20,file=trim(outputdir) // 'thetagrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
+	do i=1,Zone(ii)%nt+1
+		write(20,*) Zone(ii)%theta(i)
+	enddo
+	close(unit=20)
+
+	do i=1,Zone(ii)%nt+1
+		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
+	enddo
+	
+	return
+	end
+	
+
+	subroutine SetupThetaGridEqui(ii)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i
+	real*8 tmax,random
+	
+	if(Zone(ii)%shape.eq.'SPH') then
+		tmax=pi/2d0
+	else if(Zone(ii)%shape.eq.'CYL') then
+		tmax=Zone(ii)%tmax*pi/180d0
+	endif
+
+	if((2*int(Zone(ii)%nt/2)).ne.Zone(ii)%nt) then
+		Zone(ii)%nt=Zone(ii)%nt-1
+		call output("I need a midplane boundary, so an even number of theta cells")
+		call output("changing nt to: " // trim(int2string(Zone(ii)%nt,'(i4)')))
+	endif
+
+c setup initial theta grid
+	do i=1,Zone(ii)%nt+1
+		Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)+pi/2d0
 	enddo
 
 	Zone(ii)%imidplane=Zone(ii)%nt/2+1

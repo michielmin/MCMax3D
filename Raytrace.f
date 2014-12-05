@@ -725,11 +725,11 @@ c beaming
 				call rotateY(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
 				call rotateZ(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
 
-				call TravelPhotonX(phot(iopenmp),-maxR)
-
 				call TranslatePhotonX(phot(iopenmp))
 				call TranslatePhotonV(phot(iopenmp))
-				
+
+				call TravelPhotonX(phot(iopenmp),-3d0*maxR)
+
 				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip))
 			enddo
 		enddo
@@ -748,26 +748,30 @@ c beaming
 	subroutine ComputeRtau1(Rtau1,nt,izone)
 	use GlobalSetup
 	IMPLICIT NONE
-	integer nt,izone,it,ilam,ir
-	real*8 Rtau1(nt),tau,GetKext,tau_tot,d
+	integer nt,izone,it,ilam,ir,ip
+	real*8 Rtau1(nt),tau,GetKext,tau_tot,d,R
 
 	do ilam=1,nlam-1
 		if(lam(ilam).lt.0.55.and.lam(ilam+1).ge.0.55) exit
 	enddo
 	
 	do it=1,nt
-		Rtau1(it)=-1d0
+		Rtau1(it)=0d0
+		do ip=1,Zone(izone)%np
+		R=-1d0
 		tau_tot=0d0
 		do ir=1,Zone(izone)%nr
 			d=Zone(izone)%R(ir+1)-Zone(izone)%R(ir)
-			tau=d*GetKext(ilam,Zone(izone)%C(ir,it,1))
+			tau=d*GetKext(ilam,Zone(izone)%C(ir,it,ip))
 			if(tau_tot+tau.gt.1d0) then
-				Rtau1(it)=Zone(izone)%R(ir)+(Zone(izone)%R(ir+1)-Zone(izone)%R(ir))*(1d0-tau_tot)/tau
+				R=Zone(izone)%R(ir)+(Zone(izone)%R(ir+1)-Zone(izone)%R(ir))*(1d0-tau_tot)/tau
 				goto 1
 			endif
 			tau_tot=tau_tot+tau
 		enddo
 1		continue
+		if(R.lt.Rtau1(it)) Rtau1(it)=R
+		enddo
 	enddo
 		
 	return
@@ -1096,7 +1100,7 @@ c beaming
 		call HitStar(phot,istar,TracStar(istar))
 	enddo
 
-	minv=20d0*maxR
+	minv=1d8*maxR
 	leave=.true.
 	do izone=1,nzones
 		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
