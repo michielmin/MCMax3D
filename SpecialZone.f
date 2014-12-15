@@ -35,8 +35,9 @@ c C(ir,it,ip)%densP(ipart,isize,iT)
 			call SetupPhiGrid(izone)
 			call SetupVolume(izone)
 
-			nrings=100
+			nrings=10
 			Mdot=1d-3*Msun/year
+			Mdot=ZZ%Mdust/year
 			dphi=2d0*pi/(10d0*year)
 			t0=5d0*year
 			dt=2d0*pi/dphi/real(ZZ%np)

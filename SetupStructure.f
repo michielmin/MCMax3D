@@ -483,19 +483,11 @@ c spiral waves
 				endif
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
 				do ip=1,Zone(ii)%np
-					hr=(1d0+Zone(ii)%Aheight*Aspiral(ir,ip))*Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+					hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
 					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 					f2=exp(-(z/hr)**2)
 					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens
-     &							+(1d0+Zone(ii)%Adens*Aspiral(ir,ip))*f1*f2/hr/real(njj)
-	if(Zone(ii)%C(ir,it,ip)%gasdens.ge.0d0) then
-	
-	else
-		print*,ir,it,ip,Zone(ii)%C(ir,it,ip)%gasdens
-		print*,f1,f2,hr,Aspiral(ir,ip)
-		stop
-	endif
-
+     &							+f1*f2/hr/real(njj)
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
@@ -532,18 +524,18 @@ c spiral waves
 				endif
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
 				do ip=1,Zone(ii)%np
-					hr=(1d0+Zone(ii)%Aheight*Aspiral(ir,ip))*Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+					hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
 					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
 					do i=1,npart
 						do ips=1,Part(i)%nsize
 							ha=(1d0+delta)**(-0.25)*
-     &		sqrt(Zone(ii)%alpha*(1d0+Zone(ii)%Aalpha*Aspiral(ir,ip))*
-     &			Zone(ii)%gas2dust*(1d0+Zone(ii)%Adens*Aspiral(ir,ip))*Mtot*f1
+     &		sqrt(Zone(ii)%alpha*
+     &			Zone(ii)%gas2dust*Mtot*f1
      &			/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
 							f2a=exp(-(z/ha)**2)
 							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
-     &		(1d0+Zone(ii)%Adens*Aspiral(ir,ip))*Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
+     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
 						enddo
 					enddo
 				enddo
