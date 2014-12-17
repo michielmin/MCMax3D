@@ -240,46 +240,61 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	real*8 inp,tot,x,y,z,ext(nlam)
+	real*8 inp,tot,x,y,z,ext(nlam),fact
 	integer i,j,ix,iy,ipart,isize,iT
+	logical doMCobs(nMCobs),doany
 	type(Photon) phot
-	
-!$OMP CRITICAL
+
+	doany=.false.
+	doMCobs=.false.
 	do i=1,nMCobs
 		inp=MCobs(i)%x*phot%vx+MCobs(i)%y*phot%vy+MCobs(i)%z*phot%vz
 		if(inp.gt.MCobs(i)%opening) then
-			ext=0d0
-			do ipart=1,npart
-				do isize=1,Part(ipart)%nsize
-					do iT=1,Part(ipart)%nT
-						do j=1,nlam
-							ext(j)=ext(j)+column(ipart,isize,iT)*Part(ipart)%Kext(isize,iT,j)
-						enddo
+			doMCobs(i)=.true.
+			doany=.true.
+		endif
+	enddo
+
+	if(doany) then
+		ext=0d0
+		do ipart=1,npart
+			do isize=1,Part(ipart)%nsize
+				do iT=1,Part(ipart)%nT
+					do j=1,nlam
+						ext(j)=ext(j)+column(ipart,isize,iT)*Part(ipart)%Kext(isize,iT,j)
 					enddo
 				enddo
 			enddo
-			do j=1,nlam
-				if(ext(j).lt.1000d0) then
-					specemit(j)=specemit(j)*exp(-ext(j))
-				else
-					specemit(j)=0d0
-				endif
-			enddo
-			call integrate(specemit,tot)
-			if(tot.gt.1d-100) then
-				specemit=specemit/tot
-				specemit=1d23*phot%sI*specemit/MCobs(i)%f
-				MCobs(i)%spec(1:nlam)=MCobs(i)%spec(1:nlam)+specemit(1:nlam)
-				x=phot%x0
-				y=phot%y0
-				z=phot%z0
-				call rotateZ(x,y,z,MCobs(i)%cosp,-MCobs(i)%sinp)
-				call rotateY(x,y,z,MCobs(i)%cost,MCobs(i)%sint)
-				ix=real(MCobs(i)%npix)*(y+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
-				iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
-				if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
-					MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)
-				endif
+		enddo
+		do j=1,nlam
+			if(ext(j).lt.1000d0) then
+				specemit(j)=specemit(j)*exp(-ext(j))
+			else
+				specemit(j)=0d0
+			endif
+		enddo
+		call integrate(specemit,tot)
+		if(tot.gt.1d-100) then
+			specemit=specemit/tot
+		else
+			doMCobs=.false.
+		endif
+	endif
+
+!$OMP CRITICAL
+	do i=1,nMCobs
+		if(doMCobs(i)) then
+			fact=1d23*phot%sI/MCobs(i)%f
+			MCobs(i)%spec(1:nlam)=MCobs(i)%spec(1:nlam)+specemit(1:nlam)*fact
+			x=phot%x0
+			y=phot%y0
+			z=phot%z0
+			call rotateZ(x,y,z,MCobs(i)%cosp,-MCobs(i)%sinp)
+			call rotateY(x,y,z,MCobs(i)%cost,MCobs(i)%sint)
+			ix=real(MCobs(i)%npix)*(y+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
+			iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
+			if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
+				MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)*fact
 			endif
 		endif
 	enddo
