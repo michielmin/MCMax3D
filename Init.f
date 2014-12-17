@@ -224,6 +224,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%w_spiral
 		case("fbeam")
 			read(key%value,*) Zone(key%nr1)%fbeam
+		case("abun")
+			read(key%value,*) Zone(key%nr1)%abun(key%nr2)
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -465,7 +467,6 @@ c===============================================================================
 		call checknr(key1,nr1)
 	endif
 
-
 	value=line(index(line,'=')+1:len_trim(line))
 	if(value(1:1).eq.'"'.or.value(1:1).eq."'") then
 		value=value(2:len_trim(value)-1)
@@ -497,9 +498,14 @@ c===============================================================================
 	i=i-1
 	if(i.eq.0) goto 2
 	goto 1
-2	key=key(1:i)
-	if(i.eq.n) nr=1
-	
+2	continue
+	if(i.eq.n) then
+		nr=1
+	else
+		read(key(i+1:n),*,err=3) nr	
+	endif
+3	continue
+	key=key(1:i)
 	return
 	end
 	

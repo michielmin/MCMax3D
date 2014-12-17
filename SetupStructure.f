@@ -93,18 +93,13 @@ c-----------------------------------------------------------------------
 	else
 c	does not seem to work!!! Have to fix this!!!
 		call output("NZLAM OPTION NOT ALWAYS WORKING PROPERLY YET!!!")
-		nl=(nlam-nzlam)*(log10(zlam1/lam1)/log10(lam2*zlam1/(zlam2*lam1)))
+		nl=(nlam-nzlam)
 		do i=1,nl
-			lam(i)=10d0**(log10(lam1)+(log10(zlam1)-log10(lam1))*real(i-1)/real(nl-1))
+			lam(i)=10d0**(log10(lam1)+(log10(lam2)-log10(lam1))*real(i-1)/real(nl-1))
 		enddo
-		j=i-1
-		nl=(nlam-nzlam)-nl
-		do i=1,nl
-			lam(i+j)=10d0**(log10(zlam2)+(log10(lam2)-log10(zlam2))*real(i-1)/real(nl-1))
-		enddo
-		j=j+i-1
+		j=nl
 		do i=1,nzlam
-			lam(i+j)=10d0**(log10(zlam1)+(log10(zlam2)-log10(zlam1))*real(i)/real(nzlam+1))
+			lam(i+j)=10d0**(log10(zlam1)+(log10(zlam2)-log10(zlam1))*real(i-1)/real(nzlam-1))
 		enddo
 		call sort(lam,nlam)
 	endif
