@@ -1274,7 +1274,7 @@ c beaming
 	use GlobalSetup
 	IMPLICIT NONE
 	integer izone,ir,ip
-	type(Path),pointer :: Pnow
+	type(Path),pointer :: Pnow,Pnow2
 	
 	do izone=1,nzones
 		do ir=1,Pimage(izone)%nr
@@ -1287,11 +1287,15 @@ c beaming
 				deallocate(Pnow%inzone)
 				deallocate(Pnow%C)
 				if(.not.Pnow%last) then
+					Pnow2 => Pnow
 					Pnow => Pnow%next
+					deallocate(Pnow2)
 					goto 1
 				endif
 			enddo
 		enddo
+		deallocate(Pimage(izone)%P)
+		deallocate(Pimage(izone)%R)
 	enddo
 	
 2	deallocate(Pimage)
