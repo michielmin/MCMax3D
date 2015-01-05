@@ -591,12 +591,11 @@ c beaming
 	real*8,allocatable :: Rtau1(:)
 	type(ZoneType),pointer :: Zo
 	type(StarType),pointer :: St
-	type(Photon),allocatable :: phot(:),phot0(:)
+	type(Photon),allocatable :: phot(:)
 	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
 
 	maxnopenmp=omp_get_max_threads()+1
 	allocate(phot(maxnopenmp))	
-	allocate(phot0(maxnopenmp))	
 	do i=1,maxnopenmp
 		allocate(phot(i)%i1(nzones))
 		allocate(phot(i)%i2(nzones))
@@ -610,18 +609,6 @@ c beaming
 		allocate(phot(i)%vxzone(nzones))
 		allocate(phot(i)%vyzone(nzones))
 		allocate(phot(i)%vzzone(nzones))
-		allocate(phot0(i)%i1(nzones))
-		allocate(phot0(i)%i2(nzones))
-		allocate(phot0(i)%i3(nzones))
-		allocate(phot0(i)%inzone(nzones))
-		allocate(phot0(i)%edgeNr(nzones))
-		allocate(phot0(i)%KabsZ(nzones))
-		allocate(phot0(i)%xzone(nzones))
-		allocate(phot0(i)%yzone(nzones))
-		allocate(phot0(i)%zzone(nzones))
-		allocate(phot0(i)%vxzone(nzones))
-		allocate(phot0(i)%vyzone(nzones))
-		allocate(phot0(i)%vzzone(nzones))
 	enddo
 	
 	allocate(Pimage(nzones+nstars))
@@ -705,7 +692,7 @@ c beaming
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp)
-!$OMP& SHARED(Pimage,izone,MCobs,idum,iobs,phot,phot0,maxR,x,y,z,nzones)
+!$OMP& SHARED(Pimage,izone,MCobs,idum,iobs,phot,maxR,x,y,z,nzones)
 !$OMP DO
 		do ir=1,Pimage(izone)%nr
 			iopenmp=omp_get_thread_num()+1
@@ -743,15 +730,7 @@ c beaming
 
 				call TravelPhotonX(phot(iopenmp),-3d0*maxR)
 
-				phot0(iopenmp)=phot(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.true.)
-
-				allocate(Pimage(izone)%P(ir,ip)%v(Pimage(izone)%P(ir,ip)%n))
-				allocate(Pimage(izone)%P(ir,ip)%inzone(Pimage(izone)%P(ir,ip)%n,nzones))
-				allocate(Pimage(izone)%P(ir,ip)%C(Pimage(izone)%P(ir,ip)%n,nzones))
-
-				phot(iopenmp)=phot0(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.false.)
+				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip))
 			enddo
 		enddo
 !$OMP END DO
@@ -803,15 +782,18 @@ c beaming
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	type(Path) :: P
+	type(Path),target :: P
+	type(Path),pointer :: Pnow
 	real*8 flux,Q,U,V
-	integer ilam,izone0,istar,k
+	integer ilam,izone0,istar
 	type(Cell),pointer :: C
 
 	integer izone,imin,iobs,iT
 	logical leave,inany,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs,theta,tau_e,fact,exptau,frac
 	real*8 albedo,emis,scat(4),Kext,Kabs,KabsZ(nzones),Ksca
+
+	Pnow => P
 
 	tau0=0d0
 	fact=1d0
@@ -820,16 +802,16 @@ c beaming
 	U=0d0
 	V=0d0
 	
-	do k=1,P%n
+1	continue
 
 	Kext=0d0
 	Kabs=0d0
 	inany=.false.
 	do izone=1,nzones
 		KabsZ(izone)=0d0
-		if(P%inzone(k,izone)) then
+		if(Pnow%inzone(izone)) then
 			inany=.true.
-			C => P%C(k,izone)%C
+			C => Pnow%C(izone)%C
 			Kext=Kext+GetKext(ilam,C)
 			KabsZ(izone)=GetKabs(ilam,C)
 			Kabs=Kabs+KabsZ(izone)
@@ -839,12 +821,12 @@ c beaming
 	albedo=(Kext-Kabs)/Kext
 
 	if(inany) then
-		tau_e=Kext*P%v(k)
+		tau_e=Kext*Pnow%v
 
 		emis=0d0
 		scat=0d0
-		if(P%inzone(k,izone0)) then
-			C => P%C(k,izone0)%C
+		if(Pnow%inzone(izone0)) then
+			C => Pnow%C(izone0)%C
 			iT=(C%T+0.5d0)/dTBB
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
@@ -875,7 +857,10 @@ c beaming
 		tau0=tau0+tau_e
 	endif
 
-	enddo
+	if(.not.Pnow%last) then
+		Pnow => Pnow%next
+		goto 1
+	endif	
 
 	return
 	end
@@ -886,39 +871,45 @@ c beaming
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	type(Path) :: P
+	type(Path),target :: P
+	type(Path),pointer :: Pnow
 	real*8 flux
 	integer ilam,izone0,istar0
 	type(Cell),pointer :: C
 
-	integer izone,imin,iobs,k
+	integer izone,imin,iobs
 	logical leave,inany,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,theta,tau_e,exptau
 	real*8 Kext
+
+	Pnow => P
 
 	tau0=0d0
 	flux=0d0
 
 	if(P%istar.ne.istar0) return
 	
-	do k=1,P%n
-	
+1	continue
+
 	Kext=0d0
 	inany=.false.
 	do izone=1,nzones
-		if(P%inzone(k,izone)) then
+		if(Pnow%inzone(izone)) then
 			inany=.true.
-			C => P%C(k,izone)%C
+			C => Pnow%C(izone)%C
 			Kext=Kext+GetKext(ilam,C)
 		endif
 	enddo
 
 	if(inany) then
-		tau_e=Kext*P%v(k)
+		tau_e=Kext*Pnow%v
 		tau0=tau0+tau_e	
 	endif
 
-	enddo
+	if(.not.Pnow%last) then
+		Pnow => Pnow%next
+		goto 1
+	endif	
 
 	flux=(Star(istar0)%F(ilam)/(pi*Star(istar0)%R**2))*exp(-tau0)
 
@@ -927,17 +918,158 @@ c beaming
 
 
 
+	subroutine RaytraceFluxOld(phot,flux,ilam,izone0)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	real*8 flux
+	integer ilam,izone0,istar
 
-	subroutine RaytracePath(phot,P,justcount)
+
+	integer izone,imin,iobs,iT
+	logical leave,inany,hitstar0
+	real*8 minv,tau0,tau,GetKext,random,GetKabs,theta,tau_e,fact,exptau,frac
+	real*8 albedo,emis,scat
+	type(Travel) Trac(nzones),TracStar(nstars)
+	type(Cell),pointer :: C
+
+	tau0=0d0
+	phot%inzone=.false.
+	phot%edgeNr=0
+	fact=1d0
+	flux=0d0
+	
+1	continue
+
+	phot%Kext=0d0
+	phot%Kabs=0d0
+	inany=.false.
+	do izone=1,nzones
+		phot%KabsZ(izone)=0d0
+		if(phot%inzone(izone)) then
+			inany=.true.
+			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			phot%Kext=phot%Kext+GetKext(phot%ilam1,C)
+			phot%KabsZ(izone)=GetKabs(phot%ilam1,C)
+			phot%Kabs=phot%Kabs+phot%KabsZ(izone)
+		endif
+	enddo
+	albedo=(phot%Kext-phot%Kabs)/phot%Kext
+
+	do izone=1,nzones
+		if(phot%inzone(izone)) then
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call TravelSph(phot,izone,Trac(izone))
+			end select
+		else
+			select case(Zone(izone)%shape)
+				case("SPH")
+					call HitSph(phot,izone,Trac(izone))
+			end select
+		endif
+	enddo
+	do istar=1,nstars
+		call HitStar(phot,istar,TracStar(istar))
+	enddo
+
+	minv=20d0*maxR
+	leave=.true.
+	do izone=1,nzones
+		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
+			minv=Trac(izone)%v
+			imin=izone
+			leave=.false.
+		endif
+	enddo
+	hitstar0=.false.
+	do istar=1,nstars
+		if(TracStar(istar)%v.gt.0d0.and.TracStar(istar)%v.lt.minv) then
+			minv=TracStar(istar)%v
+			imin=0
+			hitstar0=.true.
+		endif
+	enddo
+
+	if(leave) goto 3
+
+	call TravelPhotonX(phot,minv)
+
+	if(inany) then
+		tau_e=phot%Kext*minv
+
+		emis=0d0
+		scat=0d0
+		if(phot%inzone(izone0)) then
+			C => Zone(izone0)%C(phot%i1(izone0),phot%i2(izone0),phot%i3(izone0))
+			iT=(C%T+0.5d0)/dTBB
+			if(iT.lt.1) iT=1
+			if(iT.gt.nBB) iT=nBB
+			emis=emis+BB(ilam,iT)*phot%KabsZ(izone0)
+			scat=scat+C%Escatt/C%V
+		endif
+		emis=emis*(1d0-albedo)/phot%Kabs
+		scat=scat*albedo/phot%Kext
+
+		if(tau_e.lt.1d-6) then
+			flux=flux+(scat+emis)*tau_e*fact
+			fact=fact*(1d0-tau_e)
+		else
+			exptau=exp(-tau_e)
+			frac=(1d0-exptau)
+			flux=flux+(scat+emis)*frac*fact
+			fact=fact*exptau
+		endif
+		tau0=tau0+tau_e	
+	endif
+
+	if(hitstar0) goto 3
+
+	do izone=1,nzones
+		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
+			phot%i1(izone)=Trac(izone)%i1next
+			phot%i2(izone)=Trac(izone)%i2next
+			phot%i3(izone)=Trac(izone)%i3next
+
+			if(phot%i1(izone).eq.-1) call determine_i1(phot,izone)
+			if(phot%i2(izone).eq.-1) call determine_i2(phot,izone)
+			if(phot%i3(izone).eq.-1) call determine_i3(phot,izone)
+
+			phot%edgeNr(izone)=Trac(izone)%edgenext
+			phot%inzone(izone)=.true.
+			if(phot%i1(izone).gt.Zone(izone)%n1.or.
+     &			phot%i2(izone).gt.Zone(izone)%n2.or.
+     &			phot%i3(izone).gt.Zone(izone)%n3.or.
+     &			phot%i1(izone).lt.1.or.
+     &			phot%i2(izone).lt.1.or.
+     &			phot%i3(izone).lt.1) then
+				phot%inzone(izone)=.false.
+			endif
+		else
+			phot%edgeNr(izone)=0
+		endif
+	enddo
+
+	goto 1
+3	continue
+	
+
+	return
+	end
+
+
+
+	subroutine RaytracePath(phot,P)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
-	type(Path) :: P
+	type(Path),target :: P
+	type(Path),pointer :: Pnow
 	integer istar
-	logical justcount
 
-	integer izone,imin,iobs,k
+
+	integer izone,imin,iobs
 	logical leave,inany,hitstar0
 	real*8 minv,theta
 	type(Travel) Trac(nzones),TracStar(nstars)
@@ -947,9 +1079,8 @@ c beaming
 	phot%edgeNr=0
 	P%istar=0
 
-	if(justcount) P%n=0
-
-	k=0
+	Pnow => P
+	
 1	continue
 
 	do izone=1,nzones
@@ -988,16 +1119,17 @@ c beaming
 		endif
 	enddo
 
-	k=k+1
-	if(.not.justcount) then
-		do izone=1,nzones
-			P%inzone(k,izone)=phot%inzone(izone)
-			if(P%inzone(k,izone)) then
-				P%C(k,izone)%C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
-			endif
-		enddo
-		P%v(k)=minv
-	endif
+	allocate(Pnow%inzone(nzones))
+	allocate(Pnow%C(nzones))
+	allocate(Pnow%next)
+	do izone=1,nzones
+		Pnow%inzone(izone)=phot%inzone(izone)
+		if(Pnow%inzone(izone)) then
+			Pnow%C(izone)%C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+		endif
+	enddo
+	Pnow%v=minv
+	Pnow%last=.false.
 
 	if(leave) goto 3
 		
@@ -1030,10 +1162,12 @@ c beaming
 		endif
 	enddo
 
+	Pnow => Pnow%next
+
 	goto 1
 3	continue
-
-	if(justcount) P%n=k
+	
+	Pnow%last=.true.
 
 	return
 	end
@@ -1140,15 +1274,28 @@ c beaming
 	use GlobalSetup
 	IMPLICIT NONE
 	integer izone,ir,ip
+	type(Path),pointer :: Pnow,Pnow2
 	
 	do izone=1,nzones
 		do ir=1,Pimage(izone)%nr
 			do ip=1,Pimage(izone)%np
 				deallocate(Pimage(izone)%P(ir,ip)%inzone)
 				deallocate(Pimage(izone)%P(ir,ip)%C)
-				deallocate(Pimage(izone)%P(ir,ip)%v)
+				Pnow => Pimage(izone)%P(ir,ip)%next
+1				continue
+				if(Pnow%last) goto 2
+				deallocate(Pnow%inzone)
+				deallocate(Pnow%C)
+				if(.not.Pnow%last) then
+					Pnow2 => Pnow
+					Pnow => Pnow%next
+					deallocate(Pnow2)
+					goto 1
+				endif
 			enddo
 		enddo
+		deallocate(Pimage(izone)%P)
+		deallocate(Pimage(izone)%R)
 	enddo
 	
 2	deallocate(Pimage)

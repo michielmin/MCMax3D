@@ -179,10 +179,12 @@ c parameter for beaming towards this zone
 	end type CellPointer
 
 	type Path
-		real*8,allocatable :: v(:)
-		logical,allocatable :: inzone(:,:)
-		type(CellPointer),allocatable :: C(:,:)
-		integer istar,n
+		real*8 v
+		logical,allocatable :: inzone(:)
+		type(CellPointer),allocatable :: C(:)
+		logical last
+		type(Path),pointer :: next
+		integer istar
 	end type Path
 
 	type PathImage
