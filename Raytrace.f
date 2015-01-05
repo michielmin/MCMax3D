@@ -1140,13 +1140,29 @@ c beaming
 	use GlobalSetup
 	IMPLICIT NONE
 	integer izone,ir,ip
+<<<<<<< HEAD
+=======
+	type(Path),pointer :: Pnow
+>>>>>>> parent of 9087101... deallocating paths better
 	
 	do izone=1,nzones
 		do ir=1,Pimage(izone)%nr
 			do ip=1,Pimage(izone)%np
 				deallocate(Pimage(izone)%P(ir,ip)%inzone)
 				deallocate(Pimage(izone)%P(ir,ip)%C)
+<<<<<<< HEAD
 				deallocate(Pimage(izone)%P(ir,ip)%v)
+=======
+				Pnow => Pimage(izone)%P(ir,ip)%next
+1				continue
+				if(Pnow%last) goto 2
+				deallocate(Pnow%inzone)
+				deallocate(Pnow%C)
+				if(.not.Pnow%last) then
+					Pnow => Pnow%next
+					goto 1
+				endif
+>>>>>>> parent of 9087101... deallocating paths better
 			enddo
 		enddo
 	enddo
