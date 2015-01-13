@@ -2,9 +2,9 @@
 	IMPLICIT NONE
 	real*8 ran1
 	integer idum
-!$OMP CRITICAL
+
 	random=ran1(idum)
-!$OMP END CRITICAL
+
 	return
 	end
 	
@@ -16,6 +16,7 @@
       INTEGER j,k,iv(NTAB),iy
       SAVE iv,iy
       DATA iv /NTAB*0/, iy /0/
+!$OMP THREADPRIVATE(iv,iy)
       if (idum.le.0.or.iy.eq.0) then
         idum=max(-idum,1)
         do 11 j=NTAB+8,1,-1

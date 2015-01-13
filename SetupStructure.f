@@ -504,6 +504,7 @@ c spiral waves
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
 !$OMP& SHARED(Zone,npart,Aspiral,Mtot,w,delta,Part,ii)
 !$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
 	do ir=1,Zone(ii)%nr
 !$OMP CRITICAL
 		call tellertje(ir+1,Zone(ii)%nr+2)

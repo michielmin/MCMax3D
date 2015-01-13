@@ -8,9 +8,20 @@ c===============================================================================
 	IMPLICIT NONE
 	type(SettingKey),pointer :: key,first
 	character*1000 command
-	integer i
+	integer i,j,omp_get_max_threads,omp_get_thread_num
 
-	idum=-42
+	j=omp_get_max_threads()
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& SHARED(j)
+!$OMP DO SCHEDULE(STATIC,1)
+	do i=1,j
+		idum=-42-omp_get_thread_num()
+	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+
 	
 	allocate(key)
 	first => key

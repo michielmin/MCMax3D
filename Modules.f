@@ -35,6 +35,7 @@ c===============================================================================
 	logical criticalerror
 	real*8 maxR,distance,Av
 	character*500 outputdir,particledir
+!$OMP THREADPRIVATE(idum)
 
 c string converting functions
 	character*20 int2string,dbl2string

@@ -154,8 +154,9 @@
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
-!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,idum,nstars,ilam)
+!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam)
 !$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
 	do iphot=1,MCobs(iobs)%Nphot
 !$OMP CRITICAL
 		call tellertje(iphot+1,MCobs(iobs)%Nphot+2)
@@ -705,8 +706,9 @@ c beaming
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp)
-!$OMP& SHARED(Pimage,izone,MCobs,idum,iobs,phot,phot0,maxR,x,y,z,nzones)
+!$OMP& SHARED(Pimage,izone,MCobs,iobs,phot,phot0,maxR,x,y,z,nzones)
 !$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
 			iopenmp=omp_get_thread_num()+1
 !$OMP CRITICAL
@@ -1064,8 +1066,9 @@ c beaming
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V)
-!$OMP& SHARED(Pimage,izone,ilam,MCobs,idum,iobs,nzones,istar,fluxZ)
+!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ)
 !$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
 !$OMP CRITICAL
 			call tellertje(ir+1,Pimage(izone)%nr+2)
