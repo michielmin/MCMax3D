@@ -431,7 +431,7 @@ c spiral waves
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
-	real*8,allocatable :: Aspiral(:,:)
+	real*8,allocatable :: Aspiral(:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:)
 	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
@@ -445,7 +445,6 @@ c spiral waves
 	call SetupVolume(ii)
 
 			
-	Mtot=0d0
 	do i=1,npart
 		if(Part(i)%nsize.gt.1) then
 			call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
@@ -455,10 +454,28 @@ c spiral waves
 	enddo
 
 	allocate(Aspiral(Zone(ii)%nr,Zone(ii)%np))
+	allocate(A(Zone(ii)%nr,Zone(ii)%np))
+	allocate(H(Zone(ii)%nr,Zone(ii)%np))
+	allocate(SD(Zone(ii)%nr,Zone(ii)%np))
+	allocate(alpha(Zone(ii)%nr,Zone(ii)%np))
+
+	Mtot=0d0
+	call ComputeAspiral(ii,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+	do ir=1,Zone(ii)%nr
+		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+		do ip=1,Zone(ii)%np
+			H(ir,ip)=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
+			SD(ir,ip)=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+			A(ir,ip)=pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2)/real(Zone(ii)%np)
+			alpha(ir,ip)=Zone(ii)%alpha
+			Mtot=Mtot+A(ir,ip)*SD(ir,ip)
+		enddo
+	enddo
+	SD=SD*Zone(ii)%Mdust/Mtot
 	
+	Mtot=0d0
 	do ir=1,Zone(ii)%nr
 		call tellertje(ir,Zone(ii)%nr)
-		call ComputeAspiral(ii,ir,Aspiral(ir,:),Zone(ii)%np)
 		do it=1,Zone(ii)%nt
 			njj=10
 			Zone(ii)%C(ir,it,:)%gasdens=0d0
@@ -471,18 +488,13 @@ c spiral waves
 			enddo
 			do jj=1,njj
 				theta=Zone(ii)%theta(it)+(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))*real(jj)/real(njj+1)
-				if(Zone(ii)%shape.eq.'SPH') then
-					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*sin(theta)
-				else if(Zone(ii)%shape.eq.'CYL') then
-					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
-				endif
+				r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
 				do ip=1,Zone(ii)%np
-					hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+					hr=H(ir,ip)
+					f1=SD(ir,ip)
 					f2=exp(-(z/hr)**2)
-					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens
-     &							+f1*f2/hr/real(njj)
+					Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens+f1*f2/hr/real(njj)
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
@@ -502,7 +514,7 @@ c spiral waves
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
-!$OMP& SHARED(Zone,npart,Aspiral,Mtot,w,delta,Part,ii)
+!$OMP& SHARED(Zone,npart,Aspiral,Mtot,w,delta,Part,ii,SD,H,alpha)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do ir=1,Zone(ii)%nr
@@ -513,19 +525,15 @@ c spiral waves
 			njj=10
 			do jj=1,njj
 				theta=Zone(ii)%theta(it)+(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))*real(jj)/real(njj+1)
-				if(Zone(ii)%shape.eq.'SPH') then
-					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*sin(theta)
-				else if(Zone(ii)%shape.eq.'CYL') then
-					r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
-				endif
+				r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 				z=abs(sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))*cos(theta))
 				do ip=1,Zone(ii)%np
-					hr=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-					f1=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+					hr=H(ir,ip)
+					f1=SD(ir,ip)
 					do i=1,npart
 						do ips=1,Part(i)%nsize
 							ha=(1d0+delta)**(-0.25)*
-     &		sqrt(Zone(ii)%alpha*
+     &			sqrt(alpha(ir,ip)*
      &			Zone(ii)%gas2dust*Mtot*f1
      &			/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
@@ -565,40 +573,81 @@ c spiral waves
 	enddo
 	
 	deallocate(Aspiral)
+	deallocate(A)
+	deallocate(H)
+	deallocate(SD)
+	deallocate(alpha)
+
 	
 	return
 	end
 	
-	subroutine ComputeAspiral(ii,ir,Aspiral,np)
+	subroutine ComputeAspiral(ii,Aspiral,nr,np)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ip,njj,jj,ii,ir,np,nkk,kk
-	real*8 r,hr,phi0,Aspiral(np),phi,f
-	
-	njj=10
-	nkk=10
-	do ip=1,np
-		Aspiral(ip)=0d0
-		do kk=1,nkk
-			f=(real(kk)-0.5)/real(nkk)
-			r=sqrt(Zone(ii)%R(ir)**(2d0*f)*Zone(ii)%R(ir+1)**(2d0-2d0*f))
-			hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
-			phi0=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
+	integer ip,nir,ir,jj,ii,nr,np,nip,kk,i,n
+	real*8 r,hr,phi0,Aspiral(nr,np),f,phimin,phimax
+	real*8,allocatable :: phi(:),rp(:)
+
+	nir=10
+	nip=10
+
+	allocate(phi(nir*nr))
+	allocate(rp(nir*nr))
+
+	i=0
+	hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
+
+	phimin=1d200
+	phimax=-1d200
+	do ir=1,nr
+		do jj=1,nir
+			i=i+1
+			f=(real(jj)-0.5)/real(nir)
+			r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+			rp(i)=r
+			phi(i)=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
      &			(r/Zone(ii)%r_spiral)**(1d0+Zone(ii)%beta_spiral)*
      &			(1d0/(1d0+Zone(ii)%beta_spiral)-(1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral))*
      &			(r/Zone(ii)%r_spiral)**(-Zone(ii)%alpha_spiral))
      &			-(1d0/(1d0+Zone(ii)%beta_spiral)-1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral)))
-			do jj=1,njj
-				phi=2d0*pi*(real(ip-1)+(real(jj)-0.5)/real(njj))/real(np-1)
-				phi=mod(phi-phi0+pi,2d0*pi)-pi
-				Aspiral(ip)=Aspiral(ip)+exp(-(phi/Zone(ii)%w_spiral)**2)/real(njj)/real(nkk)
-	if(Aspiral(ip).ge.0d0) then
-	else
-		print*,Aspiral(ip),ip,Zone(ii)%phi_spiral,Zone(ii)%r_spiral,hr,Zone(ii)%alpha_spiral,Zone(ii)%beta_spiral
-		stop
-	endif
+			if(phi(i).lt.phimin) phimin=phi(i)
+			if(phi(i).gt.phimax) phimax=phi(i)
+		enddo
+	enddo
+	n=i
+
+	do ir=1,nr
+		call tellertje(ir,nr)
+		do ip=1,np
+			Aspiral(ir,ip)=0d0
+				phi0=2d0*pi*(real(ip)-0.5)/real(np)
+				do while(phi0.gt.phimin)
+					do i=1,n-1
+						if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+					enddo
+			do jj=1,nir
+				f=(real(jj)-0.5)/real(nir)
+				r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
+     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)				
 			enddo
+					phi0=phi0-2d0*pi
+				enddo
+				phi0=2d0*pi*(real(ip)-0.5)/real(np)+2d0*pi
+				do while(phi0.lt.phimax)
+					do i=1,n-1
+						if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+					enddo
+			do jj=1,nir
+				f=(real(jj)-0.5)/real(nir)
+				r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
+     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)
+			enddo
+					phi0=phi0+2d0*pi
+				enddo
 		enddo
 	enddo
 
