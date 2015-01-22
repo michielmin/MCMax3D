@@ -472,6 +472,14 @@ c spiral waves
 		enddo
 	enddo
 	SD=SD*Zone(ii)%Mdust/Mtot
+
+	do ir=1,Zone(ii)%nr
+		do ip=1,Zone(ii)%np
+			H(ir,ip)=H(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Aheight
+			SD(ir,ip)=SD(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Adens
+			alpha(ir,ip)=alpha(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Aalpha
+		enddo
+	enddo
 	
 	Mtot=0d0
 	do ir=1,Zone(ii)%nr
@@ -618,36 +626,40 @@ c spiral waves
 	enddo
 	n=i
 
-	do ir=1,nr
-		call tellertje(ir,nr)
-		do ip=1,np
+	do ip=1,np
+		call tellertje(ip,np)
+		do ir=1,nr
 			Aspiral(ir,ip)=0d0
-				phi0=2d0*pi*(real(ip)-0.5)/real(np)
-				do while(phi0.gt.phimin)
-					do i=1,n-1
-						if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
-					enddo
-			do jj=1,nir
-				f=(real(jj)-0.5)/real(nir)
-				r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+		enddo
+		phi0=2d0*pi*(real(ip)-0.5)/real(np)
+		do while(phi0.gt.phimin)
+			do i=1,n-1
+				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+			enddo
+			do ir=1,nr
+				do jj=1,nir
+					f=(real(jj)-0.5)/real(nir)
+					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
 					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
      &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)				
-			enddo
-					phi0=phi0-2d0*pi
 				enddo
-				phi0=2d0*pi*(real(ip)-0.5)/real(np)+2d0*pi
-				do while(phi0.lt.phimax)
-					do i=1,n-1
-						if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
-					enddo
-			do jj=1,nir
-				f=(real(jj)-0.5)/real(nir)
-				r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+			enddo
+			phi0=phi0-2d0*pi
+		enddo
+		phi0=2d0*pi*(real(ip)-0.5)/real(np)+2d0*pi
+		do while(phi0.lt.phimax)
+			do i=1,n-1
+				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+			enddo
+			do ir=1,nr
+				do jj=1,nir
+					f=(real(jj)-0.5)/real(nir)
+					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
 					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
-     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)
-			enddo
-					phi0=phi0+2d0*pi
+     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)				
 				enddo
+			enddo
+			phi0=phi0+2d0*pi
 		enddo
 	enddo
 
