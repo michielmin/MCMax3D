@@ -14,7 +14,7 @@ LINKER	      = ifort
 
 # enforce single core compilation with:
 # cl> make multi=false
-ifeq ($(multi),true)
+ifneq ($(multi),false)
 	MULTICORE = -openmp -fp-model strict
 	ifeq ($(debug),true)
   		MULTICORE = -openmp
@@ -77,14 +77,16 @@ OBJS	      = Modules.o \
 
 # program name and install location
 PROGRAM       = MCMax3D
-DEST	      = ${HOME}/bin
+DEST1	      = ./MacBinary
+DEST2	      = ${HOME}/bin
 
 # make actions 
 all:		version $(PROGRAM)
 version:;	echo "#define gitversion \"$(shell git rev-parse HEAD)\"" > gitversion.h
 clean:;		rm -f $(OBJS) $(PROGRAM)
 install:	$(PROGRAM)
-		mv $(PROGRAM) $(DEST)
+		cp $(PROGRAM) $(DEST1)
+		mv $(PROGRAM) $(DEST2)
 echo:;		@echo $(SUFFIX)
 
 # how to compile program 
