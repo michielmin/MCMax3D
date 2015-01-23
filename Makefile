@@ -86,7 +86,7 @@ version:;	echo "#define gitversion \"$(shell git rev-parse HEAD)\"" > gitversion
 clean:;		rm -f $(OBJS) $(PROGRAM)
 install:	version $(PROGRAM)
 			mv $(PROGRAM) $(DEST1)
-full:		version $(PROGRAM)
+upload:		version $(PROGRAM)
 			scp $(PROGRAM) $(DEST2)
 			mv $(PROGRAM) $(DEST1)
 echo:;		@echo $(SUFFIX)
