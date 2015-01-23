@@ -233,6 +233,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%beta_spiral
 		case("wspiral")
 			read(key%value,*) Zone(key%nr1)%w_spiral
+		case("signspiral")
+			read(key%value,*) Zone(key%nr1)%sign_spiral
 		case("fbeam")
 			read(key%value,*) Zone(key%nr1)%fbeam
 		case("abun")
@@ -596,7 +598,8 @@ c===============================================================================
 		Zone(i)%phi_spiral=0d0		! launching point
 		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
 		Zone(i)%beta_spiral=0.4d0	! Value from Muto = 0.4, setting it to negative computes it
-		Zone(i)%w_spiral=0.2d0		! in terms of orbits
+		Zone(i)%w_spiral=0.8d0		! in terms of orbits
+		Zone(i)%sign_spiral=1d0		! which way it rotates
 
 		Zone(i)%fbeam=0d0
 	enddo

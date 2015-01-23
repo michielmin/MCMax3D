@@ -615,7 +615,7 @@ c spiral waves
 			f=(real(jj)-0.5)/real(nir)
 			r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
 			rp(i)=r
-			phi(i)=Zone(ii)%phi_spiral-(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
+			phi(i)=Zone(ii)%phi_spiral-Zone(ii)%sign_spiral*(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
      &			(r/Zone(ii)%r_spiral)**(1d0+Zone(ii)%beta_spiral)*
      &			(1d0/(1d0+Zone(ii)%beta_spiral)-(1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral))*
      &			(r/Zone(ii)%r_spiral)**(-Zone(ii)%alpha_spiral))
