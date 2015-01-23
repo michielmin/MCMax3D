@@ -77,16 +77,18 @@ OBJS	      = Modules.o \
 
 # program name and install location
 PROGRAM       = MCMax3D
-DEST1	      = ./MacBinary
-DEST2	      = ${HOME}/bin
+DEST1	      = ${HOME}/bin
+DEST2	      = root@michielmin.nl:/volume1/web/wordpress/
 
 # make actions 
 all:		version $(PROGRAM)
 version:;	echo "#define gitversion \"$(shell git rev-parse HEAD)\"" > gitversion.h
 clean:;		rm -f $(OBJS) $(PROGRAM)
-install:	$(PROGRAM)
-		cp $(PROGRAM) $(DEST1)
-		mv $(PROGRAM) $(DEST2)
+install:	version $(PROGRAM)
+			mv $(PROGRAM) $(DEST1)
+full:		version $(PROGRAM)
+			scp $(PROGRAM) $(DEST2)
+			mv $(PROGRAM) $(DEST1)
 echo:;		@echo $(SUFFIX)
 
 # how to compile program 
