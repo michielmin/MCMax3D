@@ -90,6 +90,10 @@
 		call ignorestar(30)
 		read(30,*) frac(nm),rho(nm)
 		call ignorestar(30)
+c change this to the input abundances if they are set
+		if(p%inp_abun(nm).ge.0d0) then
+			frac(nm)=p%inp_abun(nm)
+		endif
 c changed this to mass fractions (11-05-2010)
 		frac(nm)=frac(nm)/rho(nm)
 		call readrefindCP(filename(nm),lam(1:nlam),e1(nm,1:nlam),e2(nm,1:nlam),nlam,lnkloglog)

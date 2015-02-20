@@ -31,8 +31,8 @@ endif
 
 # Platform specific compilation options
 FLAG_ALL      = -O3 -extend-source -g -traceback -zero -prec-div $(MULTICORE) $(DEBUGGING)
-FLAG_LINUX    = -msse3 -prefetch
-FLAG_MAC      = -mssse3 -opt-prefetch -static-intel
+FLAG_LINUX    = -msse3 #-prefetch
+FLAG_MAC      = -xHOST -static-intel #-opt-prefetch 
 
 
 ifeq ($(shell uname),Linux)
@@ -77,14 +77,18 @@ OBJS	      = Modules.o \
 
 # program name and install location
 PROGRAM       = MCMax3D
-DEST	      = ${HOME}/bin
+DEST1	      = ${HOME}/bin
+DEST2	      = root@michielmin.nl:/volume1/web/wordpress/
 
 # make actions 
 all:		version $(PROGRAM)
 version:;	echo "#define gitversion \"$(shell git rev-parse HEAD)\"" > gitversion.h
 clean:;		rm -f $(OBJS) $(PROGRAM)
-install:	$(PROGRAM)
-		mv $(PROGRAM) $(DEST)
+install:	version $(PROGRAM)
+			mv $(PROGRAM) $(DEST1)
+upload:		version $(PROGRAM)
+			scp $(PROGRAM) $(DEST2)
+			mv $(PROGRAM) $(DEST1)
 echo:;		@echo $(SUFFIX)
 
 # how to compile program 

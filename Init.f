@@ -235,6 +235,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%beta_spiral
 		case("wspiral")
 			read(key%value,*) Zone(key%nr1)%w_spiral
+		case("signspiral")
+			read(key%value,*) Zone(key%nr1)%sign_spiral
 		case("fbeam")
 			read(key%value,*) Zone(key%nr1)%fbeam
 		case("abun")
@@ -368,6 +370,9 @@ c allocate the arrays
 			Part(key%nr1)%standard=trim(key%value)
 		case("fcarbon")
 			read(key%value,*) Part(key%nr1)%fcarbon
+		case("abun")
+			if(key%nr2.gt.50) stop "number of species in file too large"
+			read(key%value,*) Part(key%nr1)%inp_abun(key%nr2)
 		case default
 			call output("Unknown computepart keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -598,7 +603,8 @@ c===============================================================================
 		Zone(i)%phi_spiral=0d0		! launching point
 		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
 		Zone(i)%beta_spiral=0.4d0	! Value from Muto = 0.4, setting it to negative computes it
-		Zone(i)%w_spiral=0.2d0		! in terms of orbits
+		Zone(i)%w_spiral=0.8d0		! in terms of orbits
+		Zone(i)%sign_spiral=1d0		! which way it rotates
 
 		Zone(i)%fbeam=0d0
 	enddo
@@ -614,6 +620,7 @@ c===============================================================================
 		Part(i)%nsize=1
 		Part(i)%nT=1
 		Part(i)%nsubgrains=1
+		Part(i)%inp_abun=-1d0
 	enddo
 	
 	do i=1,nMCobs
