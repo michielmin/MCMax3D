@@ -31,7 +31,7 @@ c===============================================================================
 	module GlobalSetup
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
-	integer maxiter,Nphot,idum
+	integer maxiter,Nphot,idum,abun_in_name
 	logical criticalerror
 	real*8 maxR,distance,Av
 	character*500 outputdir,particledir

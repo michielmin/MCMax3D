@@ -84,6 +84,8 @@ c allocate the arrays
 			read(key%value,*) nspike
 		case("av")
 			read(key%value,*) Av
+		case("abun_in_name")
+			read(key%value,*) abun_in_name
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.

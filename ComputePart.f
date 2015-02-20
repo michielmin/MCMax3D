@@ -155,7 +155,25 @@ c changed this to mass fractions (11-05-2010)
 
 	partfile=trim(particledir) // "particle" 
      &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(isize,'(i0.4)')) 
-     &	// "_" // trim(int2string(iT,'(i0.4)'))// ".fits" 
+     &	// "_" // trim(int2string(iT,'(i0.4)')) 
+	if(abun_in_name.gt.0) then
+		do i=1,nm
+			select case(abun_in_name)
+				case(1)
+					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f3.1)'))
+				case(2)
+					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f4.2)'))
+				case(3)
+					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f5.3)'))
+				case(4)
+					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f6.4)'))
+				case default
+					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f7.5)'))
+			end select
+		enddo
+	endif
+	partfile=trim(partfile) // ".fits.gz"
+
 	inquire(file=partfile,exist=truefalse)
 	if(truefalse) then
 		if(checkparticlefile(partfile,amin,amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename)) then
@@ -617,7 +635,24 @@ c-----------------------------------------------------------------------
 
 	filename=trim(particledir) // "particle" 
      &	// trim(int2string(ii,'(i0.4)')) // "_" // trim(int2string(isize,'(i0.4)')) 
-     &	// "_" // trim(int2string(iT,'(i0.4)'))// ".fits" 
+     &	// "_" // trim(int2string(iT,'(i0.4)')) 
+	if(abun_in_name.gt.0) then
+		do i=1,nm
+			select case(abun_in_name)
+				case(1)
+					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f3.1)'))
+				case(2)
+					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f4.2)'))
+				case(3)
+					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f5.3)'))
+				case(4)
+					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f6.4)'))
+				case default
+					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f7.5)'))
+			end select
+		enddo
+	endif
+	filename=trim(filename) // ".fits.gz"
 
 	inquire(file=filename,exist=truefalse)
 	if(truefalse) then
