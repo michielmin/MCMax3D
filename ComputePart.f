@@ -164,15 +164,15 @@ c changed this to mass fractions (11-05-2010)
 		do i=1,nm
 			select case(abun_in_name)
 				case(1)
-					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f3.1)'))
+					partfile=trim(partfile) // "_f" // trim(dbl2string(1d0*frac(i),'(f3.1)'))
 				case(2)
-					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f4.2)'))
+					partfile=trim(partfile) // "_f" // trim(dbl2string(1d0*frac(i),'(f4.2)'))
 				case(3)
-					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f5.3)'))
+					partfile=trim(partfile) // "_f" // trim(dbl2string(1d0*frac(i),'(f5.3)'))
 				case(4)
-					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f6.4)'))
+					partfile=trim(partfile) // "_f" // trim(dbl2string(1d0*frac(i),'(f6.4)'))
 				case default
-					partfile=trim(partfile) // "_f" // trim(dbl2string(frac(i),'(f7.5)'))
+					partfile=trim(partfile) // "_f" // trim(dbl2string(1d0*frac(i),'(f7.5)'))
 			end select
 		enddo
 	endif
@@ -180,7 +180,7 @@ c changed this to mass fractions (11-05-2010)
 
 	inquire(file=partfile,exist=truefalse)
 	if(truefalse) then
-		if(checkparticlefile(partfile,amin,amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename)) then
+		if(checkparticlefile(partfile,amin,amax,p%apow,ns,p%fmax,p%blend,p%porosity,frac,rho,nm,filename,(abun_in_name.le.0))) then
 			call ReadParticleFits(partfile,p,isize,iT)
 			return
 		endif
@@ -415,6 +415,10 @@ c	make sure the scattering matrix is properly normalized by adjusting the forwar
 		call ignorestar(30)
 		read(30,*) frac(nm),rho(nm)
 		call ignorestar(30)
+c change this to the input abundances if they are set
+		if(p%inp_abun(nm).ge.0d0) then
+			frac(nm)=p%inp_abun(nm)
+		endif
 c changed this to mass fractions (11-05-2010)
 		frac(nm)=frac(nm)/rho(nm)
 		nm=nm+1
@@ -490,7 +494,7 @@ c changed this to mass fractions (11-05-2010)
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 
-	logical function checkparticlefile(partfile,amin,amax,apow,ns,fmax,blend,porosity,frac,rho,nm,filename)
+	logical function checkparticlefile(partfile,amin,amax,apow,ns,fmax,blend,porosity,frac,rho,nm,filename,checkfrac)
 	IMPLICIT NONE
 	integer nm,ns
 	character*500 partfile,filename(nm),filetest
@@ -499,7 +503,7 @@ c-----------------------------------------------------------------------
 	character*6 word
 	character*14 key1,key2
 	character*80 comment,errmessage
-	logical blend
+	logical blend,checkfrac
 	integer*4 :: status,readwrite,unit,blocksize,nfound,group
 	integer*4 :: firstpix,nbuffer,npixels,hdunum,hdutype
 	real*8  :: nullval
@@ -577,16 +581,18 @@ c-----------------------------------------------------------------------
 			goto 1
 		endif
 	endif
-	do i=1,nm
-		write(word,'("frac",i0.2)') i
-		call ftgkye(unit,word,x,comment,status)
-		write(key1,'(e14.8)') x
-		write(key2,'(e14.8)') real(frac(i))
-		if(key1.ne.key2.or.status.ne.0) then
-			checkparticlefile=.false.
-			goto 1
-		endif
-	enddo
+	if(checkfrac) then
+		do i=1,nm
+			write(word,'("frac",i0.2)') i
+			call ftgkye(unit,word,x,comment,status)
+			write(key1,'(e14.8)') x
+			write(key2,'(e14.8)') real(frac(i))
+			if(key1.ne.key2.or.status.ne.0) then
+				checkparticlefile=.false.
+				goto 1
+			endif
+		enddo
+	endif
 	do i=1,nm
 		write(word,'("rho",i0.2)') i
 		call ftgkye(unit,word,x,comment,status)
@@ -644,15 +650,15 @@ c-----------------------------------------------------------------------
 		do i=1,nm
 			select case(abun_in_name)
 				case(1)
-					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f3.1)'))
+					filename=trim(filename) // "_f" // trim(dbl2string(1d0*frac(i),'(f3.1)'))
 				case(2)
-					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f4.2)'))
+					filename=trim(filename) // "_f" // trim(dbl2string(1d0*frac(i),'(f4.2)'))
 				case(3)
-					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f5.3)'))
+					filename=trim(filename) // "_f" // trim(dbl2string(1d0*frac(i),'(f5.3)'))
 				case(4)
-					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f6.4)'))
+					filename=trim(filename) // "_f" // trim(dbl2string(1d0*frac(i),'(f6.4)'))
 				case default
-					filename=trim(filename) // "_f" // trim(dbl2string(frac(i),'(f7.5)'))
+					filename=trim(filename) // "_f" // trim(dbl2string(1d0*frac(i),'(f7.5)'))
 			end select
 		enddo
 	endif
