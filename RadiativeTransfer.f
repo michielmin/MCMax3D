@@ -139,9 +139,21 @@
 		endif
 	enddo
 
+	if(status.gt.0) then
+		call output("Something is wrong... Don't worry I'll try to fix it.")
+		do izone=1,nzones
+			Trac(izone)%recompute=.true.
+		enddo
+		do istar=1,nstars
+			TracStar(istar)%recompute=.true.
+		enddo
+		minv=0d0
+		call InWhichZones(phot)
+		goto 1
+	endif
+
 	minv=20d0*maxR
 	leave=.true.
-	imin=-1
 	do izone=1,nzones
 		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
 			minv=Trac(izone)%v
@@ -157,18 +169,6 @@
 			hitstar0=.true.
 		endif
 	enddo
-	if(imin.lt.0.or.status.gt.0) then
-		call output("Something is wrong... Don't worry I'll try to fix it.")
-		do izone=1,nzones
-			Trac(izone)%recompute=.true.
-		enddo
-		do istar=1,nstars
-			TracStar(istar)%recompute=.true.
-		enddo
-		minv=0d0
-		call InWhichZones(phot)
-		goto 1
-	endif
 
 	if(leave) goto 3
 	
