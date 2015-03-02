@@ -337,7 +337,7 @@
 			call rotateY(x,y,z,MCobs(i)%cost,MCobs(i)%sint)
 			ix=real(MCobs(i)%npix)*(y+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
 			iy=MCobs(i)%npix-real(MCobs(i)%npix)*(x+MCobs(i)%maxR)/(2d0*MCobs(i)%maxR)
-			if(ix.lt.MCobs(i)%npix.and.iy.lt.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
+			if(ix.le.MCobs(i)%npix.and.iy.le.MCobs(i)%npix.and.ix.gt.0.and.iy.gt.0) then
 				MCobs(i)%image(ix,iy,1:nlam)=MCobs(i)%image(ix,iy,1:nlam)+specemit(1:nlam)*fact
 			endif
 		endif

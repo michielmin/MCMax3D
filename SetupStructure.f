@@ -63,7 +63,7 @@ c setup the observation direction
 		
 	do i=1,nMCobs
 		if(MCobs(i)%maxR.lt.0d0) then
-			MCobs(i)%maxR=maxR
+			MCobs(i)%maxR=maxR*1.5d0
 		else
 			MCobs(i)%maxR=MCobs(i)%maxR*AU
 		endif
