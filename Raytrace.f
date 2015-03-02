@@ -338,7 +338,7 @@ c beaming
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer izone,imin,iobs,istar
+	integer izone,imin,iobs,istar,status
 	logical leave,inany,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs,fstopmono,albedo,theta,sin2t,cos2t
 	type(Travel) Trac(nzones)
@@ -380,11 +380,12 @@ c beaming
 		fstopmono=1d0
 	endif
 
+	status=0
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call TravelSph(phot,izone,Trac(izone))
+					call TravelSph(phot,izone,Trac(izone),status)
 			end select
 		else
 			select case(Zone(izone)%shape)
@@ -396,6 +397,9 @@ c beaming
 	do istar=1,nstars
 		call HitStar(phot,istar,TracStar(istar))
 	enddo
+	if(status.gt.0) then
+		call output("Something is wrong...")
+	endif
 
 	minv=20d0*maxR
 	leave=.true.
@@ -699,6 +703,7 @@ c beaming
 		else
 			call output("Paths for star " // trim(int2string(izone-nzones,'(i4)')))
 		endif
+
 		call output("Number of rays: nr x nphi = " // trim(int2string(Pimage(izone)%nr,'(i4)')) // "x" 
      &				// trim(int2string(Pimage(izone)%np,'(i4)')) // " = "  
      &				// trim(int2string(Pimage(izone)%nr*Pimage(izone)%np,'(i8)')))
@@ -939,7 +944,7 @@ c beaming
 	integer istar
 	logical justcount
 
-	integer izone,imin,iobs,k
+	integer izone,imin,iobs,k,status
 	logical leave,inany,hitstar0
 	real*8 minv,theta
 	type(Travel) Trac(nzones),TracStar(nstars)
@@ -954,11 +959,12 @@ c beaming
 	k=0
 1	continue
 
+	status=0
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call TravelSph(phot,izone,Trac(izone))
+					call TravelSph(phot,izone,Trac(izone),status)
 			end select
 		else
 			select case(Zone(izone)%shape)
@@ -970,6 +976,9 @@ c beaming
 	do istar=1,nstars
 		call HitStar(phot,istar,TracStar(istar))
 	enddo
+	if(status.gt.0) then
+		call output("Something is wrong...")
+	endif
 
 	minv=1d8*maxR
 	leave=.true.
