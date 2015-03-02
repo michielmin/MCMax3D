@@ -864,8 +864,8 @@ c setup initial phi grid
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,ir,it,ip,i,ips,ipt
-	real*8 r,z,hr,f1,f2,Mtot,w(npart,maxns)
+	integer ii,ir,it,ip,i,ips,ipt,ilam
+	real*8 r,z,hr,f1,f2,Mtot,w(npart,maxns),tau,GetKext,lam0,d
 
 	if(Zone(ii)%shape.eq.'CAR'.or.Zone(ii)%shape.eq.'CYL') then
 		call output("Free advice: a spherical shell is better put on a spherical grid.")
@@ -912,6 +912,40 @@ c setup initial phi grid
 			enddo
 		enddo
 	enddo
+
+	if(Zone(ii)%tau_V.gt.0d0) then
+		lam0=0.55
+		d=lam(nlam)-lam(1)
+		ilam=1
+		do i=1,nlam
+			if(abs(lam0-lam(i)).lt.d) then
+				d=abs(lam0-lam(i))
+				ilam=i
+			endif
+		enddo
+	
+		tau=0d0
+		do ir=1,Zone(ii)%nr
+			tau=tau+GetKext(ilam,Zone(ii)%C(ir,Zone(ii)%imidplane,1))*
+     &					(Zone(ii)%R(ir+1)-Zone(ii)%R(ir))
+		enddo
+		do ir=1,Zone(ii)%nr
+			do it=1,Zone(ii)%nt
+				do ip=1,Zone(ii)%np
+					Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%tau_V/tau
+					Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%M*Zone(ii)%tau_V/tau
+					do i=1,npart
+						do ips=1,Part(i)%nsize
+							do ipt=1,Part(i)%nT
+								Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=
+     &								Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)*Zone(ii)%tau_V/tau
+							enddo
+						enddo
+					enddo
+				enddo
+			enddo
+		enddo
+	endif
 
 	
 	return

@@ -1,6 +1,6 @@
 	subroutine OutputStats
 	use GlobalSetup
-	real*8 tau,lam0,d,GetKext
+	real*8 lam0,d,GetKext
 	integer ilam,i,izone,ir
 
 	lam0=0.55
@@ -14,13 +14,13 @@
 	enddo
 	
 	do izone=1,nzones
-		tau=0d0
+		Zone(izone)%tau_V=0d0
 		do ir=1,Zone(izone)%nr
-			tau=tau+GetKext(ilam,Zone(izone)%C(ir,Zone(izone)%imidplane,1))*
+			Zone(izone)%tau_V=Zone(izone)%tau_V+GetKext(ilam,Zone(izone)%C(ir,Zone(izone)%imidplane,1))*
      &					(Zone(izone)%R(ir+1)-Zone(izone)%R(ir))
 		enddo
 		call output("Optical depth through zone " // trim(int2string(izone,"(i4)")) // 
-     &						":" // trim(dbl2string(tau,"(e14.4)")))
+     &						":" // trim(dbl2string(Zone(izone)%tau_V,"(e14.4)")))
 	enddo
 
 	return

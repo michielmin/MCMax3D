@@ -193,6 +193,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%denspow
 		case("mdust")
 			read(key%value,*) Zone(key%nr1)%Mdust
+		case("tau")
+			read(key%value,*) Zone(key%nr1)%tau_V
 		case("alpha")
 			read(key%value,*) Zone(key%nr1)%alpha
 		case("gas2dust")
@@ -584,6 +586,7 @@ c===============================================================================
 		Zone(i)%denspow=1d0
 		Zone(i)%gamma_exp=1d0
 		Zone(i)%Mdust=1d-4
+		Zone(i)%tau_V=-1d0
 		Zone(i)%alpha=1d-2
 		Zone(i)%gas2dust=100d0
 		Zone(i)%sh=0.1

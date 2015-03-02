@@ -133,7 +133,7 @@ c beaming parameter
 		character*10 denstype		! DISK, SHELL
 		logical iter
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp,gas2dust
-		real*8 amin,amax,apow
+		real*8 amin,amax,apow,tau_V
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)
 c parameters for a spiral wave
