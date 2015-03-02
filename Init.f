@@ -193,7 +193,7 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%denspow
 		case("mdust")
 			read(key%value,*) Zone(key%nr1)%Mdust
-		case("tau")
+		case("tau","maxtau")
 			read(key%value,*) Zone(key%nr1)%tau_V
 		case("alpha")
 			read(key%value,*) Zone(key%nr1)%alpha
