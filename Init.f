@@ -451,6 +451,7 @@ c read another command, so go back
 
 30	continue
 	close(unit=20)
+	close(unit=21)
 	allocate(key%next)
 	key => key%next
 	key%last=.true.

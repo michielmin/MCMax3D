@@ -84,6 +84,14 @@
 	type(Photon) phot
 
 	tau0=-log(random(idum))
+	do izone=1,nzones
+		Trac(izone)%recompute=.true.
+	enddo
+	do istar=1,nstars
+		TracStar(istar)%recompute=.true.
+	enddo
+	minv=0d0
+	
 1	continue
 
 	phot%Kext=0d0
@@ -104,15 +112,26 @@
 				case("SPH")
 					call TravelSph(phot,izone,Trac(izone))
 			end select
+			Trac(izone)%recompute=.true.
 		else
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call HitSph(phot,izone,Trac(izone))
+					if(Trac(izone)%recompute) then
+						call HitSph(phot,izone,Trac(izone))
+					else
+						Trac(izone)%v=Trac(izone)%v-minv
+					endif
 			end select
+			Trac(izone)%recompute=.false.
 		endif
 	enddo
 	do istar=1,nstars
-		call HitStar(phot,istar,TracStar(istar))
+		if(TracStar(istar)%recompute) then
+			call HitStar(phot,istar,TracStar(istar))
+			TracStar(istar)%recompute=.false.
+		else
+			TracStar(istar)%v=TracStar(istar)%v-minv
+		endif
 	enddo
 
 	minv=20d0*maxR
@@ -142,6 +161,12 @@
 		call TravelPhotonX(phot,minv)
 		call AddEtrace(phot,minv)
 		call Interact(phot)
+		do izone=1,nzones
+			Trac(izone)%recompute=.true.
+		enddo
+		do istar=1,nstars
+			TracStar(istar)%recompute=.true.
+		enddo
 		tau0=-log(random(idum))
 		if(random(idum).lt.fstop) then
 			phot%sI=0d0
@@ -181,6 +206,7 @@
      &			phot%i3(izone).lt.1) then
 				phot%inzone(izone)=.false.
 			endif
+			Trac(izone)%recompute=.true.
 		else
 			phot%edgeNr(izone)=0
 		endif

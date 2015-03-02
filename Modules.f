@@ -173,6 +173,7 @@ c parameter for beaming towards this zone
 	type Travel
 		real*8 v
 		integer i1next,i2next,i3next,edgenext
+		logical recompute
 	end type Travel
 
 	type CellPointer
