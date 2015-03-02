@@ -1,10 +1,10 @@
-	subroutine TravelSph(phot,izone,Trac)
+	subroutine TravelSph(phot,izone,Trac,status)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
 	type(Travel) Trac
-	integer izone
+	integer izone,status
 
 	real*8 a,b,r,R1,R2,T1,T2,vR1,vR2,vT1,vT2,vP1,vP2
 	logical hitR1,hitR2,hitR,hitT1,hitT2,hitT,hitTsame
@@ -101,14 +101,16 @@
 	end select
 
 	if(.not.hitR2) then
-		print*,'Cannot hit outer boundary...'
-		print*,phot%x/AU,phot%y/AU,phot%z/AU
-		print*,phot%vx,phot%vy,phot%vz
-		print*,phot%inzone
-		print*,phot%i1
-		print*,sqrt(phot%x**2+phot%y**2+phot%z**2)/AU
-		print*,Zone(1)%R(phot%i1(1))/AU,Zone(1)%R(phot%i1(1)+1)/AU
-		stop
+c		print*,'Cannot hit outer boundary...'
+c		print*,phot%x/AU,phot%y/AU,phot%z/AU
+c		print*,phot%vx,phot%vy,phot%vz
+c		print*,phot%inzone
+c		print*,phot%i1
+c		print*,sqrt(phot%x**2+phot%y**2+phot%z**2)/AU
+c		print*,Zone(1)%R(phot%i1(1))/AU,Zone(1)%R(phot%i1(1)+1)/AU
+c		stop
+		status=status+1
+		return
 	endif
 
 	Trac%v=1d200

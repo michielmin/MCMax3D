@@ -75,7 +75,7 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer izone,imin,istar
+	integer izone,imin,istar,status
 	logical leave,hitstar0
 	real*8 minv,tau0,tau,GetKext,random,GetKabs
 	type(Travel) Trac(nzones)
@@ -106,13 +106,18 @@
 		endif
 	enddo
 
+	status=0
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call TravelSph(phot,izone,Trac(izone))
+					if(Trac(izone)%recompute) then
+						call TravelSph(phot,izone,Trac(izone),status)
+					else
+						Trac(izone)%v=Trac(izone)%v-minv
+					endif
 			end select
-			Trac(izone)%recompute=.true.
+			Trac(izone)%recompute=.false.
 		else
 			select case(Zone(izone)%shape)
 				case("SPH")
@@ -136,6 +141,7 @@
 
 	minv=20d0*maxR
 	leave=.true.
+	imin=-1
 	do izone=1,nzones
 		if(Trac(izone)%v.gt.0d0.and.Trac(izone)%v.lt.minv) then
 			minv=Trac(izone)%v
@@ -151,6 +157,18 @@
 			hitstar0=.true.
 		endif
 	enddo
+	if(imin.lt.0.or.status.gt.0) then
+		call output("Something is wrong... Don't worry I'll try to fix it.")
+		do izone=1,nzones
+			Trac(izone)%recompute=.true.
+		enddo
+		do istar=1,nstars
+			TracStar(istar)%recompute=.true.
+		enddo
+		minv=0d0
+		call InWhichZones(phot)
+		goto 1
+	endif
 
 	if(leave) goto 3
 	
