@@ -25,12 +25,7 @@
 	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
 
 	call cpu_time(starttime)
-!$OMP PARALLEL IF(.false.)
-!$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(i,phot)
-!$OMP& SHARED(Nphot,nzones)
 
-!$OMP DO
 	do i=1,Nphot
 		call tellertje(i,Nphot)
 		phot%nr=i
@@ -39,9 +34,7 @@
 		call TravelPhoton(phot)
 		call MCoutput(phot)
 	enddo
-!$OMP END DO
-!$OMP FLUSH
-!$OMP END PARALLEL
+
 	call cpu_time(stoptime)
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 
