@@ -59,12 +59,16 @@ c particle scattering
 c multiwav thingies
 	real*8,allocatable :: specemit(:)				! nlam
 	real*8,allocatable :: column(:,:,:)				! npart,nsize,iT
+!$OMP THREADPRIVATE(specemit,column)
 	real*8 fstop									! limit number of interactions
 	
 c storage speed options
 	real*8,allocatable :: KabsTotal(:,:),KscaTotal(:,:)		! nzones,nlam
 	integer,allocatable :: i1totalAbs(:),i2totalAbs(:),i3totalAbs(:)	! nzones
 	integer,allocatable :: i1totalSca(:),i2totalSca(:),i3totalSca(:)	! nzones
+!$OMP THREADPRIVATE(KabsTotal,KscaTotal)
+!$OMP THREADPRIVATE(i1totalAbs,i2totalAbs,i3totalAbs)
+!$OMP THREADPRIVATE(i1totalSca,i2totalSca,i3totalSca)
 
 c beaming parameter
 	real*8,allocatable :: Efnotbeam(:)

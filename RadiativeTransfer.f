@@ -2,22 +2,26 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	type(Photon) phot
-	integer i,j
+	type(Photon),allocatable :: phot(:)
+	integer i,j,maxnopenmp,omp_get_max_threads,iopenmp,omp_get_thread_num
 	real*8 starttime,stoptime
 
-	allocate(phot%i1(nzones))
-	allocate(phot%i2(nzones))
-	allocate(phot%i3(nzones))
-	allocate(phot%inzone(nzones))
-	allocate(phot%edgeNr(nzones))
-	allocate(phot%KabsZ(nzones))
-	allocate(phot%xzone(nzones))
-	allocate(phot%yzone(nzones))
-	allocate(phot%zzone(nzones))
-	allocate(phot%vxzone(nzones))
-	allocate(phot%vyzone(nzones))
-	allocate(phot%vzzone(nzones))
+	maxnopenmp=omp_get_max_threads()+1
+	allocate(phot(maxnopenmp))	
+	do i=1,maxnopenmp
+		allocate(phot(i)%i1(nzones))
+		allocate(phot(i)%i2(nzones))
+		allocate(phot(i)%i3(nzones))
+		allocate(phot(i)%inzone(nzones))
+		allocate(phot(i)%edgeNr(nzones))
+		allocate(phot(i)%KabsZ(nzones))
+		allocate(phot(i)%xzone(nzones))
+		allocate(phot(i)%yzone(nzones))
+		allocate(phot(i)%zzone(nzones))
+		allocate(phot(i)%vxzone(nzones))
+		allocate(phot(i)%vyzone(nzones))
+		allocate(phot(i)%vzzone(nzones))
+	enddo
 
 	call InitRadiativeTransfer
 	
@@ -25,16 +29,23 @@
 	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
 
 	call cpu_time(starttime)
-
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(i,iopenmp)
+!$OMP& SHARED(Nphot,nzones,phot)
+!$OMP DO SCHEDULE(STATIC,1)
 	do i=1,Nphot
 		call tellertje(i,Nphot)
-		phot%nr=i
-		call EmitPhoton(phot)
-		call InWhichZones(phot)
-		call TravelPhoton(phot)
-		call MCoutput(phot)
+		iopenmp=omp_get_thread_num()+1
+		phot(iopenmp)%nr=i
+		call EmitPhoton(phot(iopenmp))
+		call InWhichZones(phot(iopenmp))
+		call TravelPhoton(phot(iopenmp))
+		call MCoutput(phot(iopenmp))
 	enddo
-
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
 	call cpu_time(stoptime)
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 

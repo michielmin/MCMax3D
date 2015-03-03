@@ -118,22 +118,33 @@ c allocate the arrays
 	write(command,'("mkdir -p ",a)') trim(particledir)
 	call system(command)
 
-	allocate(specemit(nlam))
-	allocate(column(npart,maxns,maxnT))
-	allocate(KabsTotal(nzones,nlam))
-	allocate(KscaTotal(nzones,nlam))
-	allocate(i1totalAbs(nzones))
-	allocate(i2totalAbs(nzones))
-	allocate(i3totalAbs(nzones))
-	allocate(i1totalSca(nzones))
-	allocate(i2totalSca(nzones))
-	allocate(i3totalSca(nzones))
-	i1totalAbs=0
-	i2totalAbs=0
-	i3totalAbs=0
-	i1totalSca=0
-	i2totalSca=0
-	i3totalSca=0
+	j=omp_get_max_threads()
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& SHARED(j,nlam,npart,maxns,maxnT,nzones)
+!$OMP DO SCHEDULE(STATIC,1)
+	do i=1,j
+		allocate(specemit(nlam))
+		allocate(column(npart,maxns,maxnT))
+		allocate(KabsTotal(nzones,nlam))
+		allocate(KscaTotal(nzones,nlam))
+		allocate(i1totalAbs(nzones))
+		allocate(i2totalAbs(nzones))
+		allocate(i3totalAbs(nzones))
+		allocate(i1totalSca(nzones))
+		allocate(i2totalSca(nzones))
+		allocate(i3totalSca(nzones))
+		i1totalAbs=0
+		i2totalAbs=0
+		i3totalAbs=0
+		i1totalSca=0
+		i2totalSca=0
+		i3totalSca=0
+	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+
 
 	return
 	end
