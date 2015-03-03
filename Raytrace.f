@@ -640,7 +640,7 @@ c beaming
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=min(max(Zo%np*2,50),135)
+			Pimage(izone)%np=min(max(Zo%np*2,50),180)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0
