@@ -35,6 +35,8 @@ c===============================================================================
 	logical criticalerror
 	real*8 maxR,distance,Av
 	character*500 outputdir,particledir
+	character*7 ZoneStructOutput(10)
+	integer nZoneStructOutput
 !$OMP THREADPRIVATE(idum)
 
 c string converting functions

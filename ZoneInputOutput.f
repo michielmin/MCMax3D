@@ -2,14 +2,17 @@
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer nvars,ivars,i,j,ii,ipart,iopac,l
+	integer nvars,ivars,i,j,k,ipart,is,iT,izone
 	character*7 vars(nvars),hdu
 	character*500 filename
-	real*8,allocatable :: array(:,:,:,:)
-	integer status,unit,blocksize,bitpix,naxis,naxes(4)
+	real*8,allocatable :: array(:,:,:,:,:,:)
+	integer status,unit,blocksize,bitpix,naxis,naxes(6)
 	integer group,fpixel,nelements
 	logical simple,extend,truefalse
+	type(ZoneType),pointer :: ZZ
 
+	ZZ => Zone(izone)
+	
 	if(filename(len_trim(filename)-4:len_trim(filename)).eq.'.fits') then
 		filename=trim(filename)//'.gz'
 	endif
@@ -35,30 +38,33 @@ C	 create the new empty FITS file
 	fpixel=1
 
 	bitpix=-64
-	naxis=3
-	naxes(1)=D%nR-1
-	naxes(2)=D%nTheta-1
-	naxes(3)=2
-	naxes(4)=1
-	nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
+	naxis=4
+	naxes(1)=Zone(izone)%nr
+	naxes(2)=Zone(izone)%nt
+	naxes(3)=Zone(izone)%np
+	naxes(4)=3
+	naxes(5)=1
+	naxes(6)=1
+	nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
 
 	! Write the required header keywords.
 	call ftphpr(unit,simple,bitpix,naxis,naxes,0,1,extend,status)
 
 	! Write optional keywords to the header
 
-	call ftpkyd(unit,'Rin',D%Rin,8,'[AU]',status)
-	call ftpkyd(unit,'Rout',D%Rout,8,'[AU]',status)
+	call ftpkyd(unit,'Rin',ZZ%Rin/AU,8,'[AU]',status)
+	call ftpkyd(unit,'Rout',ZZ%Rout/AU,8,'[AU]',status)
 
-	call ftpkyj(unit,'nR',D%nR-1,' ',status)
-	call ftpkyj(unit,'nTheta',D%nTheta-1,' ',status)
-	call ftpkyj(unit,'ngrains',ngrains,' ',status)
-	call ftpkyj(unit,'ngrains2',ngrains2,' ',status)
-	call ftpkyj(unit,'nlam',nlam,' ',status)
+	call ftpkyj(unit,'nR',ZZ%nr,' ',status)
+	call ftpkyj(unit,'nTheta',ZZ%nt,' ',status)
+	call ftpkyj(unit,'nPhi',ZZ%np,' ',status)
+	call ftpkyj(unit,'npart',npart,' ',status)
+	call ftpkyj(unit,'nsize',maxns,' ',status)
+	call ftpkyj(unit,'nTemp',maxnT,' ',status)
 
 	call ftpkyj(unit,'nHDU',nvars,' ',status)	
 	do i=1,nvars
-		write(hdu,'("HDU",i2)') i
+		write(hdu,'("HDU",i3)') i
 		call ftpkys(unit,hdu,trim(vars(i)),'',status)
 	enddo
 
@@ -68,12 +74,15 @@ C	 create the new empty FITS file
 	! HDU 0: spatial grid
 	!------------------------------------------------------------------------------
 
-	allocate(array(D%nR-1,D%nTheta-1,2,1))
+	allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
 
-	do i=1,D%nR-1
-		do j=1,D%nTheta-1
-			array(i,j,1,1)=D%R_av(i)/AU
-			array(i,j,2,1)=D%theta_av(j)
+	do i=1,ZZ%nr
+		do j=1,ZZ%nt
+			do k=1,ZZ%np
+				array(i,j,k,1,1,1)=sqrt(ZZ%R(i)*ZZ%R(i+1))/AU
+				array(i,j,k,2,1,1)=(ZZ%theta(j)+ZZ%theta(j+1))/2d0
+				array(i,j,k,3,1,1)=(ZZ%phi(j)+ZZ%phi(j+1))/2d0
+			enddo
 		enddo
 	enddo
 
@@ -86,230 +95,131 @@ C	 create the new empty FITS file
 		! create new hdu
 		call ftcrhd(unit, status)
 		bitpix=-64
-		naxes(1)=D%nR-1
-		naxes(2)=D%nTheta-1
-		naxes(3)=1
+		naxes(1)=ZZ%nr
+		naxes(2)=ZZ%nt
+		naxes(3)=ZZ%np
 		naxes(4)=1
-		naxis=2
-		nelements=naxes(1)*naxes(2)
+		naxes(5)=1
+		naxes(6)=1
+		naxis=3
 		select case (vars(ivars))
-			case ('DENS')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%dens
-					enddo
-				enddo
-			case ('TEMP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%T
-					enddo
-				enddo
-			case ('TEMPMC')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%TMC
-					enddo
-				enddo
-			case ('COMP')
-				naxis=4
-				naxes(3)=ngrains
-				naxes(4)=ngrains2+1
-				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do ii=1,ngrains
-							array(i,j,ii,1)=C(i,j)%w(ii)
-							do iopac=1,ngrains2
-								array(i,j,ii,iopac+1)=C(i,j)%wopac(ii,iopac)
-							enddo
-						enddo
-					enddo
-				enddo
-			case ('GASDENS')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%gasdens*gas2dust
-					enddo
-				enddo
-			case ('DENS0')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%dens0
-					enddo
-				enddo
-			case ('GASTEMP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%Tgas
-					enddo
-				enddo
-			case ('DENSP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%dens*C(i,j)%w(ipart)
-					enddo
-				enddo
-			case ('TEMPP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%TP(ipart)
-					enddo
-				enddo
-			case ('NPHOT')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%Ni
-					enddo
-				enddo
-			case ('VOLUME')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%V
-					enddo
-				enddo
-			case ('ALPHAT')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%alphaturb
-					enddo
-				enddo
-			case ('ALPHAV')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%alphavis
-					enddo
-				enddo
-			case ('dTEMP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%dT/C(i,j)%T
-					enddo
-				enddo
-			case ('dEJv')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%dEJv/C(i,j)%EJv
-					enddo
-				enddo
-			case ('LAM')
+			case ('RGRID')
 				naxis=1
-				naxes(1)=nlam
+				naxes(1)=ZZ%nr+1
 				naxes(2)=1
 				naxes(3)=1
 				naxes(4)=1
-				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,nlam
-					array(i,1,1,1)=lam(i)
+				naxes(5)=1
+				naxes(6)=1
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr+1
+					array(i,1,1,1,1,1)=ZZ%R(i)
 				enddo
-			case ('QHPEJv')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%EJvQHP(Grain(ipart)%qhpnr)
-					enddo
+			case ('TGRID')
+				naxis=1
+				naxes(1)=ZZ%nt+1
+				naxes(2)=1
+				naxes(3)=1
+				naxes(4)=1
+				naxes(5)=1
+				naxes(6)=1
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nt+1
+					array(i,1,1,1,1,1)=ZZ%theta(i)
 				enddo
-			case ('QHPRF')
-				naxis=3
-				naxes(3)=nlam
-				nelements=naxes(1)*naxes(2)*naxes(3)
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do l=1,nlam
-							array(i,j,l,1)=C(i,j)%QHP(Grain(ipart)%qhpnr,l)
+			case ('PGRID')
+				naxis=1
+				naxes(1)=ZZ%np+1
+				naxes(2)=1
+				naxes(3)=1
+				naxes(4)=1
+				naxes(5)=1
+				naxes(6)=1
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%np+1
+					array(i,1,1,1,1,1)=ZZ%phi(i)
+				enddo
+			case ('DENS')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%dens
 						enddo
 					enddo
 				enddo
-			case ('QHPT')
-				naxis=4
-				naxes(3)=NTQHP
-				naxes(4)=2
-				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do l=1,NTQHP
-							array(i,j,l,1)=tgridqhp(l)
-							array(i,j,l,2)=C(i,j)%tdistr(Grain(ipart)%qhpnr,l)
+			case ('TEMP')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%T
 						enddo
 					enddo
 				enddo
-			case ('TQHP')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%Tqhp(Grain(ipart)%qhpnr)
-					enddo
-				enddo
-			case ('G0')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%G
-					enddo
-				enddo
-			case ('NE')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%ne
-					enddo
-				enddo
-			case ('NH')
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						array(i,j,1,1)=C(i,j)%gasdens*gas2dust / (1.3*1.67262158d-24)
-					enddo
-				enddo
-			case ('OPACITY')
-				naxis=4
-				naxes(3)=nlam
-				naxes(4)=3
-				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do l=1,nlam
-							array(i,j,l,1:3)=0d0
-							do ii=1,ngrains
-								do iopac=1,Grain(ii)%nopac
-									array(i,j,l,1)=array(i,j,l,1)+Grain(ii)%Kext(iopac,l)*C(i,j)%w(ii)*C(i,j)%wopac(ii,iopac)
-									array(i,j,l,2)=array(i,j,l,2)+Grain(ii)%Kabs(iopac,l)*C(i,j)%w(ii)*C(i,j)%wopac(ii,iopac)
-									array(i,j,l,3)=array(i,j,l,3)+Grain(ii)%Ksca(iopac,l)*C(i,j)%w(ii)*C(i,j)%wopac(ii,iopac)
+			case ('COMP')
+				naxis=6
+				naxes(4)=npart
+				naxes(5)=maxns
+				naxes(6)=maxnT
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				array=0d0
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							do ipart=1,npart
+								do is=1,Part(ipart)%nsize
+									do iT=1,Part(ipart)%nT
+										array(i,j,k,ipart,is,iT)=ZZ%C(i,j,k)%densP(ipart,is,iT)
+									enddo
 								enddo
 							enddo
 						enddo
 					enddo
 				enddo
-			case ('ARRAY')
-				if(nxx.gt.1) then
-					naxis=3
-					naxes(3)=nxx
-					nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)
-				endif
-				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do l=1,nxx
-							array(i,j,l,1)=xx(i,j,l)
+			case ('GASDENS')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%gasdens
+						enddo
+					enddo
+				enddo
+			case ('NPHOT')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%Ni
+						enddo
+					enddo
+				enddo
+			case ('VOLUME')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%V
+						enddo
+					enddo
+				enddo
+			case ('EJv')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%E
 						enddo
 					enddo
 				enddo
@@ -350,19 +260,22 @@ C	 create the new empty FITS file
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer nvars,ivars,i,j,ii,ipart,l,nr,nt,iopac,naxis,nhdu
+	integer nvars,ivars,i,j,k,ipart,is,iT,naxis,nhdu,izone
 	character*7 vars(nvars)
 	character*500 filename
 	logical doalloc,truefalse
-	real*8,allocatable :: array(:,:,:,:)
+	real*8,allocatable :: array(:,:,:,:,:,:)
 	integer*4 :: status,stat2,stat3,readwrite,unit,blocksize,nfound,group
 	integer*4 :: firstpix,nbuffer,npixels,hdunum,hdutype,ix,iz,ilam
 	integer*4 :: istat,stat4,tmp_int,stat5,stat6
 	real*8  :: nullval
 	logical*4 :: anynull
-	integer*4, dimension(4) :: naxes
+	integer*4, dimension(6) :: naxes
 	character*80 comment,errmessage
 	character*30 errtext
+	type(ZoneType),pointer :: ZZ
+
+	ZZ => Zone(izone)
 
 	! Get an unused Logical Unit Number to use to open the FITS file.
 	status=0
@@ -388,54 +301,29 @@ C	 create the new empty FITS file
 	! HDU0 : grid
 	!------------------------------------------------------------------------
 	! Check dimensions
-	call ftgknj(unit,'NAXIS',1,3,naxes,nfound,status)
+	call ftgknj(unit,'NAXIS',1,4,naxes,nfound,status)
 
-	npixels=naxes(1)*naxes(2)*naxes(3)
+	npixels=naxes(1)*naxes(2)*naxes(3)*naxes(4)
 
 	! Read model info
 
-	call ftgkyd(unit,'Rin',D%Rin,comment,status)
-	call ftgkyd(unit,'Rout',D%Rout,comment,status)
+	call ftgkyd(unit,'Rin',ZZ%Rin,comment,status)
+	ZZ%Rin=ZZ%Rin*AU
+	call ftgkyd(unit,'Rout',ZZ%Rout,comment,status)
+	ZZ%Rout=ZZ%Rout*AU
 
-	call ftgkyj(unit,'nR',D%nR,comment,status)
-	call ftgkyj(unit,'nTheta',D%nTheta,comment,status)
-	call ftgkyj(unit,'ngrains',ngrains,comment,status)
-	call ftgkyj(unit,'ngrains2',ngrains2,comment,status)
-	call ftgkyj(unit,'nlam',nlam,comment,status)
+	call ftgkyj(unit,'nR',ZZ%nr,comment,status)
+	call ftgkyj(unit,'nTheta',ZZ%nt,comment,status)
+	call ftgkyj(unit,'nPhi',ZZ%np,comment,status)
+	call ftgkyj(unit,'npart',npart,comment,status)
+	call ftgkyj(unit,'nsize',maxns,comment,status)
+	call ftgkyj(unit,'nTemp',maxnT,comment,status)
+
 	call ftgkyj(unit,'nHDU',nhdu,comment,status)
 	if(status.ne.0) then
 		nhdu=nvars
 		status=0
 	endif
-
-	D%nR=D%nR+1
-	D%nTheta=D%nTheta+1
-	if(doalloc) then
-		if(.not.arraysallocated.and..not.allocated(C)) then
-			allocate(C(0:D%nR+1,0:D%nTheta+1))
-			allocate(D%theta_av(0:D%nTheta+1))
-			allocate(D%Theta(0:D%nTheta+1))
-			allocate(D%thet(0:D%nTheta+1))
-			allocate(D%SinTheta(0:D%nTheta+1))
-			allocate(D%R_av(0:D%nR+1))
-			allocate(D%R(0:D%nR+1))
-			allocate(shscale(0:D%nR+1))
-		endif
-	endif
- 
-	! read_image
-	allocate(array(D%nR-1,D%nTheta-1,2,1))
-
-	call ftgpvd(unit,group,firstpix,npixels,nullval,array,anynull,status)
-
-	do i=1,D%nR-1
-		D%R_av(i)=array(i,1,1,1)*AU
-	enddo
-	do j=1,D%nTheta-1
-		D%theta_av(j)=array(1,j,2,1)
-	enddo
-
-	deallocate(array)
 
 	do ivars=1,minval((/nhdu,nvars/))
 		!  move to next hdu
@@ -445,137 +333,105 @@ C	 create the new empty FITS file
 			status=0
 			goto 1
 		endif
+		naxis=3
 		select case (vars(ivars))
-			case ('COMP')
-				naxis=4
-			case ('LAM')
+			case ('RGRID')
 				naxis=1
-			case ('QHPRF')
-				naxis=3
-			case default
-				naxis=2
+			case ('TGRID')
+				naxis=1
+			case ('PGRID')
+				naxis=1
+			case ('COMP')
+				naxis=6
 		end select
 
 		! Check dimensions
 		call ftgknj(unit,'NAXIS',1,naxis,naxes,nfound,status)
 
-		do i=naxis+1,4
+		do i=naxis+1,6
 			naxes(i)=1
 		enddo
-		npixels=naxes(1)*naxes(2)*naxes(3)*naxes(4)
+		npixels=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
 
 		! read_image
-		allocate(array(naxes(1),naxes(2),naxes(3),naxes(4)))
+		allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
 
 		call ftgpvd(unit,group,firstpix,npixels,nullval,array,anynull,status)
    
 		select case (vars(ivars))
+			case ('RGRID')
+				do i=1,ZZ%nr+1
+					ZZ%R(i)=array(i,1,1,1,1,1)
+				enddo
+			case ('TGRID')
+				do i=1,ZZ%nt+1
+					ZZ%theta(i)=array(i,1,1,1,1,1)
+				enddo
+			case ('PGRID')
+				do i=1,ZZ%np+1
+					ZZ%phi(i)=array(i,1,1,1,1,1)
+				enddo
 			case ('DENS')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%dens=array(i,j,1,1)
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%dens=array(i,j,k,1,1,1)
+						enddo
 					enddo
 				enddo
 			case ('TEMP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%T=array(i,j,1,1)
-					enddo
-				enddo
-			case ('TEMPMC')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%TMC=array(i,j,1,1)
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%T=array(i,j,k,1,1,1)
+						enddo
 					enddo
 				enddo
 			case ('COMP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						if(.not.allocated(C(i,j)%w)) allocate(C(i,j)%w(ngrains))
-						do ii=1,ngrains
-							C(i,j)%w(ii)=array(i,j,ii,1)
-							do iopac=1,ngrains2
-								C(i,j)%wopac(ii,iopac)=array(i,j,ii,iopac+1)
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%densP=0d0
+							do ipart=1,npart
+								do is=1,Part(ipart)%nsize
+									do iT=1,Part(ipart)%nT
+										ZZ%C(i,j,k)%densP(ipart,is,iT)=array(i,j,k,ipart,is,iT)
+									enddo
+								enddo
 							enddo
 						enddo
 					enddo
 				enddo
 			case ('GASDENS')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%gasdens=array(i,j,1,1)/gas2dust
-					enddo
-				enddo
-			case ('DENS0')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%dens0=array(i,j,1,1)
-					enddo
-				enddo
-			case ('GASTEMP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%Tgas=array(i,j,1,1)
-					enddo
-				enddo
-			case ('DENSP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%w(ipart)=array(i,j,1,1)
-					enddo
-				enddo
-			case ('TEMPP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%TP(ipart)=array(i,j,1,1)
-					enddo
-				enddo
-			case ('NPHOT')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%Ni=array(i,j,1,1)
-					enddo
-				enddo
-			case ('VOLUME')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%V=array(i,j,1,1)
-					enddo
-				enddo
-			case ('dTEMP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%dT=array(i,j,1,1)*C(i,j)%T
-					enddo
-				enddo
-			case ('dEJv')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%dEJv=array(i,j,1,1)*C(i,j)%EJv
-					enddo
-				enddo
-			case ('LAM')
-				do i=1,nlam
-					lam(i)=array(i,1,1,1)
-				enddo
-			case ('QHPEJv')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%EJvQHP(Grain(ipart)%qhpnr)=array(i,j,1,1)
-					enddo
-				enddo
-			case ('QHPRF')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						do l=1,nlam
-							C(i,j)%QHP(Grain(ipart)%qhpnr,l)=array(i,j,l,1)
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%gasdens=array(i,j,k,1,1,1)
 						enddo
 					enddo
 				enddo
-			case ('TQHP')
-				do i=1,D%nR-1
-					do j=1,D%nTheta-1
-						C(i,j)%Tqhp(Grain(ipart)%qhpnr)=array(i,j,1,1)
+			case ('NPHOT')
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%Ni=array(i,j,k,1,1,1)
+						enddo
+					enddo
+				enddo
+			case ('VOLUME')
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%V=array(i,j,k,1,1,1)
+						enddo
+					enddo
+				enddo
+			case ('EJv')
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%E=array(i,j,k,1,1,1)
+						enddo
 					enddo
 				enddo
 			case ('SKIP')
@@ -591,23 +447,6 @@ c	just skip this hdu
 
 1	continue
 	
-	if(nvars.gt.nhdu) then
-		do ivars=nhdu+1,nvars
-			select case(vars(ivars))
-				case ('DENS0')
-					write(*,'("** Assuming gasdens=dens0 ! **")')
-					write(9,'("** Assuming gasdens=dens0 ! **")')
-					do i=1,D%nR-1
-						do j=1,D%nTheta-1
-							C(i,j)%dens0=C(i,j)%gasdens
-						enddo
-					enddo
-				case default
-					stop
-			end select
-		enddo
-	endif
-
 
 	!  Close the file and free the unit number.
 	call ftclos(unit, status)
@@ -631,3 +470,22 @@ c	just skip this hdu
 	end
 
 
+	subroutine SetZoneStructOutput()
+	use GlobalSetup
+	IMPLICIT NONE
+	
+	ZoneStructOutput( 1)='RGRID'
+	ZoneStructOutput( 2)='TGRID'
+	ZoneStructOutput( 3)='PGRID'
+	ZoneStructOutput( 4)='DENS'
+	ZoneStructOutput( 5)='TEMP'
+	ZoneStructOutput( 6)='COMP'
+	ZoneStructOutput( 7)='GASDENS'
+	ZoneStructOutput( 8)='NPHOT'
+	ZoneStructOutput( 9)='VOLUME'
+	ZoneStructOutput(10)='EJv'
+	nZoneStructOutput=10
+
+	return
+	end
+	

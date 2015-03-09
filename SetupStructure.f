@@ -310,7 +310,8 @@ c-----------------------------------------------------------------------
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,i1,i2,i3
+	integer ii,i1,i2,i3,i
+	character*500 filename
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
 
@@ -366,16 +367,50 @@ c spiral waves
 
 	call ScaleZoneInput(ii)
 	
-	call output("setup density structure")
-	select case(Zone(ii)%denstype)
-		case("DISK")
-			call SetupDisk(ii)
-		case("SHELL")
-			call SetupShell(ii)
-		case default
-			call SetupSpecialZone(ii)
-	end select	
-	
+	if(Nphot.eq.0) then
+		filename=trim(outputdir) // "Zone" // trim(int2string(ii,'(i0.4)')) // ".fits.gz"
+		call output("Reading file: "// trim(filename))
+		call readstruct_fits(filename,ZoneStructOutput,nZoneStructOutput,ii)
+		Zone(ii)%imidplane=Zone(ii)%nt/2+1
+		do i=1,Zone(ii)%nt+1
+			Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
+		enddo
+		if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
+		if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
+		if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
+		do i=1,Zone(ii)%nr+1
+			Zone(ii)%R2(i)=Zone(ii)%R(i)**2
+		enddo
+		do i=1,Zone(ii)%np+1
+			if(Zone(ii)%phi(i).lt.(pi/4d0)) then
+				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+				Zone(ii)%tany(i)=1d0
+			else if(Zone(ii)%phi(i).lt.(3d0*pi/4d0)) then
+				Zone(ii)%tanx(i)=-1d0
+				Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+			else if(Zone(ii)%phi(i).lt.(5d0*pi/4d0)) then
+				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+				Zone(ii)%tany(i)=1d0
+			else if(Zone(ii)%phi(i).lt.(7d0*pi/4d0)) then
+				Zone(ii)%tanx(i)=-1d0
+				Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+			else
+				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+				Zone(ii)%tany(i)=1d0
+			endif
+		enddo
+	else
+		call output("setup density structure")
+		select case(Zone(ii)%denstype)
+			case("DISK")
+				call SetupDisk(ii)
+			case("SHELL")
+				call SetupShell(ii)
+			case default
+				call SetupSpecialZone(ii)
+		end select	
+	endif
+
 	return
 	end
 	

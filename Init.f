@@ -10,6 +10,8 @@ c===============================================================================
 	character*1000 command
 	integer i,j,omp_get_max_threads,omp_get_thread_num
 
+	call SetZoneStructOutput()
+
 	j=omp_get_max_threads()
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
