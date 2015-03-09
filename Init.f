@@ -315,6 +315,8 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%npix
 		case("maxr")
 			read(key%value,*) MCobs(key%nr1)%maxR
+		case("fov")
+			read(key%value,*) MCobs(key%nr1)%fov
 		case("raytrace")
 			read(key%value,*) MCobs(key%nr1)%raytrace
 		case("nphot")
@@ -648,6 +650,7 @@ c===============================================================================
 		MCobs(i)%lam1=0.1d0
 		MCobs(i)%lam2=3000d0
 		MCobs(i)%maxR=-1d0
+		MCobs(i)%fov=-1d0
 		MCobs(i)%nr=1
 		MCobs(i)%telescope=.false.
 		MCobs(i)%D=0d0

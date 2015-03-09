@@ -59,16 +59,21 @@ c setup the observation direction
 		call SetupZone(i)
 	enddo
 	
-	distance=distance*parsec
-		
 	do i=1,nMCobs
-		if(MCobs(i)%maxR.lt.0d0) then
-			MCobs(i)%maxR=maxR*1.5d0
+		if(MCobs(i)%fov.gt.0d0) then
+			MCobs(i)%maxR=MCobs(i)%fov*distance/2d0
 		else
-			MCobs(i)%maxR=MCobs(i)%maxR*AU
+			if(MCobs(i)%maxR.lt.0d0) then
+				MCobs(i)%maxR=maxR*1.5d0
+			else
+				MCobs(i)%maxR=MCobs(i)%maxR*AU
+			endif
+			MCobs(i)%fov=2d0*MCobs(i)%maxR/distance
 		endif
 	enddo
 
+	distance=distance*parsec
+		
 	call SetupBeaming()
 
 	return

@@ -153,7 +153,7 @@ c parameter for beaming towards this zone
 		integer npix
 		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
-		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f
+		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f,fov
 		logical raytrace
 		real*8 lam1,lam2
 		integer Nphot,nr
