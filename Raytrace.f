@@ -679,7 +679,7 @@ c beaming
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			do i=1,Pimage(izone)%nr
-				Pimage(izone)%R(i)=St%R*real(i-1)/real(Pimage(izone)%nr-1)
+				Pimage(izone)%R(i)=St%R*(real(i)-0.5)/real(Pimage(izone)%nr)
 			enddo
 		endif
 
@@ -954,6 +954,14 @@ c beaming
 	phot%edgeNr=0
 	P%istar=0
 
+	do izone=1,nzones
+		Trac(izone)%recompute=.true.
+	enddo
+	do istar=1,nstars
+		TracStar(istar)%recompute=.true.
+	enddo
+	minv=0d0
+
 	if(justcount) P%n=0
 
 	k=0
@@ -964,20 +972,45 @@ c beaming
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call TravelSph(phot,izone,Trac(izone),status)
+					if(Trac(izone)%recompute) then
+						call TravelSph(phot,izone,Trac(izone),status)
+					else
+						Trac(izone)%v=Trac(izone)%v-minv
+					endif
 			end select
+			Trac(izone)%recompute=.false.
 		else
 			select case(Zone(izone)%shape)
 				case("SPH")
-					call HitSph(phot,izone,Trac(izone))
+					if(Trac(izone)%recompute) then
+						call HitSph(phot,izone,Trac(izone))
+					else
+						Trac(izone)%v=Trac(izone)%v-minv
+					endif
 			end select
+			Trac(izone)%recompute=.false.
 		endif
 	enddo
 	do istar=1,nstars
-		call HitStar(phot,istar,TracStar(istar))
+		if(TracStar(istar)%recompute) then
+			call HitStar(phot,istar,TracStar(istar))
+			TracStar(istar)%recompute=.false.
+		else
+			TracStar(istar)%v=TracStar(istar)%v-minv
+		endif
 	enddo
+
 	if(status.gt.0) then
-		call output("Something is wrong...")
+		call output("Something is wrong... Don't worry I'll try to fix it.")
+		do izone=1,nzones
+			Trac(izone)%recompute=.true.
+		enddo
+		do istar=1,nstars
+			TracStar(istar)%recompute=.true.
+		enddo
+		minv=0d0
+		call InWhichZones(phot)
+		goto 1
 	endif
 
 	minv=1d8*maxR
@@ -1036,6 +1069,7 @@ c beaming
      &			phot%i3(izone).lt.1) then
 				phot%inzone(izone)=.false.
 			endif
+			Trac(izone)%recompute=.true.
 		else
 			phot%edgeNr(izone)=0
 		endif

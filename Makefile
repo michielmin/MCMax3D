@@ -73,7 +73,8 @@ OBJS	      = Modules.o \
 				Convolution.o \
 				Reddening.o \
 				SpecialZone.o \
-				OutputStats.o
+				OutputStats.o \
+				ZoneInputOutput.o
 
 # program name and install location
 PROGRAM       = MCMax3D
