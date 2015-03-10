@@ -311,6 +311,7 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,i1,i2,i3,i
+	real*8 random
 	character*500 filename
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
@@ -321,7 +322,22 @@ c-----------------------------------------------------------------------
 	Zone(ii)%phi0=Zone(ii)%phi0*pi/180d0
 	Zone(ii)%cosp0=cos(Zone(ii)%phi0)
 	Zone(ii)%sinp0=sin(Zone(ii)%phi0)
-	
+
+c avoid zones with exactly the same inner or outer radii
+1	continue
+	do i=1,ii-1
+		if(Zone(ii)%Rin.eq.Zone(i)%Rin.or.Zone(ii)%Rin.eq.Zone(i)%Rout) then
+			Zone(ii)%Rin=Zone(ii)%Rin*(1d0+1d-6*random(idum))
+			call output("Slightly adjusting Rin")
+			goto 1
+		endif
+		if(Zone(ii)%Rout.eq.Zone(i)%Rin.or.Zone(ii)%Rout.eq.Zone(i)%Rout) then
+			Zone(ii)%Rout=Zone(ii)%Rout*(1d0-1d-6*random(idum))
+			call output("Slightly adjusting Rout")
+			goto 1
+		endif
+	enddo
+		
 c spiral waves
 	Zone(ii)%r_spiral=Zone(ii)%r_spiral*AU
 	Zone(ii)%w_spiral=Zone(ii)%w_spiral*2d0*pi

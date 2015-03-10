@@ -8,6 +8,7 @@
 	logical simpleobs
 	character*500 MCfile
 
+
 	simpleobs=.false.
 	do ilam=1,nlam
 		if(lam(ilam).ge.MCobs(iobs)%lam1.and.lam(ilam).le.MCobs(iobs)%lam2) then
@@ -25,6 +26,16 @@
 			endif
 		enddo
 	endif
+
+	call output("==================================================================")
+	call output("Raytracing observation " // int2string(iobs,'(i0.4)'))
+	call output(" wavelength: " // trim(dbl2string(MCobs(iobs)%lam1,'(f13.3)')) // " micron")
+	if(MCobs(iobs)%lam2.ne.MCobs(iobs)%lam1) then
+	call output(" to:         " // trim(dbl2string(MCobs(iobs)%lam2,'(f13.3)')) // " micron")
+	endif
+	call output(" fov:        " // trim(dbl2string(MCobs(iobs)%fov,'(f13.3)')) //  " arcsec")
+	call output("             " // trim(dbl2string(2d0*MCobs(iobs)%maxR/AU,'(f13.3)')) // " AU")
+	call output("==================================================================")
 
 	fov0=(2d0*MCobs(iobs)%maxR/AU)/(Distance/parsec)
 	zscale=1d3*(MCobs(iobs)%npix/fov0)**2
@@ -72,6 +83,8 @@
 	close(unit=20)
 
 	call deallocatePaths
+
+	call output("==================================================================")
 	
 	return
 	end
@@ -647,7 +660,7 @@ c beaming
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=min(max(Zo%np*2,50),180)
+			Pimage(izone)%np=min(max(Zo%np*2,50),360)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0
