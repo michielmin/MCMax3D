@@ -4,6 +4,7 @@
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
 	real*8 dlmin,fluxZ(nzones+nstars),fov0,zscale,Reddening,compute_dlam
+	real*8,allocatable :: im(:,:,:)
 	logical simpleobs
 	character*500 MCfile
 
@@ -47,7 +48,10 @@
 			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,4)=sqrt(
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,2)**2+
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
-			call writefitsfile(MCfile,zscale*MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4),4,MCobs(iobs)%npix)
+			allocate(im(MCobs(iobs)%npix,MCobs(iobs)%npix,4))
+			im=zscale*MCobs(iobs)%image
+			call writefitsfile(MCfile,im,4,MCobs(iobs)%npix)
+			deallocate(im)
 			if(MCobs(iobs)%telescope) then
 				call Convolution(MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:3),MCobs(iobs)%npix,lam(ilam),
      &					MCobs(iobs)%D,MCobs(iobs)%D2,MCobs(iobs)%SpW,fov0,MCobs(iobs)%width,MCobs(iobs)%snoise)
@@ -56,7 +60,10 @@
      &				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
 				MCfile=trim(outputdir) // "RToutObs" // trim(int2string(iobs,'(i0.4)')) // "_" // 
      &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
-				call writefitsfile(MCfile,zscale*MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4),4,MCobs(iobs)%npix)
+				allocate(im(MCobs(iobs)%npix,MCobs(iobs)%npix,4))
+				im=zscale*MCobs(iobs)%image
+				call writefitsfile(MCfile,im,4,MCobs(iobs)%npix)
+				deallocate(im)
 			endif
 			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
 		endif

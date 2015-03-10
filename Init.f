@@ -348,6 +348,7 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%fstar
 		case("telescope")
 			read(key%value,*) MCobs(key%nr1)%telescope
+		case("next")
 		case default
 			call output("Unknown MCobs keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -408,6 +409,7 @@ c allocate the arrays
 	type(SettingKey),pointer :: key
 	integer ncla	! number of command line arguments
 	character*1000 readline,inputfile,command
+	logical readfile
 
 	call getarg(1,inputfile)
 
@@ -427,13 +429,17 @@ c allocate the arrays
 		write(21,'("*** command line keywords ***")')
 	endif
 	
-	ncla=-1
+	ncla=0
 
 	key => firstkey
+
+	readfile=.true.
 	
-20	ncla=ncla+1
+	goto 10
+20	readfile=.false.
+	close(unit=20)
 10	continue
-	if(ncla.eq.0) then
+	if(readfile) then
 		call ignorestar(20)
 		read(20,'(a1000)',end=20,err=20) readline
 	else
@@ -444,9 +450,14 @@ c allocate the arrays
 			call output("Command line argument: " // trim(readline))
 			if(Nphot.gt.0) write(21,'(a)') trim(readline)
 			ncla=ncla+1
+		else if(readline(1:2).eq.'-o') then
+			ncla=ncla+2
+			goto 10
 		else
 			if(readline.ne.' ') then
 c				try to read another command line argument
+				open(unit=20,file=readline,RECL=1000)
+				readfile=.true.
 				ncla=ncla+1
 				goto 10
 			else
@@ -467,7 +478,6 @@ c read another command, so go back
 	goto 10
 
 30	continue
-	close(unit=20)
 	close(unit=21)
 	allocate(key%next)
 	key => key%next
@@ -489,6 +499,7 @@ c===============================================================================
 	
 	ikey1=index(line,'=')
 	ikey2=index(line,':')
+	if(ikey1.eq.0) ikey1=len_trim(line)+1
 
 	nr1=1
 	nr2=1
@@ -536,7 +547,7 @@ c===============================================================================
 	goto 1
 2	continue
 	if(i.eq.n) then
-		nr=1
+		nr=0
 	else
 		read(key(i+1:n),*,err=3) nr	
 	endif
@@ -679,16 +690,25 @@ c===============================================================================
 	nzones=1
 	npart=1
 	nstars=1
-	nMCobs=1
+	nMCobs=0
 	do while(.not.key%last)
 		select case(key%key1)
 			case("zone")
+				if(key%nr1.eq.0) key%nr1=1
+				if(key%nr2.eq.0) key%nr2=1
 				if(key%nr1.gt.nzones) nzones=key%nr1
 			case("star")
+				if(key%nr1.eq.0) key%nr1=1
+				if(key%nr2.eq.0) key%nr2=1
 				if(key%nr1.gt.nstars) nstars=key%nr1
 			case("part","opac","computepart")
+				if(key%nr1.eq.0) key%nr1=1
+				if(key%nr2.eq.0) key%nr2=1
 				if(key%nr1.gt.npart) npart=key%nr1
 			case("mcobs")
+				if(key%key2.eq.'next') nMCobs=nMCobs+1
+				if(key%nr1.eq.0) key%nr1=nMCobs
+				if(key%nr2.eq.0) key%nr2=1
 				if(key%nr1.gt.nMCobs) nMCobs=key%nr1
 		end select
 		key=>key%next
@@ -702,7 +722,7 @@ c===============================================================================
 	allocate(Zone(nzones))
 	allocate(Star(nstars))
 	allocate(Part(npart))
-	allocate(MCobs(nMCobs))
+	allocate(MCobs(max(nMCobs,1)))
 
 	do i=1,npart
 		Part(i)%nT=0

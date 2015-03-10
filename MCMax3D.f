@@ -47,15 +47,15 @@ c write the structure to the output files
 c			call OutputStructure(iter,converged)
 			iter=iter+1
 		enddo
+
+		call OutputMCobs
+
+		do i=1,nzones
+			filename=trim(outputdir) // "Zone" // trim(int2string(i,'(i0.4)')) // ".fits.gz"
+			call output("Writing file: "// trim(filename))
+			call outputstruct_fits(filename,ZoneStructOutput,nZoneStructOutput,i)
+		enddo
 	endif
-
-	call OutputMCobs
-
-	do i=1,nzones
-		filename=trim(outputdir) // "Zone" // trim(int2string(i,'(i0.4)')) // ".fits.gz"
-		call output("Writing file: "// trim(filename))
-		call outputstruct_fits(filename,ZoneStructOutput,nZoneStructOutput,i)
-	enddo
 
 c ok, structure is done, now let's see what this looks like
 	do i=1,nMCobs
