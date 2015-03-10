@@ -86,6 +86,8 @@ c allocate the arrays
 			read(key%value,*) nspike
 		case("av")
 			read(key%value,*) Av
+		case("adjustav")
+			read(key%value,*) adjustAv
 		case("abun_in_name")
 			read(key%value,*) abun_in_name
 		case default
@@ -577,6 +579,7 @@ c===============================================================================
 	fstop=0d0
 	nspike=0
 	Av=0d0
+	adjustAv=.false.
 	
 	particledir=' '
 	

@@ -322,21 +322,6 @@ c-----------------------------------------------------------------------
 	Zone(ii)%phi0=Zone(ii)%phi0*pi/180d0
 	Zone(ii)%cosp0=cos(Zone(ii)%phi0)
 	Zone(ii)%sinp0=sin(Zone(ii)%phi0)
-
-c avoid zones with exactly the same inner or outer radii
-1	continue
-	do i=1,ii-1
-		if(Zone(ii)%Rin.eq.Zone(i)%Rin.or.Zone(ii)%Rin.eq.Zone(i)%Rout) then
-			Zone(ii)%Rin=Zone(ii)%Rin*(1d0+1d-6*random(idum))
-			call output("Slightly adjusting Rin")
-			goto 1
-		endif
-		if(Zone(ii)%Rout.eq.Zone(i)%Rin.or.Zone(ii)%Rout.eq.Zone(i)%Rout) then
-			Zone(ii)%Rout=Zone(ii)%Rout*(1d0-1d-6*random(idum))
-			call output("Slightly adjusting Rout")
-			goto 1
-		endif
-	enddo
 		
 c spiral waves
 	Zone(ii)%r_spiral=Zone(ii)%r_spiral*AU
@@ -382,6 +367,21 @@ c spiral waves
 	enddo
 
 	call ScaleZoneInput(ii)
+
+c avoid zones with exactly the same inner or outer radii
+1	continue
+	do i=1,ii-1
+		if(Zone(ii)%Rin.eq.Zone(i)%Rin.or.Zone(ii)%Rin.eq.Zone(i)%Rout) then
+			Zone(ii)%Rin=Zone(ii)%Rin*(1d0+1d-6*random(idum))
+			call output("Slightly adjusting Rin")
+			goto 1
+		endif
+		if(Zone(ii)%Rout.eq.Zone(i)%Rin.or.Zone(ii)%Rout.eq.Zone(i)%Rout) then
+			Zone(ii)%Rout=Zone(ii)%Rout*(1d0-1d-6*random(idum))
+			call output("Slightly adjusting Rout")
+			goto 1
+		endif
+	enddo
 	
 	if(Nphot.eq.0) then
 		filename=trim(outputdir) // "Zone" // trim(int2string(ii,'(i0.4)')) // ".fits.gz"

@@ -32,7 +32,7 @@ c===============================================================================
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum,abun_in_name
-	logical criticalerror
+	logical criticalerror,adjustAv
 	real*8 maxR,distance,Av
 	character*500 outputdir,particledir
 	character*7 ZoneStructOutput(10)
