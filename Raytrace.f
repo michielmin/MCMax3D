@@ -882,7 +882,6 @@ c beaming
 			scat(4)=scat(4)+C%Vscatt/C%V
 		endif
 		emis=emis*(1d0-albedo)/Kabs
-		emis=0d0
 		scat=scat/Kext
 
 		if(tau_e.lt.1d-6) then
@@ -949,7 +948,6 @@ c beaming
 	enddo
 
 	flux=(Star(istar0)%F(ilam)/(pi*Star(istar0)%R**2))*exp(-tau0)
-	flux=0d0
 
 	return
 	end
