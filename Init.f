@@ -327,6 +327,8 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%Nphot
 		case("nr")
 			read(key%value,*) MCobs(key%nr1)%nr
+		case("np")
+			read(key%value,*) MCobs(key%nr1)%np
 		case("lam")
 			select case(key%nr2)
 				case(1)
@@ -668,6 +670,7 @@ c===============================================================================
 		MCobs(i)%maxR=-1d0
 		MCobs(i)%fov=-1d0
 		MCobs(i)%nr=1
+		MCobs(i)%np=360
 		MCobs(i)%telescope=.false.
 		MCobs(i)%D=0d0
 		MCobs(i)%D2=0d0

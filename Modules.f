@@ -158,7 +158,7 @@ c parameter for beaming towards this zone
 		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f,fov
 		logical raytrace
 		real*8 lam1,lam2
-		integer Nphot,nr
+		integer Nphot,nr,np
 		logical telescope						! do a telescope sim?
 		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
 		real*8 xup,yup,zup						! up vector in the image (reference for Polarization)
