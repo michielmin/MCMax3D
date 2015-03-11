@@ -155,8 +155,8 @@
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
 			C%KabsL=GetKabs(ilam,C)
+			C%Elam=C%KabsL*BB(ilam,iT)*C%V
 			if(C%Elam.gt.0d0) then
-				C%Elam=C%KabsL*BB(ilam,iT)*C%V
 				Etot=Etot+C%Elam
 				nspat=nspat+1
 				Espat(nspat+1)=Espat(nspat)+C%Elam
@@ -660,19 +660,19 @@ c beaming
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=min(max(Zo%np*2,50),360)
+			Pimage(izone)%np=min(max(Zo%np*2,50),MCobs(iobs)%np)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0
 			scale(1)=Zo%xscale
 			scale(2)=Zo%yscale
 			scale(3)=Zo%zscale
-			do i=1,150
+			do i=1,150,MCobs(iobs)%nr
 				ir=ir+1
 				Pimage(izone)%R(ir)=Zo%R(1)*real(i)/151d0
 			enddo
 			do ii=1,3
-			do j=1,Zo%nt
+			do j=1,Zo%nt,MCobs(iobs)%nr
 				if(Rtau1(j).gt.0d0) then
 					ir=ir+1
 					Pimage(izone)%R(ir)=abs(scale(ii)*(Rtau1(j)*sin((Zo%theta(j)+Zo%theta(j+1))/2d0)))
@@ -695,11 +695,11 @@ c beaming
 			y=St%y
 			z=St%z
 			Pimage(izone)%nr=20
-			Pimage(izone)%np=45
+			Pimage(izone)%np=min(45,MCobs(iobs)%np)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			do i=1,Pimage(izone)%nr
-				Pimage(izone)%R(i)=St%R*(real(i)-0.5)/real(Pimage(izone)%nr)
+				Pimage(izone)%R(i)=St%R*(real(i)-0.999)/real(Pimage(izone)%nr-0.99)
 			enddo
 		endif
 
@@ -882,6 +882,7 @@ c beaming
 			scat(4)=scat(4)+C%Vscatt/C%V
 		endif
 		emis=emis*(1d0-albedo)/Kabs
+		emis=0d0
 		scat=scat/Kext
 
 		if(tau_e.lt.1d-6) then
@@ -948,6 +949,7 @@ c beaming
 	enddo
 
 	flux=(Star(istar0)%F(ilam)/(pi*Star(istar0)%R**2))*exp(-tau0)
+	flux=0d0
 
 	return
 	end
