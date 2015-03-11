@@ -323,6 +323,8 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%fov
 		case("raytrace")
 			read(key%value,*) MCobs(key%nr1)%raytrace
+		case("image","writeimage")
+			read(key%value,*) MCobs(key%nr1)%writeimage
 		case("nphot")
 			read(key%value,*) MCobs(key%nr1)%Nphot
 		case("nr")
@@ -664,6 +666,7 @@ c===============================================================================
 		MCobs(i)%opening=5d0
 		MCobs(i)%npix=500
 		MCobs(i)%raytrace=.false.
+		MCobs(i)%writeimage=.true.
 		MCobs(i)%Nphot=100000
 		MCobs(i)%lam1=0.1d0
 		MCobs(i)%lam2=3000d0

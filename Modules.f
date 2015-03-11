@@ -159,7 +159,7 @@ c parameter for beaming towards this zone
 		logical raytrace
 		real*8 lam1,lam2
 		integer Nphot,nr,np
-		logical telescope						! do a telescope sim?
+		logical telescope,writeimage			! do a telescope sim?
 		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
 		real*8 xup,yup,zup						! up vector in the image (reference for Polarization)
 	end type MCobsType
