@@ -31,7 +31,7 @@ c===============================================================================
 	module GlobalSetup
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
-	integer maxiter,Nphot,idum,abun_in_name
+	integer maxiter,Nphot,idum,abun_in_name,nSpirals
 	logical criticalerror,adjustAv
 	real*8 maxR,distance,Av
 	character*500 outputdir,particledir
@@ -142,14 +142,17 @@ c beaming parameter
 		real*8 amin,amax,apow,tau_V
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)
-c parameters for a spiral wave
-		real*8 Adens,Aheight,Aalpha
-		real*8 r_spiral,phi_spiral,alpha_spiral,beta_spiral,w_spiral
-		integer sign_spiral
 c parameter for beaming towards this zone
 		real*8 fbeam
 		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)
 	end type ZoneType
+
+	type SpiralType
+c parameters for a spiral wave
+		real*8 Adens,Aheight,Aalpha
+		real*8 r,phi,alpha,beta,w
+		integer sign
+	end type SpiralType
 
 	type MCobsType
 		integer npix
@@ -168,6 +171,7 @@ c parameter for beaming towards this zone
 	type(StarType),allocatable,target :: Star(:)						! dimension nstars
 	type(Particle),allocatable :: Part(:)						! dimension npart
 	type(MCobsType),allocatable :: MCobs(:)						! dimension nMCobs
+	type(SpiralType),allocatable :: Spiral(:)						! dimension nSpirals
 
 	type SettingKey
 		character*100 key1,key2,value

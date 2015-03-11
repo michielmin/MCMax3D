@@ -47,6 +47,8 @@ c allocate the arrays
 			call ReadStar(key)
 		case("mcobs")
 			call ReadMCobs(key)
+		case("spiral")
+			call ReadSpiral(key)
 		case("part")
 			Part(key%nr1)%file=trim(key%value)
 			Part(key%nr1)%ptype="PARTFILE"
@@ -236,30 +238,46 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%amax
 		case("apow")
 			read(key%value,*) Zone(key%nr1)%apow
-		case("adens")
-			read(key%value,*) Zone(key%nr1)%Adens
-		case("aheight")
-			read(key%value,*) Zone(key%nr1)%Aheight
-		case("aalpha")
-			read(key%value,*) Zone(key%nr1)%Aalpha
-		case("rspiral")
-			read(key%value,*) Zone(key%nr1)%r_spiral
-		case("phispiral")
-			read(key%value,*) Zone(key%nr1)%phi_spiral
-		case("alphaspiral")
-			read(key%value,*) Zone(key%nr1)%alpha_spiral
-		case("betaspiral")
-			read(key%value,*) Zone(key%nr1)%beta_spiral
-		case("wspiral")
-			read(key%value,*) Zone(key%nr1)%w_spiral
-		case("signspiral")
-			read(key%value,*) Zone(key%nr1)%sign_spiral
 		case("fbeam")
 			read(key%value,*) Zone(key%nr1)%fbeam
 		case("abun")
 			read(key%value,*) Zone(key%nr1)%abun(key%nr2)
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
+			criticalerror=.true.
+	end select
+
+
+	return
+	end
+
+	subroutine ReadSpiral(key)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	type(SettingKey) key
+
+	select case(key%key2)
+		case("adens")
+			read(key%value,*) Spiral(key%nr1)%Adens
+		case("aheight")
+			read(key%value,*) Spiral(key%nr1)%Aheight
+		case("aalpha")
+			read(key%value,*) Spiral(key%nr1)%Aalpha
+		case("r")
+			read(key%value,*) Spiral(key%nr1)%r
+		case("phi")
+			read(key%value,*) Spiral(key%nr1)%phi
+		case("alpha")
+			read(key%value,*) Spiral(key%nr1)%alpha
+		case("beta")
+			read(key%value,*) Spiral(key%nr1)%beta
+		case("w")
+			read(key%value,*) Spiral(key%nr1)%w
+		case("sign")
+			read(key%value,*) Spiral(key%nr1)%sign
+		case default
+			call output("Unknown spiral keyword: " // trim(key%key2))
 			criticalerror=.true.
 	end select
 
@@ -633,16 +651,6 @@ c===============================================================================
 		Zone(i)%amax=3000d0
 		Zone(i)%apow=3.5
 
-		Zone(i)%Adens=0d0			! Amplitude of wave in density
-		Zone(i)%Aheight=0d0			! Amplitude of wave in scaleheight
-		Zone(i)%Aalpha=0d0			! Amplitude of wave in alpha
-		Zone(i)%r_spiral=5d0		! launching point
-		Zone(i)%phi_spiral=0d0		! launching point
-		Zone(i)%alpha_spiral=1.5d0	! Kepler rotation
-		Zone(i)%beta_spiral=0.4d0	! Value from Muto = 0.4, setting it to negative computes it
-		Zone(i)%w_spiral=0.8d0		! in terms of orbits
-		Zone(i)%sign_spiral=1d0		! which way it rotates
-
 		Zone(i)%fbeam=0d0
 	enddo
 
@@ -682,7 +690,19 @@ c===============================================================================
 		MCobs(i)%snoise=0d0
 		MCobs(i)%fstar=1d0
 	enddo
-	
+
+	do i=1,nSpirals
+		Spiral(i)%Adens=0d0			! Amplitude of wave in density
+		Spiral(i)%Aheight=0d0		! Amplitude of wave in scaleheight
+		Spiral(i)%Aalpha=0d0		! Amplitude of wave in alpha
+		Spiral(i)%r=5d0				! launching point
+		Spiral(i)%phi=0d0			! launching point
+		Spiral(i)%alpha=1.5d0		! Kepler rotation
+		Spiral(i)%beta=0.4d0		! Value from Muto = 0.4, setting it to negative computes it
+		Spiral(i)%w=0.8d0			! in terms of orbits
+		Spiral(i)%sign=1d0			! which way it rotates
+	enddo
+		
 	return
 	end
 	
@@ -700,6 +720,7 @@ c===============================================================================
 	npart=1
 	nstars=1
 	nMCobs=0
+	nSpirals=0
 	do while(.not.key%last)
 		select case(key%key1)
 			case("zone")
@@ -719,6 +740,10 @@ c===============================================================================
 				if(key%nr1.eq.0) key%nr1=nMCobs
 				if(key%nr2.eq.0) key%nr2=1
 				if(key%nr1.gt.nMCobs) nMCobs=key%nr1
+			case("spiral")
+				if(key%nr1.eq.0) key%nr1=1
+				if(key%nr2.eq.0) key%nr2=1
+				if(key%nr1.gt.nSpirals) nSpirals=key%nr1
 		end select
 		key=>key%next
 	enddo
@@ -726,11 +751,13 @@ c===============================================================================
 	call output('Number of zones:        ' // int2string(nzones,'(i4)'))
 	call output('Number of stars:        ' // int2string(nstars,'(i4)'))
 	call output('Number of particles:    ' // int2string(npart,'(i4)'))
-	call output('Number of observations: ' // int2string(npart,'(i4)'))
+	call output('Number of spirals:      ' // int2string(nSpirals,'(i4)'))
+	call output('Number of observations: ' // int2string(nMCobs,'(i4)'))
 
 	allocate(Zone(nzones))
 	allocate(Star(nstars))
 	allocate(Part(npart))
+	allocate(Spiral(max(nSpirals,1)))
 	allocate(MCobs(max(nMCobs,1)))
 
 	do i=1,npart

@@ -40,6 +40,13 @@ c setup the observation direction
 		allocate(MCobs(i)%spec(nlam))
 		MCobs(i)%f=2d0*pi*(1d0-MCobs(i)%opening)
 	enddo
+
+c spiral waves
+	do i=1,nSpirals
+		Spiral(i)%r=Spiral(i)%r*AU
+		Spiral(i)%w=Spiral(i)%w*2d0*pi
+		Spiral(i)%phi=Spiral(i)%phi*pi/180d0
+	enddo
 	
 	call output("==================================================================")
 
@@ -322,14 +329,6 @@ c-----------------------------------------------------------------------
 	Zone(ii)%phi0=Zone(ii)%phi0*pi/180d0
 	Zone(ii)%cosp0=cos(Zone(ii)%phi0)
 	Zone(ii)%sinp0=sin(Zone(ii)%phi0)
-		
-c spiral waves
-	Zone(ii)%r_spiral=Zone(ii)%r_spiral*AU
-	Zone(ii)%w_spiral=Zone(ii)%w_spiral*2d0*pi
-	Zone(ii)%phi_spiral=Zone(ii)%phi_spiral*pi/180d0
-	if(Zone(ii)%beta_spiral.lt.0d0) then
-		Zone(ii)%beta_spiral=1.5d0-Zone(ii)%shpow
-	endif
 	
 	call output("allocating memory")
 	select case(Zone(ii)%shape)
@@ -487,7 +486,7 @@ c avoid zones with exactly the same inner or outer radii
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
-	real*8,allocatable :: Aspiral(:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:)
+	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:)
 	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
@@ -509,14 +508,17 @@ c avoid zones with exactly the same inner or outer radii
 		endif
 	enddo
 
-	allocate(Aspiral(Zone(ii)%nr,Zone(ii)%np))
+	allocate(Aspiral(nSpirals,Zone(ii)%nr,Zone(ii)%np))
 	allocate(A(Zone(ii)%nr,Zone(ii)%np))
 	allocate(H(Zone(ii)%nr,Zone(ii)%np))
 	allocate(SD(Zone(ii)%nr,Zone(ii)%np))
 	allocate(alpha(Zone(ii)%nr,Zone(ii)%np))
 
 	Mtot=0d0
-	call ComputeAspiral(ii,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+	Aspiral=0d0
+	do i=1,nSpirals
+		call ComputeAspiral(ii,i,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+	enddo
 	do ir=1,Zone(ii)%nr
 		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 		do ip=1,Zone(ii)%np
@@ -531,9 +533,11 @@ c avoid zones with exactly the same inner or outer radii
 
 	do ir=1,Zone(ii)%nr
 		do ip=1,Zone(ii)%np
-			H(ir,ip)=H(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Aheight
-			SD(ir,ip)=SD(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Adens
-			alpha(ir,ip)=alpha(ir,ip)+Aspiral(ir,ip)*Zone(ii)%Aalpha
+			do i=1,nSpirals
+				H(ir,ip)=H(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Aheight
+				SD(ir,ip)=SD(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Adens
+				alpha(ir,ip)=alpha(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Aalpha
+			enddo
 		enddo
 	enddo
 	
@@ -578,7 +582,7 @@ c avoid zones with exactly the same inner or outer radii
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
-!$OMP& SHARED(Zone,npart,Aspiral,Mtot,w,delta,Part,ii,SD,H,alpha)
+!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do ir=1,Zone(ii)%nr
@@ -646,22 +650,30 @@ c avoid zones with exactly the same inner or outer radii
 	return
 	end
 	
-	subroutine ComputeAspiral(ii,Aspiral,nr,np)
+	subroutine ComputeAspiral(ii,ispiral,Aspiral,nr,np)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ip,nir,ir,jj,ii,nr,np,nip,kk,i,n
-	real*8 r,hr,phi0,Aspiral(nr,np),f,phimin,phimax
+	integer ip,nir,ir,jj,ii,nr,np,nip,kk,i,n,ispiral
+	real*8 r,hr,phi0,Aspiral(nSpirals,nr,np),f,phimin,phimax,beta
 	real*8,allocatable :: phi(:),rp(:)
 
 	nir=10
 	nip=10
 
+	call output("Setting up spiral wave " // int2string(ispiral,'(i3)'))
+
 	allocate(phi(nir*nr))
 	allocate(rp(nir*nr))
 
 	i=0
-	hr=(Zone(ii)%sh*(Zone(ii)%r_spiral/Zone(ii)%Rsh)**Zone(ii)%shpow)/Zone(ii)%r_spiral
+	hr=(Zone(ii)%sh*(Spiral(ispiral)%r/Zone(ii)%Rsh)**Zone(ii)%shpow)/Spiral(ispiral)%r
+
+	if(Spiral(ii)%beta.lt.0d0) then
+		beta=1.5d0-Zone(ii)%shpow
+	else
+		beta=Spiral(ii)%beta
+	endif
 
 	phimin=1d200
 	phimax=-1d200
@@ -671,21 +683,30 @@ c avoid zones with exactly the same inner or outer radii
 			f=(real(jj)-0.5)/real(nir)
 			r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
 			rp(i)=r
-			phi(i)=Zone(ii)%phi_spiral-Zone(ii)%sign_spiral*(sign(1d0,r-Zone(ii)%r_spiral)/hr)*(
-     &			(r/Zone(ii)%r_spiral)**(1d0+Zone(ii)%beta_spiral)*
-     &			(1d0/(1d0+Zone(ii)%beta_spiral)-(1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral))*
-     &			(r/Zone(ii)%r_spiral)**(-Zone(ii)%alpha_spiral))
-     &			-(1d0/(1d0+Zone(ii)%beta_spiral)-1d0/(1d0-Zone(ii)%alpha_spiral+Zone(ii)%beta_spiral)))
+			phi(i)=Spiral(ispiral)%phi-Spiral(ispiral)%sign*(sign(1d0,r-Spiral(ispiral)%r)/hr)*(
+     &			(r/Spiral(ispiral)%r)**(1d0+beta)*
+     &			(1d0/(1d0+beta)-(1d0/(1d0-Spiral(ispiral)%alpha+beta))*
+     &			(r/Spiral(ispiral)%r)**(-Spiral(ispiral)%alpha))
+     &			-(1d0/(1d0+beta)-1d0/(1d0-Spiral(ispiral)%alpha+beta)))
 			if(phi(i).lt.phimin) phimin=phi(i)
 			if(phi(i).gt.phimax) phimax=phi(i)
 		enddo
 	enddo
 	n=i
 
+	call tellertje(1,np)
+!$OMP PARALLEL IF(.true.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ip,ir,phi0,f,r,i)
+!$OMP& SHARED(Zone,Spiral,ii,ispiral,phimin,np,nr,rp,phi,phimax,nir,nip,Aspiral,n)
+!$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
 	do ip=1,np
-		call tellertje(ip,np)
+!$OMP CRITICAL
+		call tellertje(ip+1,np+2)
+!$OMP END CRITICAL
 		do ir=1,nr
-			Aspiral(ir,ip)=0d0
+			Aspiral(ispiral,ir,ip)=0d0
 		enddo
 		phi0=2d0*pi*(real(ip)-0.5)/real(np)
 		do while(phi0.gt.phimin)
@@ -696,8 +717,8 @@ c avoid zones with exactly the same inner or outer radii
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
-     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)				
+					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*1.7d0))*
+     &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
 			phi0=phi0-2d0*pi
@@ -711,13 +732,17 @@ c avoid zones with exactly the same inner or outer radii
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ir,ip)=Aspiral(ir,ip)+((r/Zone(ii)%r_spiral)**(sign(1d0,Zone(ii)%r_spiral-r)*1.7d0))*
-     &							exp(-(r-rp(i))**2/Zone(ii)%w_spiral**2)/real(nir)				
+					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*1.7d0))*
+     &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
 			phi0=phi0+2d0*pi
 		enddo
 	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+	call tellertje(np,np)
 
 	return
 	end
