@@ -146,12 +146,6 @@
 	nspat=0
 	Espat(1)=0d0
 	do izone=1,nzones
-!$OMP PARALLEL IF(.true.)
-!$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(i1,i2,i3,C,iT)
-!$OMP& SHARED(ilam,Etot,nspat,Espat,i1spat,i2spat,i3spat,izone,zspat,BB,Zone)
-!$OMP DO
-!$OMP& SCHEDULE(DYNAMIC, 1)
 		do i1=1,Zone(izone)%n1
 		do i2=1,Zone(izone)%n2
 		do i3=1,Zone(izone)%n3
@@ -164,7 +158,6 @@
 				C%KabsL=GetKabs(ilam,C)
 				C%Elam=C%KabsL*BB(ilam,iT)*C%V
 				if(C%Elam.gt.0d0) then
-!$OMP CRITICAL
 					Etot=Etot+C%Elam
 					nspat=nspat+1
 					Espat(nspat+1)=Espat(nspat)+C%Elam
@@ -172,15 +165,11 @@
 					i1spat(nspat)=i1
 					i2spat(nspat)=i2
 					i3spat(nspat)=i3
-!$OMP END CRITICAL
 				endif
 			endif
 		enddo
 		enddo
 		enddo
-!$OMP END DO
-!$OMP FLUSH
-!$OMP END PARALLEL
 	enddo
 
 	call tellertje(1,100)
