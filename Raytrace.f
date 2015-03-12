@@ -701,7 +701,7 @@ c beaming
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			do i=1,Pimage(izone)%nr
-				Pimage(izone)%R(i)=St%R*(real(i)-0.999)/real(Pimage(izone)%nr-0.99)
+				Pimage(izone)%R(i)=St%R*(real(i)-0.99)/real(Pimage(izone)%nr-0.9)
 			enddo
 		endif
 
