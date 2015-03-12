@@ -619,7 +619,8 @@ c beaming
 	type(ZoneType),pointer :: Zo
 	type(StarType),pointer :: St
 	type(Photon),allocatable :: phot(:),phot0(:)
-	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
+	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads,maxcount
+	logical error
 
 	maxnopenmp=omp_get_max_threads()+1
 	allocate(phot(maxnopenmp))	
@@ -652,6 +653,11 @@ c beaming
 	enddo
 	
 	allocate(Pimage(nzones+nstars))
+
+	maxcount=0
+	do izone=1,nzones
+		maxcount=maxcount+Zone(izone)%n1*Zone(izone)%n2*Zone(izone)%n3
+	enddo
 	
 	do izone=1,nzones+nstars
 		if(izone.le.nzones) then
@@ -732,8 +738,8 @@ c beaming
 		call tellertje(1,100)
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp)
-!$OMP& SHARED(Pimage,izone,MCobs,iobs,phot,phot0,maxR,x,y,z,nzones)
+!$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp,error)
+!$OMP& SHARED(Pimage,izone,MCobs,iobs,phot,phot0,maxR,x,y,z,nzones,maxcount)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
@@ -752,7 +758,7 @@ c beaming
 					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
 					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
 				endif
-				Rad=R1+random(idum)*(R2-R1)
+2				Rad=R1+random(idum)*(R2-R1)
 				phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
 
 				phot(iopenmp)%x=Rad*cos(phi)+x
@@ -773,14 +779,16 @@ c beaming
 				call TravelPhotonX(phot(iopenmp),-3d0*maxR)
 
 				phot0(iopenmp)=phot(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.true.)
+				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.true.,maxcount,error)
+				if(error) goto 2
 
 				allocate(Pimage(izone)%P(ir,ip)%v(Pimage(izone)%P(ir,ip)%n))
 				allocate(Pimage(izone)%P(ir,ip)%inzone(Pimage(izone)%P(ir,ip)%n,nzones))
 				allocate(Pimage(izone)%P(ir,ip)%C(Pimage(izone)%P(ir,ip)%n,nzones))
 
 				phot(iopenmp)=phot0(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.false.)
+				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.false.,maxcount,error)
+				if(error) goto 2
 			enddo
 		enddo
 !$OMP END DO
@@ -957,14 +965,14 @@ c beaming
 
 
 
-	subroutine RaytracePath(phot,P,justcount)
+	subroutine RaytracePath(phot,P,justcount,maxcount,error)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
 	type(Photon) phot
 	type(Path) :: P
-	integer istar
-	logical justcount
+	integer istar,maxcount
+	logical justcount,error
 
 	integer izone,imin,iobs,k,status
 	logical leave,inany,hitstar0
@@ -972,6 +980,7 @@ c beaming
 	type(Travel) Trac(nzones),TracStar(nstars)
 	type(Cell),pointer :: C
 
+	error=.false.
 	phot%inzone=.false.
 	phot%edgeNr=0
 	P%istar=0
@@ -1055,6 +1064,11 @@ c beaming
 	enddo
 
 	k=k+1
+	if(k.gt.maxcount) then
+		error=.true.
+		return
+	endif
+
 	if(.not.justcount) then
 		do izone=1,nzones
 			P%inzone(k,izone)=phot%inzone(izone)
