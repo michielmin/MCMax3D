@@ -160,18 +160,20 @@
 			iT=(C%T+0.5d0)/dTBB
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
-			C%KabsL=GetKabs(ilam,C)
-			C%Elam=C%KabsL*BB(ilam,iT)*C%V
-			if(C%Elam.gt.0d0) then
+			if(BB(ilam,iT).gt.0d0) then
+				C%KabsL=GetKabs(ilam,C)
+				C%Elam=C%KabsL*BB(ilam,iT)*C%V
+				if(C%Elam.gt.0d0) then
 !$OMP CRITICAL
-				Etot=Etot+C%Elam
-				nspat=nspat+1
-				Espat(nspat+1)=Espat(nspat)+C%Elam
-				zspat(nspat)=izone
-				i1spat(nspat)=i1
-				i2spat(nspat)=i2
-				i3spat(nspat)=i3
+					Etot=Etot+C%Elam
+					nspat=nspat+1
+					Espat(nspat+1)=Espat(nspat)+C%Elam
+					zspat(nspat)=izone
+					i1spat(nspat)=i1
+					i2spat(nspat)=i2
+					i3spat(nspat)=i3
 !$OMP END CRITICAL
+				endif
 			endif
 		enddo
 		enddo
