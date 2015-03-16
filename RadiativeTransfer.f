@@ -32,16 +32,18 @@
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(i,iopenmp)
-!$OMP& SHARED(Nphot,nzones,phot)
+!$OMP& SHARED(Nphot,nzones,phot,starttime)
 !$OMP DO SCHEDULE(STATIC,1)
 	do i=1,Nphot
-		call tellertje(i,Nphot)
+c		call tellertje(i,Nphot)
 		iopenmp=omp_get_thread_num()+1
 		phot(iopenmp)%nr=i
 		call EmitPhoton(phot(iopenmp))
 		call InWhichZones(phot(iopenmp))
 		call TravelPhoton(phot(iopenmp))
 		call MCoutput(phot(iopenmp))
+
+		call tellertje_time(i,Nphot,starttime)
 	enddo
 !$OMP END DO
 !$OMP FLUSH
