@@ -135,31 +135,27 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
 
 
-	subroutine tellertje_time(i,n,starttime)
+	subroutine tellertje_time(i,n,starttime,starttime_w)
 	IMPLICIT NONE
 	integer i,n,f
-	real*8 starttime,stoptime,xx
+	real*8 starttime,stoptime,xx,starttime_w,stoptime_w,omp_get_wtime
 	character*20 dbl2string
-	
-	if(i.eq.1) then
-		call cpu_time(stoptime)
-		xx=100d0*real(i)/real(n)
-		call output(trim(dbl2string(1000d0*(stoptime-starttime)/real(i),'(f8.3)'))
-     &			//" ms per photon package. Approx " // 
-     &			trim(dbl2string((stoptime-starttime)*(n-i)/real(i),'(f8.2)'))
-     &			//" s left. (" //
-     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
-	endif
 	
 	f=int(20d0*dble(i)/dble(n))
 	
 	if(20d0*real(i-1)/real(n).lt.real(f)
      &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
 		call cpu_time(stoptime)
+		stoptime_w=omp_get_wtime()
 		xx=100d0*real(i)/real(n)
-		call output(trim(dbl2string(1000d0*(stoptime-starttime)/real(i),'(f8.3)'))
+c		call output(trim(dbl2string(1000d0*(stoptime-starttime)/real(i),'(f8.3)'))
+c     &			//" ms per photon package. Approx " // 
+c     &			trim(dbl2string((stoptime-starttime)*(n-i)/real(i),'(f8.2)'))
+c     &			//" s left. (" //
+c     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
+		call output(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/real(i),'(f8.3)'))
      &			//" ms per photon package. Approx " // 
-     &			trim(dbl2string((stoptime-starttime)*(n-i)/real(i),'(f8.2)'))
+     &			trim(dbl2string((stoptime_w-starttime_w)*(n-i)/real(i),'(f8.2)'))
      &			//" s left. (" //
      &			trim(dbl2string(xx,'(f5.1)')) // " %)")
 	endif

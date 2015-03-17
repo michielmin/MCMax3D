@@ -74,7 +74,8 @@ OBJS	      = Modules.o \
 				Reddening.o \
 				SpecialZone.o \
 				OutputStats.o \
-				ZoneInputOutput.o
+				ZoneInputOutput.o \
+				EvolveStructure.o
 
 # program name and install location
 PROGRAM       = MCMax3D
@@ -87,6 +88,8 @@ version:;	echo "#define gitversion \"$(shell git rev-parse HEAD)\"" > gitversion
 clean:;		rm -f $(OBJS) $(PROGRAM)
 install:	version $(PROGRAM)
 			mv $(PROGRAM) $(DEST1)
+test:		version $(PROGRAM)
+			mv $(PROGRAM) $(DEST1)/MCMax3D_test
 upload:		version $(PROGRAM)
 			scp $(PROGRAM) $(DEST2)
 			mv $(PROGRAM) $(DEST1)
@@ -98,9 +101,6 @@ $(PROGRAM):     $(OBJS)
 
 # recompile everything if Modules.f has changed 
 $(OBJS):	Modules.f
-
-# recompile everything if InputOutput.f has changed 
-$(OBJS):	InputOutput.f
 
 
 

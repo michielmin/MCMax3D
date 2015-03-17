@@ -78,6 +78,8 @@ c allocate the arrays
 			end select
 		case("maxiter")
 			read(key%value,*) maxiter
+		case("gammauvdes")
+			read(key%value,*) gammaUVdes
 		case("distance")
 			read(key%value,*) distance
 		case("dirparticle","particledir")
@@ -386,12 +388,19 @@ c allocate the arrays
 	use GlobalSetup
 	IMPLICIT NONE
 	type(SettingKey) key
+	integer j
 
 	Part(key%nr1)%ptype="COMPUTE"
 
 	select case(key%key2)
 		case("file")
-			Part(key%nr1)%file=trim(key%value)
+			Part(key%nr1)%file(1)=trim(key%value)
+		case("tfile")
+			do j=1,Part(key%nr1)%nT
+				if(key%nr2.eq.int(Part(key%nr1)%Tmax(j))) then
+					Part(key%nr1)%file(j)=trim(key%value)
+				endif
+			enddo
 		case("ngrains","nsize")
 			read(key%value,*) Part(key%nr1)%nsize
 		case("nsubgrains")
@@ -412,6 +421,10 @@ c allocate the arrays
 			Part(key%nr1)%standard=trim(key%value)
 		case("fcarbon")
 			read(key%value,*) Part(key%nr1)%fcarbon
+		case("tdesa")
+			read(key%value,*) Part(key%nr1)%TdesA
+		case("tdesb")
+			read(key%value,*) Part(key%nr1)%TdesB
 		case("abun")
 			if(key%nr2.gt.50) stop "number of species in file too large"
 			read(key%value,*) Part(key%nr1)%inp_abun(key%nr2)
@@ -467,10 +480,10 @@ c allocate the arrays
 		call ignorestar(20)
 		read(20,'(a1000)',end=20,err=20) readline
 	else
-		call getarg(1+ncla,readline)
+		call getarg(2+ncla,readline)
 		if(readline(1:2).eq.'-s') then
 			ncla=ncla+1
-			call getarg(1+ncla,readline)
+			call getarg(2+ncla,readline)
 			call output("Command line argument: " // trim(readline))
 			if(Nphot.gt.0) write(21,'(a)') trim(readline)
 			ncla=ncla+1
@@ -590,6 +603,7 @@ c===============================================================================
 	integer i
 	
 	maxiter=0
+	if(maxnT.gt.1) maxiter=1
 	
 	lam1=0.1
 	lam2=10000
@@ -602,6 +616,7 @@ c===============================================================================
 	nspike=0
 	Av=0d0
 	adjustAv=.false.
+	gammaUVdes=0d0
 	
 	particledir=' '
 	
@@ -663,9 +678,11 @@ c===============================================================================
 		Part(i)%porosity=0.25
 		Part(i)%fcarbon=0.15
 		Part(i)%nsize=1
-		Part(i)%nT=1
 		Part(i)%nsubgrains=1
 		Part(i)%inp_abun=-1d0
+!c Default values are those of water ice		!	olivine
+		Part(i)%TdesA=27.303					!	4.4491649
+		Part(i)%TdesB=3.536						!	0.35676055
 	enddo
 	
 	do i=1,nMCobs
@@ -748,6 +765,8 @@ c===============================================================================
 		key=>key%next
 	enddo
 
+	if(nMCobs.eq.0) nMCobs=1
+
 	call output('Number of zones:        ' // int2string(nzones,'(i4)'))
 	call output('Number of stars:        ' // int2string(nstars,'(i4)'))
 	call output('Number of particles:    ' // int2string(npart,'(i4)'))
@@ -779,6 +798,31 @@ c===============================================================================
 		allocate(Part(i)%file(Part(i)%nT))
 		allocate(Part(i)%Tmax(Part(i)%nT))
 	enddo
+
+	do i=1,npart
+		Part(i)%nT=0
+	enddo
+	key => firstkey
+	do while(.not.key%last)
+		select case(key%key1)
+			case("computepart")
+				if(key%key2.eq."tfile") then
+					Part(key%nr1)%nT=Part(key%nr1)%nT+1
+					Part(key%nr1)%Tmax(Part(key%nr1)%nT)=key%nr2
+				endif
+		end select
+		key=>key%next
+	enddo
+	maxnT=1
+	do i=1,npart
+		if(Part(i)%nT.eq.0) then
+			Part(i)%nT=1
+		else
+			call sort(Part(i)%Tmax(1:Part(i)%nT),Part(i)%nT)
+		endif
+		if(Part(i)%nT.gt.maxnT) maxnT=Part(i)%nT
+	enddo
+
 
 	do i=1,nzones
 		allocate(Zone(i)%abun(npart))

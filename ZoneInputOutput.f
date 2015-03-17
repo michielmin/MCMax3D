@@ -223,6 +223,16 @@ C	 create the new empty FITS file
 						enddo
 					enddo
 				enddo
+			case ('G0')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%G0
+						enddo
+					enddo
+				enddo
 			case default
 				write(9,'("Error in output file specification")')
 				write(*,'("Error in output file specification")')
@@ -434,6 +444,14 @@ C	 create the new empty FITS file
 						enddo
 					enddo
 				enddo
+			case ('G0')
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							ZZ%C(i,j,k)%G0=array(i,j,k,1,1,1)
+						enddo
+					enddo
+				enddo
 			case ('SKIP')
 c	just skip this hdu
 			case default
@@ -484,7 +502,8 @@ c	just skip this hdu
 	ZoneStructOutput( 8)='NPHOT'
 	ZoneStructOutput( 9)='VOLUME'
 	ZoneStructOutput(10)='EJv'
-	nZoneStructOutput=10
+	ZoneStructOutput(11)='G0'
+	nZoneStructOutput=11
 
 	return
 	end

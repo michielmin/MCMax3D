@@ -68,6 +68,9 @@
 
 1	continue
 
+	phot%UV=.false.
+	if(phot%lam.gt.0.0953.and.phot%lam.le.0.206) phot%UV=.true.
+
 	return
 	end
 

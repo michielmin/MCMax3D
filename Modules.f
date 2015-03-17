@@ -33,9 +33,9 @@ c===============================================================================
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum,abun_in_name,nSpirals
 	logical criticalerror,adjustAv
-	real*8 maxR,distance,Av
+	real*8 maxR,distance,Av,gammaUVdes
 	character*500 outputdir,particledir
-	character*7 ZoneStructOutput(10)
+	character*7 ZoneStructOutput(20)
 	integer nZoneStructOutput
 !$OMP THREADPRIVATE(idum)
 
@@ -91,7 +91,7 @@ c beaming parameter
 
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
-		real*8 Etrace,gasdens
+		real*8 Etrace,gasdens,G0
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
@@ -102,6 +102,7 @@ c beaming parameter
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
 		real*8,allocatable :: xzone(:),yzone(:),zzone(:),vxzone(:),vyzone(:),vzzone(:)
 		real*8 Sx,Sy,Sz,lam,nu,x0,y0,z0
+		logical UV		! Contribution to the UV field strength?
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2,nr
@@ -125,6 +126,7 @@ c beaming parameter
 		integer nsize,nT,nsubgrains
 		real dust_moment1,dust_moment2,dust_moment3,rvmin,rvmax
 		real*8 inp_abun(50)
+		real*8 TdesA,TdesB
 	end type Particle
 	
 	type ZoneType

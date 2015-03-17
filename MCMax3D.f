@@ -36,7 +36,7 @@ c now setup the basic structure
 c iterate when needed
 		do while(.not.converged.and.iter.le.maxiter)
 c compute the next iteration of the structure
-c			call EvolveStructure(iter)
+			call EvolveStructure(iter)
 c do the radiative transfer
 			call RadiativeTransfer
 
@@ -46,9 +46,8 @@ c			converged=DetermineConverged(iter)
 c write the structure to the output files
 c			call OutputStructure(iter,converged)
 			iter=iter+1
+			call OutputMCobs
 		enddo
-
-		call OutputMCobs
 
 		do i=1,nzones
 			filename=trim(outputdir) // "Zone" // trim(int2string(i,'(i0.4)')) // ".fits.gz"

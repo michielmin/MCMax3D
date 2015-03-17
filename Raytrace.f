@@ -4,6 +4,7 @@
 	IMPLICIT NONE
 	integer iobs,i,ilam,ilam0
 	real*8 dlmin,fluxZ(nzones+nstars),fov0,zscale,Reddening,compute_dlam
+	real*8 starttime,stoptime
 	real*8,allocatable :: im(:,:,:)
 	logical simpleobs
 	character*500 MCfile
@@ -36,6 +37,7 @@
 	call output(" fov:        " // trim(dbl2string(MCobs(iobs)%fov,'(f13.3)')) //  " arcsec")
 	call output("             " // trim(dbl2string(2d0*MCobs(iobs)%maxR/AU,'(f13.3)')) // " AU")
 	call output("==================================================================")
+	call cpu_time(starttime)
 
 	fov0=(2d0*MCobs(iobs)%maxR/AU)/(Distance/parsec)
 	zscale=1d3*(MCobs(iobs)%npix/fov0)**2
@@ -84,6 +86,8 @@
 
 	call deallocatePaths
 
+	call cpu_time(stoptime)
+	call output("Raytrace time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 	call output("==================================================================")
 	
 	return

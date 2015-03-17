@@ -4,7 +4,7 @@
 	IMPLICIT NONE
 	type(Photon),allocatable :: phot(:)
 	integer i,j,maxnopenmp,omp_get_max_threads,iopenmp,omp_get_thread_num
-	real*8 starttime,stoptime
+	real*8 starttime,stoptime,starttime_w,omp_get_wtime,stoptime_w
 
 	maxnopenmp=omp_get_max_threads()+1
 	allocate(phot(maxnopenmp))	
@@ -29,28 +29,31 @@
 	call output("Emitting " // trim(int2string(Nphot,'(i10)')) // " photon packages")
 
 	call cpu_time(starttime)
+	starttime_w=omp_get_wtime()
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(i,iopenmp)
-!$OMP& SHARED(Nphot,nzones,phot,starttime)
+!$OMP& SHARED(Nphot,nzones,phot,starttime,starttime_w)
 !$OMP DO SCHEDULE(STATIC,1)
 	do i=1,Nphot
 c		call tellertje(i,Nphot)
+		call tellertje_time(i,Nphot,starttime,starttime_w)
 		iopenmp=omp_get_thread_num()+1
 		phot(iopenmp)%nr=i
 		call EmitPhoton(phot(iopenmp))
 		call InWhichZones(phot(iopenmp))
 		call TravelPhoton(phot(iopenmp))
 		call MCoutput(phot(iopenmp))
-
-		call tellertje_time(i,Nphot,starttime)
 	enddo
 !$OMP END DO
 !$OMP FLUSH
 !$OMP END PARALLEL
 	call cpu_time(stoptime)
+	stoptime_w=omp_get_wtime()
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
+	call output("Walltime:                " // trim(dbl2string(stoptime_w-starttime_w,'(f10.3)')) // " s")
 
+	call DetermineG0
 	call DetermineTemperatures
 
 	return
@@ -272,13 +275,16 @@ c		call tellertje(i,Nphot)
 	IMPLICIT NONE
 	type(Photon) phot
 	integer izone
-	real*8 v
+	real*8 v,vI
 	
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
+			vI=v*phot%sI
 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace=
      & 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace+
-     & 			v*phot%KabsZ(izone)*phot%sI
+     & 			vI*phot%KabsZ(izone)
+     		if(phot%UV) Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%G0=
+     & 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%G0+vI
 		endif
 	enddo
   
@@ -477,6 +483,7 @@ c beaming
 					C%Ni=0d0
 					C%T=0d0
 					C%Etrace=0d0
+					C%G0=0d0
 				enddo
 			enddo
 		enddo
@@ -722,6 +729,29 @@ c	endif
 !$OMP END DO
 !$OMP FLUSH
 !$OMP END PARALLEL
+	enddo
+	
+	return
+	end
+	
+
+	subroutine DetermineG0
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer i1,i2,i3,izone
+	type(Cell),pointer :: C
+	
+	do izone=1,nzones
+		do i1=1,Zone(izone)%n1
+			do i2=1,Zone(izone)%n2
+				do i3=1,Zone(izone)%n3
+					C=>Zone(izone)%C(i1,i2,i3)
+					C%G0=C%G0/C%V
+					C%G0=4d0*pi*C%G0/5.33d-14/3d10
+				enddo
+			enddo
+		enddo
 	enddo
 	
 	return
