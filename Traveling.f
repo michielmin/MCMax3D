@@ -430,11 +430,11 @@ c		stop
 		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
 		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
 		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
+		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
+		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
 		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
 		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
 		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
-		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
-		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
 
 	return
@@ -451,11 +451,11 @@ c		stop
 	type(Photon) phot
 	integer i
 
-	call rotateY(phot%x,phot%y,phot%z,Zone(i)%cost0,-Zone(i)%sint0)
-	call rotateZ(phot%x,phot%y,phot%z,Zone(i)%cosp0,Zone(i)%sinp0)
 	phot%x=phot%x*Zone(i)%xscale
 	phot%y=phot%y*Zone(i)%yscale
 	phot%z=phot%z*Zone(i)%zscale
+	call rotateY(phot%x,phot%y,phot%z,Zone(i)%cost0,-Zone(i)%sint0)
+	call rotateZ(phot%x,phot%y,phot%z,Zone(i)%cosp0,Zone(i)%sinp0)
 	phot%x=phot%x+Zone(i)%x0
 	phot%y=phot%y+Zone(i)%y0
 	phot%z=phot%z+Zone(i)%z0
@@ -474,11 +474,11 @@ c		stop
 		phot%vxzone(i)=phot%vx
 		phot%vyzone(i)=phot%vy
 		phot%vzzone(i)=phot%vz
+		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
+		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cost0,Zone(i)%sint0)
 		phot%vxzone(i)=phot%vxzone(i)/Zone(i)%xscale
 		phot%vyzone(i)=phot%vyzone(i)/Zone(i)%yscale
 		phot%vzzone(i)=phot%vzzone(i)/Zone(i)%zscale
-		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
-		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cost0,Zone(i)%sint0)
 	enddo
 
 	return
