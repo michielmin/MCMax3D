@@ -1226,7 +1226,7 @@ c beaming
 						MCobs(iobs)%image(ix,iy,4)=MCobs(iobs)%image(ix,iy,4)+V
 					endif
 				enddo
-				fluxZ(izone)=fluxZ(izone)+1d23*flux*A/(4d0*pi)
+				fluxZ(izone)=fluxZ(izone)+flux*real(nint)
 			enddo
 		enddo
 !$OMP END DO
