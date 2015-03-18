@@ -52,7 +52,7 @@
 	do ilam=1,nlam
 		if((lam(ilam).ge.MCobs(iobs)%lam1.and.lam(ilam).le.MCobs(iobs)%lam2)
      &			.or.ilam.eq.ilam0) then
-			call TraceScattField(iobs,ilam)
+			call TraceScattField(iobs,ilam,MCobs(iobs)%Nphot)
 			call FormalSolution(iobs,ilam,fluxZ)
 			MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // "_" // 
      &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
@@ -93,10 +93,10 @@
 	return
 	end
 	
-	subroutine TraceScattField(iobs,ilam)
+	subroutine TraceScattField(iobs,ilam,NphotMono)
 	use GlobalSetup
 	IMPLICIT NONE
-	integer iobs,ilam,izone,iT,i,i1,i2,i3,iphot,istar
+	integer iobs,ilam,izone,iT,i,i1,i2,i3,iphot,istar,NphotMono
 	real*8 GetKabs,Etot,Erandom,random,x,y,z,r
 	logical emitfromstar
 	type(Cell),pointer :: C
@@ -155,6 +155,9 @@
 		do i3=1,Zone(izone)%n3
 			C => Zone(izone)%C(i1,i2,i3)
 			C%Escatt=0d0
+			C%Qscatt=0d0
+			C%Uscatt=0d0
+			C%Vscatt=0d0
 			iT=(C%T+0.5d0)/dTBB
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
@@ -180,15 +183,15 @@
 !$OMP PARALLEL IF(.true.)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
-!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam)
+!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam,NphotMono)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
-	do iphot=1,MCobs(iobs)%Nphot
+	do iphot=1,NphotMono
 !$OMP CRITICAL
-		call tellertje(iphot+1,MCobs(iobs)%Nphot+2)
+		call tellertje(iphot+1,NphotMono+2)
 !$OMP END CRITICAL
 		iopenmp=omp_get_thread_num()+1
-		phot(iopenmp)%sI=Etot/real(MCobs(iobs)%Nphot)
+		phot(iopenmp)%sI=Etot/real(NphotMono)
 		phot(iopenmp)%sQ=0d0
 		phot(iopenmp)%sU=0d0
 		phot(iopenmp)%sV=0d0
@@ -216,9 +219,15 @@
 		else
 			call EmitPhotonMatter(phot(iopenmp),izone,i1,i2,i3)
 		endif
-		x=MCobs(iobs)%y*phot(iopenmp)%vz-MCobs(iobs)%z*phot(iopenmp)%vy
-		y=MCobs(iobs)%z*phot(iopenmp)%vx-MCobs(iobs)%x*phot(iopenmp)%vz
-		z=MCobs(iobs)%x*phot(iopenmp)%vy-MCobs(iobs)%y*phot(iopenmp)%vx
+		if(iobs.gt.0) then
+			x=MCobs(iobs)%y*phot(iopenmp)%vz-MCobs(iobs)%z*phot(iopenmp)%vy
+			y=MCobs(iobs)%z*phot(iopenmp)%vx-MCobs(iobs)%x*phot(iopenmp)%vz
+			z=MCobs(iobs)%x*phot(iopenmp)%vy-MCobs(iobs)%y*phot(iopenmp)%vx
+		else
+			x=-phot(iopenmp)%vy
+			y=phot(iopenmp)%vx
+			z=0d0
+		endif
 		r=sqrt(x**2+y**2+z**2)
 		phot(iopenmp)%Sx=x/r
 		phot(iopenmp)%Sy=y/r
@@ -375,13 +384,14 @@ c beaming
 
 	tau0=-log(random(idum))
 	
-	theta=acos(MCobs(iobs)%x*phot%vx+MCobs(iobs)%y*phot%vy+MCobs(iobs)%z*phot%vz)
-	phot%iscat=180d0*theta/pi
-	if(phot%iscat.lt.1) phot%iscat=1
-	if(phot%iscat.gt.180) phot%iscat=180
-
-	call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
+	if(iobs.gt.0) then
+		theta=acos(MCobs(iobs)%x*phot%vx+MCobs(iobs)%y*phot%vy+MCobs(iobs)%z*phot%vz)
+		phot%iscat=180d0*theta/pi
+		if(phot%iscat.lt.1) phot%iscat=1
+		if(phot%iscat.gt.180) phot%iscat=180
+		call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
      &		MCobs(iobs)%x,MCobs(iobs)%y,MCobs(iobs)%z,sin2t,cos2t)
+	endif
 	
 1	continue
 
@@ -451,25 +461,27 @@ c beaming
 		minv=tau0/phot%Kext
 		phot%edgeNr=0
 		call TravelPhotonX(phot,minv)
-		call AddEtraceMono(phot,minv,sin2t,cos2t)
+		call AddEtraceMono(phot,minv,sin2t,cos2t,(iobs.gt.0))
 		call InteractMono(phot)
-		x=MCobs(iobs)%y*phot%vz-MCobs(iobs)%z*phot%vy
-		y=MCobs(iobs)%z*phot%vx-MCobs(iobs)%x*phot%vz
-		z=MCobs(iobs)%x*phot%vy-MCobs(iobs)%y*phot%vx
-		r=sqrt(x**2+y**2+z**2)
-		x=x/r
-		y=y/r
-		z=z/r
-		call RotateStokes(phot,x,y,z)
-		phot%Sx=x
-		phot%Sy=y
-		phot%Sz=z
-		call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
+		if(iobs.gt.0) then
+			x=MCobs(iobs)%y*phot%vz-MCobs(iobs)%z*phot%vy
+			y=MCobs(iobs)%z*phot%vx-MCobs(iobs)%x*phot%vz
+			z=MCobs(iobs)%x*phot%vy-MCobs(iobs)%y*phot%vx
+			r=sqrt(x**2+y**2+z**2)
+			x=x/r
+			y=y/r
+			z=z/r
+			call RotateStokes(phot,x,y,z)
+			phot%Sx=x
+			phot%Sy=y
+			phot%Sz=z
+			call MakeRotateStokes(phot,MCobs(iobs)%xup,MCobs(iobs)%yup,MCobs(iobs)%zup,
      &			MCobs(iobs)%x,MCobs(iobs)%y,MCobs(iobs)%z,sin2t,cos2t)
-		theta=acos(MCobs(iobs)%x*phot%vx+MCobs(iobs)%y*phot%vy+MCobs(iobs)%z*phot%vz)
-		phot%iscat=180d0*theta/pi
-		if(phot%iscat.lt.1) phot%iscat=1
-		if(phot%iscat.gt.180) phot%iscat=180
+			theta=acos(MCobs(iobs)%x*phot%vx+MCobs(iobs)%y*phot%vy+MCobs(iobs)%z*phot%vz)
+			phot%iscat=180d0*theta/pi
+			if(phot%iscat.lt.1) phot%iscat=1
+			if(phot%iscat.gt.180) phot%iscat=180
+		endif
 		tau0=-log(random(idum))
 		if(random(idum).lt.fstopmono) then
 			goto 3
@@ -482,7 +494,7 @@ c beaming
 	endif
 
 	call TravelPhotonX(phot,minv)
-	if(inany) call AddEtraceMono(phot,minv,sin2t,cos2t)
+	if(inany) call AddEtraceMono(phot,minv,sin2t,cos2t,(iobs.gt.0))
 	tau0=tau0-phot%Kext*minv
 
 	if(hitstar0) goto 3
@@ -520,7 +532,7 @@ c beaming
 
 
 
-	subroutine AddEtraceMono(phot,v,sin2t,cos2t)
+	subroutine AddEtraceMono(phot,v,sin2t,cos2t,doangle)
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
@@ -529,12 +541,14 @@ c beaming
 	real*8 v,GetF11,F11,F12,F22,F33,F34,F44,f,sI,sQ,sU,sV,Qt,Ut
 	real*8 sin2t,cos2t
 	type(Cell),pointer :: C
+	logical doangle
 	
 	iscat=phot%iscat
 	ilam=phot%ilam1
 	do izone=1,nzones
 		if(phot%inzone(izone)) then
 			C => Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))
+			if(doangle) then
 			F11=0d0
 			F12=0d0
 			F22=0d0
@@ -564,6 +578,9 @@ c beaming
 			C%Qscatt=C%Qscatt+v*sQ
 			C%Uscatt=C%Uscatt+v*sU
 			C%Vscatt=C%Vscatt+v*sV
+			else
+			C%Escatt=C%Escatt+v*phot%sI
+			endif
 		endif
 	enddo
 

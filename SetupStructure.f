@@ -97,6 +97,7 @@ c-----------------------------------------------------------------------
 	
 	allocate(lam(nlam))
 	allocate(nu(nlam))
+	allocate(dnu(nlam))
 	
 	if(nzlam.le.0) then
 		do i=1,nlam
@@ -119,6 +120,12 @@ c	does not seem to work!!! Have to fix this!!!
 	do i=1,nlam
 		nu(i)=1d4*clight/lam(i)
 	enddo
+
+	do i=2,nlam-1
+		dnu(i)=(nu(i-1)-nu(i+1))/2d0
+	enddo
+	dnu(nlam)=(nu(nlam-1)-nu(nlam))
+	dnu(1)=(nu(1)-nu(2))
 
 	open(unit=20,file=trim(outputdir) // 'lamgrid.dat')
 	do i=1,nlam

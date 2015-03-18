@@ -53,7 +53,6 @@ c		call tellertje(i,Nphot)
 	call output("Radiative transfer time: " // trim(dbl2string(stoptime-starttime,'(f10.3)')) // " s")
 	call output("Walltime:                " // trim(dbl2string(stoptime_w-starttime_w,'(f10.3)')) // " s")
 
-	call DetermineG0
 	call DetermineTemperatures
 
 	return
@@ -283,8 +282,6 @@ c		call tellertje(i,Nphot)
 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace=
      & 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%Etrace+
      & 			vI*phot%KabsZ(izone)
-     		if(phot%UV) Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%G0=
-     & 			Zone(izone)%C(phot%i1(izone),phot%i2(izone),phot%i3(izone))%G0+vI
 		endif
 	enddo
   
@@ -483,7 +480,6 @@ c beaming
 					C%Ni=0d0
 					C%T=0d0
 					C%Etrace=0d0
-					C%G0=0d0
 				enddo
 			enddo
 		enddo
@@ -733,28 +729,4 @@ c	endif
 	
 	return
 	end
-	
-
-	subroutine DetermineG0
-	use GlobalSetup
-	use Constants
-	IMPLICIT NONE
-	integer i1,i2,i3,izone
-	type(Cell),pointer :: C
-	
-	do izone=1,nzones
-		do i1=1,Zone(izone)%n1
-			do i2=1,Zone(izone)%n2
-				do i3=1,Zone(izone)%n3
-					C=>Zone(izone)%C(i1,i2,i3)
-					C%G0=C%G0/C%V
-					C%G0=4d0*pi*C%G0/5.33d-14/3d10
-				enddo
-			enddo
-		enddo
-	enddo
-	
-	return
-	end
-	
 	

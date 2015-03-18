@@ -46,7 +46,7 @@ c string converting functions
 c wavelength grid
 	integer nlam,nzlam
 	real*8 lam1,lam2,zlam1,zlam2
-	real*8,allocatable :: lam(:),nu(:)
+	real*8,allocatable :: lam(:),nu(:),dnu(:)
 	
 c Planck functions
 	integer nBB
@@ -102,7 +102,6 @@ c beaming parameter
 		real*8 x,y,z,vx,vy,vz,sI,sQ,sU,sV
 		real*8,allocatable :: xzone(:),yzone(:),zzone(:),vxzone(:),vyzone(:),vzzone(:)
 		real*8 Sx,Sy,Sz,lam,nu,x0,y0,z0
-		logical UV		! Contribution to the UV field strength?
 		integer,allocatable :: i1(:),i2(:),i3(:),edgeNr(:)	! dimension nzones
 		logical,allocatable :: inzone(:)					! dimension nzones
 		integer ilam1,ilam2,nr

@@ -3,7 +3,10 @@
 	IMPLICIT NONE
 	integer iter
 	
-	call Topac(iter)
+	if(maxnT.gt.1) then
+		if(iter.gt.0) call createUV()
+		call Topac(iter)
+	endif
 	
 	return
 	end
@@ -73,7 +76,8 @@ c-----------------------------------------------------------------------
 						A=Part(i)%TdesA
 						B=Part(i)%TdesB
 						dens0=10d0**(A/B-1d4/(T*B)-log10(T))+gammaUVdes*C%G0/sqrt(T)
-						if(dens.lt.dens0) then
+						if(C%dens.lt.dens0) then
+							C%densP(i,is,1:Part(i)%nT-1)=0d0
 							C%densP(i,is,Part(i)%nT)=dens
 						endif
 					endif
@@ -91,4 +95,60 @@ c-----------------------------------------------------------------------
 
 	return
 	end
+
+
+	subroutine createUV()
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer NphotMono,izone,i1,i2,i3,iter,ilam
+	type(Cell),pointer :: C
+	
+	NphotMono=250000
+	
+	do izone=1,nzones
+		do i1=1,Zone(izone)%n1
+		do i2=1,Zone(izone)%n2
+		do i3=1,Zone(izone)%n3
+			C => Zone(izone)%C(i1,i2,i3)
+			C%G0=0d0
+		enddo
+		enddo
+		enddo
+	enddo
+			
+	do ilam=1,nlam
+		if(lam(ilam).gt.0.0953.and.lam(ilam).le.0.206) then
+			call TraceScattField(0,ilam,NphotMono)
+
+			do izone=1,nzones
+			do i1=1,Zone(izone)%n1
+			do i2=1,Zone(izone)%n2
+			do i3=1,Zone(izone)%n3
+				C => Zone(izone)%C(i1,i2,i3)
+				C%G0=C%G0+C%Escatt*dnu(ilam)
+			enddo
+			enddo
+			enddo
+			enddo
+		endif
+	enddo
+
+	do izone=1,nzones
+		do i1=1,Zone(izone)%n1
+		do i2=1,Zone(izone)%n2
+		do i3=1,Zone(izone)%n3
+			C => Zone(izone)%C(i1,i2,i3)
+			C%G0=C%G0/5.33d-14/3d10/C%V
+		enddo
+		enddo
+		enddo
+	enddo
+
+
+	
+	return
+	end
+
+
 
