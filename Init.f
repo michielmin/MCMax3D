@@ -16,7 +16,7 @@ c===============================================================================
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& SHARED(j)
-!$OMP DO SCHEDULE(STATIC,1)
+!$OMP DO SCHEDULE(STATIC,j)
 	do i=1,j
 		idum=-42-omp_get_thread_num()
 	enddo
