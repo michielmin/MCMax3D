@@ -7,6 +7,7 @@
 	real*8 starttime,stoptime,starttime_w,omp_get_wtime,stoptime_w
 
 	maxnopenmp=omp_get_max_threads()+1
+	if(.not.use_multi) maxnopenmp=1
 	allocate(phot(maxnopenmp))	
 	do i=1,maxnopenmp
 		allocate(phot(i)%i1(nzones))
@@ -30,7 +31,7 @@
 
 	call cpu_time(starttime)
 	starttime_w=omp_get_wtime()
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi.and.rt_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(i,iopenmp)
 !$OMP& SHARED(Nphot,nzones,phot,starttime,starttime_w)
@@ -709,7 +710,7 @@ c	endif
 	type(Cell),pointer :: C
 	
 	do izone=1,nzones
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(i1,i2,i3,C)
 !$OMP& SHARED(Zone,izone)

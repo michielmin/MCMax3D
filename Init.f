@@ -13,7 +13,7 @@ c===============================================================================
 	call SetZoneStructOutput()
 
 	j=omp_get_max_threads()
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& SHARED(j)
 !$OMP DO SCHEDULE(STATIC,1)
@@ -94,6 +94,10 @@ c allocate the arrays
 			read(key%value,*) adjustAv
 		case("abun_in_name")
 			read(key%value,*) abun_in_name
+		case("multi","openmp")
+			read(key%value,*) use_multi
+		case("rt_multi","rt_openmp")
+			read(key%value,*) rt_multi
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -127,7 +131,8 @@ c allocate the arrays
 	call system(command)
 
 	j=omp_get_max_threads()
-!$OMP PARALLEL IF(.true.)
+	if(.not.use_multi) j=1
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& SHARED(j,nlam,npart,maxns,maxnT,nzones)
 !$OMP DO SCHEDULE(STATIC,1)
@@ -617,6 +622,8 @@ c===============================================================================
 	Av=0d0
 	adjustAv=.false.
 	gammaUVdes=0d0
+	use_multi=.true.
+	rt_multi=.true.
 	
 	particledir=' '
 	

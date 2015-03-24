@@ -107,6 +107,7 @@
 	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
 
 	maxnopenmp=omp_get_max_threads()+1
+	if(.not.use_multi) maxnopenmp=1
 	allocate(phot(maxnopenmp))	
 	do i=1,maxnopenmp
 		allocate(phot(i)%i1(nzones))
@@ -180,7 +181,7 @@
 	enddo
 
 	call tellertje(1,100)
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi.and.rt_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
 !$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam,NphotMono)
@@ -644,6 +645,7 @@ c beaming
 	logical error
 
 	maxnopenmp=omp_get_max_threads()+1
+	if(.not.use_multi) maxnopenmp=1
 	allocate(phot(maxnopenmp))	
 	allocate(phot0(maxnopenmp))	
 	do i=1,maxnopenmp
@@ -757,7 +759,7 @@ c beaming
      &				// trim(int2string(Pimage(izone)%np,'(i4)')) // " = "  
      &				// trim(int2string(Pimage(izone)%nr*Pimage(izone)%np,'(i8)')))
 		call tellertje(1,100)
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp,error)
 !$OMP& SHARED(Pimage,izone,MCobs,iobs,phot,phot0,maxR,x,y,z,nzones,maxcount)
@@ -1163,7 +1165,7 @@ c beaming
 		endif
 
 		call tellertje(1,100)
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V)
 !$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ)

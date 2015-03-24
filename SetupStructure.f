@@ -586,7 +586,7 @@ c avoid zones with exactly the same inner or outer radii
 		enddo
 	enddo
 	call tellertje(1,100)
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
 !$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha)
@@ -702,7 +702,7 @@ c avoid zones with exactly the same inner or outer radii
 	n=i
 
 	call tellertje(1,np)
-!$OMP PARALLEL IF(.true.)
+!$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ip,ir,phi0,f,r,i)
 !$OMP& SHARED(Zone,Spiral,ii,ispiral,phimin,np,nr,rp,phi,phimax,nir,nip,Aspiral,n)
