@@ -1218,10 +1218,12 @@ c beaming
 					x=Rad*cos(phi)+Pimage(izone)%x
 					y=Rad*sin(phi)+Pimage(izone)%y
 
-					ix=real(MCobs(iobs)%npix)*(y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
-					iy=MCobs(iobs)%npix-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)
+					x=real(MCobs(iobs)%npix)-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
+					y=real(MCobs(iobs)%npix)*(y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
+					ix=y
+					iy=x
 
-					if(ix.lt.MCobs(iobs)%npix.and.iy.lt.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+					if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
 						MCobs(iobs)%image(ix,iy,1)=MCobs(iobs)%image(ix,iy,1)+flux
 						MCobs(iobs)%image(ix,iy,2)=MCobs(iobs)%image(ix,iy,2)+Q
 						MCobs(iobs)%image(ix,iy,3)=MCobs(iobs)%image(ix,iy,3)+U
