@@ -379,6 +379,8 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%fstar
 		case("telescope")
 			read(key%value,*) MCobs(key%nr1)%telescope
+		case("flag")
+			MCobs(key%nr1)%flag=key%value
 		case("next")
 		case default
 			call output("Unknown MCobs keyword: " // trim(key%key2))

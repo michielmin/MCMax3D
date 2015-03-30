@@ -47,7 +47,7 @@
 	enddo
 
 	call SetupPaths(iobs)
-	MCfile=trim(outputdir) // "RTSpec" // trim(int2string(iobs,'(i0.4)')) // ".dat"
+	MCfile=trim(outputdir) // "RTSpec" // trim(int2string(iobs,'(i0.4)')) // trim(MCobs(iobs)%flag) // ".dat"
 	open(unit=20,file=MCfile,RECL=6000)
 	do ilam=1,nlam
 		if((lam(ilam).ge.MCobs(iobs)%lam1.and.lam(ilam).le.MCobs(iobs)%lam2)
@@ -55,7 +55,8 @@
 			call TraceScattField(iobs,ilam,MCobs(iobs)%Nphot)
 			call FormalSolution(iobs,ilam,fluxZ)
 			MCfile=trim(outputdir) // "RTout" // trim(int2string(iobs,'(i0.4)')) // "_" // 
-     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
+     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // 
+     &				trim(MCobs(iobs)%flag) // ".fits.gz"
 			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)=
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
 			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,4)=sqrt(
@@ -72,7 +73,8 @@
      &				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,2)**2+
      &				MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
 				MCfile=trim(outputdir) // "RToutObs" // trim(int2string(iobs,'(i0.4)')) // "_" // 
-     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // ".fits.gz"
+     &				trim(int2string(int(lam(ilam)),'(i0.6)')) // trim(dbl2string(lam(ilam)-int(lam(ilam)),'(f0.2)')) // 
+     &				trim(MCobs(iobs)%flag) // ".fits.gz"
 				allocate(im(MCobs(iobs)%npix,MCobs(iobs)%npix,4))
 				im=zscale*MCobs(iobs)%image
 				call writefitsfile(MCfile,im,4,MCobs(iobs)%npix)
@@ -81,6 +83,7 @@
 			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
 		endif
 		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
+		call flush(20)
 	enddo
 	close(unit=20)
 
@@ -691,7 +694,7 @@ c beaming
 			y=Zo%y0
 			z=Zo%z0
 			Pimage(izone)%nr=3*(2*Zo%nR+2*Zo%nt+200)
-			Pimage(izone)%np=min(max(Zo%np*2,50),MCobs(iobs)%np)
+			Pimage(izone)%np=min(max(Zo%np*4,50),MCobs(iobs)%np)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			ir=0

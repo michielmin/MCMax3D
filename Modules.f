@@ -166,6 +166,7 @@ c parameters for a spiral wave
 		logical telescope,writeimage			! do a telescope sim?
 		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
 		real*8 xup,yup,zup						! up vector in the image (reference for Polarization)
+		character*100 flag
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones
