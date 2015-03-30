@@ -104,8 +104,8 @@ c-----------------------------------------------------------------------
 
 	f=int(20d0*dble(i)/dble(n))
 	
-	if(20d0*real(i-1)/real(n).lt.real(f)
-     &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
+	if(20d0*dble(i-1)/dble(n).lt.dble(f)
+     &   .and.20d0*dble(i+1)/dble(n).gt.dble(f)) then
 		call outputform(".",'(a1,$)')
 		call flushoutput
 	endif
@@ -122,8 +122,8 @@ c-----------------------------------------------------------------------
 	checktellertje=.false.
 	f=int(20d0*dble(i)/dble(n))
 	
-	if(20d0*real(i-1)/real(n).lt.real(f)
-     &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
+	if(20d0*dble(i-1)/dble(n).lt.dble(f)
+     &   .and.20d0*dble(i+1)/dble(n).gt.dble(f)) then
 		checktellertje=.true.
 	endif
 
@@ -143,19 +143,19 @@ c-----------------------------------------------------------------------
 	
 	f=int(20d0*dble(i)/dble(n))
 	
-	if(20d0*real(i-1)/real(n).lt.real(f)
-     &   .and.20d0*real(i+1)/real(n).gt.real(f)) then
+	if(20d0*dble(i-1)/dble(n).lt.dble(f)
+     &   .and.20d0*dble(i+1)/dble(n).gt.dble(f)) then
 		call cpu_time(stoptime)
 		stoptime_w=omp_get_wtime()
-		xx=100d0*real(i)/real(n)
+		xx=100d0*dble(i)/dble(n)
 c		call output(trim(dbl2string(1000d0*(stoptime-starttime)/real(i),'(f8.3)'))
 c     &			//" ms per photon package. Approx " // 
 c     &			trim(dbl2string((stoptime-starttime)*(n-i)/real(i),'(f8.2)'))
 c     &			//" s left. (" //
 c     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
-		call output(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/real(i),'(f8.3)'))
+		call output(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/dble(i),'(f8.3)'))
      &			//" ms per photon package. Approx " // 
-     &			trim(dbl2string((stoptime_w-starttime_w)*(n-i)/real(i),'(f8.2)'))
+     &			trim(dbl2string((stoptime_w-starttime_w)*(n-i)/dble(i),'(f8.2)'))
      &			//" s left. (" //
      &			trim(dbl2string(xx,'(f5.1)')) // " %)")
 	endif
