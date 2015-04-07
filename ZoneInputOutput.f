@@ -19,8 +19,7 @@
 
 	inquire(file=filename,exist=truefalse)
 	if(truefalse) then
-		write(*,'("FITS file already exists, overwriting")')
-		write(9,'("FITS file already exists, overwriting")')
+		call output("FITS file already exists, overwriting")
 		open(unit=90,file=filename)
 		close(unit=90,status='delete')
 	endif
@@ -234,8 +233,7 @@ C	 create the new empty FITS file
 					enddo
 				enddo
 			case default
-				write(9,'("Error in output file specification")')
-				write(*,'("Error in output file specification")')
+				call output("Error in output file specification")
 				print*,vars(ivars)
 				close(unit=20)
 				stop
@@ -295,11 +293,9 @@ C	 create the new empty FITS file
 	readwrite=0
 	call ftopen(unit,filename,readwrite,blocksize,status)
 	if (status /= 0) then
-		write(*,'("Density file not found")')
-		write(9,'("Density file not found")')
+		call output("Density file not found")
 		print*,trim(filename)
-		write(*,'("--------------------------------------------------------")')
-		write(9,'("--------------------------------------------------------")')
+		call output("--------------------------------------------------------")
 		stop
 	endif
 	group=1
@@ -455,9 +451,7 @@ C	 create the new empty FITS file
 			case ('SKIP')
 c	just skip this hdu
 			case default
-				write(9,'("Error in output file specification")')
-				write(*,'("Error in output file specification")')
-				print*,vars(ivars)
+				call output("Error in output file specification")
 				stop
 		end select
 		deallocate(array)

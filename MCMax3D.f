@@ -49,7 +49,7 @@ c			call OutputStructure(iter,converged)
 			call OutputMCobs
 		enddo
 
-		call createUV()
+c		call createUV()
 
 		do i=1,nzones
 			filename=trim(outputdir) // "Zone" // trim(int2string(i,'(i0.4)')) // ".fits.gz"

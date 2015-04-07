@@ -487,10 +487,10 @@ c allocate the arrays
 		call ignorestar(20)
 		read(20,'(a1000)',end=20,err=20) readline
 	else
-		call getarg(2+ncla,readline)
+		call getarg(3+ncla,readline)
 		if(readline(1:2).eq.'-s') then
 			ncla=ncla+1
-			call getarg(2+ncla,readline)
+			call getarg(3+ncla,readline)
 			call output("Command line argument: " // trim(readline))
 			if(Nphot.gt.0) write(21,'(a)') trim(readline)
 			ncla=ncla+1
@@ -726,7 +726,7 @@ c===============================================================================
 		Spiral(i)%phi=0d0			! launching point
 		Spiral(i)%alpha=1.5d0		! Kepler rotation
 		Spiral(i)%beta=0.4d0		! Value from Muto = 0.4, setting it to negative computes it
-		Spiral(i)%w=0.8d0			! in terms of orbits
+		Spiral(i)%w=5d0				! in AU
 		Spiral(i)%sign=1d0			! which way it rotates
 	enddo
 		

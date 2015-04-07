@@ -44,7 +44,7 @@ c setup the observation direction
 c spiral waves
 	do i=1,nSpirals
 		Spiral(i)%r=Spiral(i)%r*AU
-		Spiral(i)%w=Spiral(i)%w*2d0*pi
+		Spiral(i)%w=Spiral(i)%w*AU
 		Spiral(i)%phi=Spiral(i)%phi*pi/180d0
 	enddo
 	

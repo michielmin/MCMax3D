@@ -108,6 +108,7 @@
 	integer,allocatable :: zspat(:),i1spat(:),i2spat(:),i3spat(:)
 	real*8,allocatable :: Espat(:)
 	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads
+	real*8 starttime,starttime_w,omp_get_wtime
 
 	maxnopenmp=omp_get_max_threads()+1
 	if(.not.use_multi) maxnopenmp=1
@@ -183,17 +184,19 @@
 		enddo
 	enddo
 
-	call tellertje(1,100)
+	call cpu_time(starttime)
+	starttime_w=omp_get_wtime()
+
 !$OMP PARALLEL IF(use_multi.and.rt_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
-!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam,NphotMono)
+!$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam,NphotMono,
+!$OMP&			starttime,starttime_w)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do iphot=1,NphotMono
-!$OMP CRITICAL
-		call tellertje(iphot+1,NphotMono+2)
-!$OMP END CRITICAL
+c		call tellertje(iphot,NphotMono)
+		call tellertje_time(iphot,NphotMono,starttime,starttime_w)
 		iopenmp=omp_get_thread_num()+1
 		phot(iopenmp)%sI=Etot/real(NphotMono)
 		phot(iopenmp)%sQ=0d0
@@ -242,8 +245,6 @@
 !$OMP END DO
 !$OMP FLUSH
 !$OMP END PARALLEL
-
-	call tellertje(100,100)
 	
 	return
 	end
