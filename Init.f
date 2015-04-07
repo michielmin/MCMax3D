@@ -715,6 +715,7 @@ c===============================================================================
 		MCobs(i)%width=0d0
 		MCobs(i)%snoise=0d0
 		MCobs(i)%fstar=1d0
+		MCobs(i)%flag=' '
 	enddo
 
 	do i=1,nSpirals
