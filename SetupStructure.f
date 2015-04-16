@@ -424,7 +424,7 @@ c avoid zones with exactly the same inner or outer radii
 	else
 		call output("setup density structure")
 		select case(Zone(ii)%denstype)
-			case("DISK")
+			case("DISK","TAUFILE")
 				call SetupDisk(ii)
 			case("SHELL")
 				call SetupShell(ii)
@@ -537,6 +537,9 @@ c avoid zones with exactly the same inner or outer radii
 		enddo
 	enddo
 	SD=SD*Zone(ii)%Mdust/Mtot
+	if(Zone(ii)%denstype.eq.'TAUFILE') then
+		call readtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
+	endif
 
 	do ir=1,Zone(ii)%nr
 		do ip=1,Zone(ii)%np
@@ -646,7 +649,10 @@ c avoid zones with exactly the same inner or outer radii
 			enddo
 		enddo
 	enddo
-	
+	if(Zone(ii)%denstype.eq.'TAUFILE') then
+		call renormtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
+	endif
+
 	deallocate(Aspiral)
 	deallocate(A)
 	deallocate(H)
@@ -656,6 +662,111 @@ c avoid zones with exactly the same inner or outer radii
 	
 	return
 	end
+
+	subroutine readtaufile(ii,SD,nr,np)
+	use GlobalSetup
+	use Constants
+	integer ii,nr,np,ir,ip
+	real*8 SD(nr,np),r,tau0,Mtot
+	
+	open(unit=20,file=Zone(ii)%taufile,RECL=6000)
+	
+	ir=1
+	read(20,*)
+1	read(20,*,end=2) r,tau0
+	r=r*1d5*1d6
+	if(tau0.lt.1d-5) tau0=1d-5
+	do while(r.gt.Zone(ii)%R(ir+1))
+		SD(ir,1:np)=tau0
+		ir=ir+1
+		if(ir.gt.nr) goto 2
+	enddo
+	goto 1
+2	close(unit=20)
+
+	Mtot=0d0
+	do ir=1,nr
+	do ip=1,np
+		A=pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2)/real(Zone(ii)%np)
+		Mtot=Mtot+A*SD(ir,ip)
+	enddo
+	enddo
+	SD=SD*Zone(ii)%Mdust/Mtot
+
+c	open(unit=20,file='surfdens.dat')
+c	do ir=1,nr
+c		write(20,*) Zone(ii)%R(ir)/1d5/1d6,Zone(ii)%R(ir+1)/1d5/1d6,SD(ir,1)
+c	enddo	
+
+	return
+	end
+	
+	subroutine renormtaufile(ii,SD,nr,np)
+	use GlobalSetup
+	use Constants
+	integer ii,nr,np,ir,ip,ilam,i
+	real*8 SD(nr,np),d,lam0,r,GetKext
+	type(Cell),pointer :: C
+	
+	open(unit=20,file=Zone(ii)%taufile,RECL=6000)
+	
+	ir=1
+	read(20,*)
+1	read(20,*,end=2) r,tau0
+	r=r*1d5*1d6
+	if(tau0.lt.1d-5) tau0=1d-5
+	do while(r.gt.Zone(ii)%R(ir+1))
+		SD(ir,1:np)=tau0
+		ir=ir+1
+		if(ir.gt.nr) goto 2
+	enddo
+	goto 1
+2	close(unit=20)
+
+	lam0=0.55
+	d=lam(nlam)-lam(1)
+	ilam=1
+	do i=1,nlam
+		if(abs(lam0-lam(i)).lt.d) then
+			d=abs(lam0-lam(i))
+			ilam=i
+		endif
+	enddo
+		
+	do ir=1,nr
+		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+		do ip=1,np
+			tau0=0d0
+			do it=1,Zone(ii)%nt
+				C => Zone(ii)%C(ir,it,ip)
+				tau0=tau0+GetKext(ilam,C)*r*abs(Zone(ii)%theta(it+1)-Zone(ii)%theta(it))
+			enddo
+			do it=1,Zone(ii)%nt
+				C => Zone(ii)%C(ir,it,ip)
+				C%dens=C%dens*SD(ir,ip)/tau0
+				C%M=C%M*SD(ir,ip)/tau0
+				C%densP=C%densP*SD(ir,ip)/tau0
+				C%gasdens=C%gasdens*SD(ir,ip)/tau0
+			enddo
+		enddo
+	enddo
+	
+	open(unit=20,file='surfdens.dat')
+	do ir=1,nr
+		tot=0d0
+		do it=1,Zone(ii)%nt
+			C => Zone(ii)%C(ir,it,1)
+			tot=tot+C%dens*C%V
+		enddo
+		tot=tot*real(Zone(ii)%np)/(pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2))
+		write(20,*) Zone(ii)%R(ir)/1d5/1d6,tot
+	enddo	
+	close(unit=20)
+	
+	return
+	end
+	
+	
 	
 	subroutine ComputeAspiral(ii,ispiral,Aspiral,nr,np)
 	use GlobalSetup
@@ -762,6 +873,10 @@ c avoid zones with exactly the same inner or outer radii
 
 	nspan=Zone(ii)%nr/21
 	nlev=7
+	if(Zone(ii)%thin) then
+		nspan=1
+		nlev=1
+	endif
 	if(Zone(ii)%nr.lt.nspan*nlev) then
 		call output("You need more than " // trim(int2string(nspan*nlev,'(i2)')) // " radial points")
 		stop

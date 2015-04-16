@@ -1,7 +1,9 @@
 	subroutine OutputStats
 	use GlobalSetup
-	real*8 lam0,d,GetKext,radtau
-	integer ilam,i,izone,ir
+	use Constants
+	IMPLICIT NONE
+	real*8 lam0,d,GetKext,radtau,Mtot
+	integer ilam,i,izone,ir,ip,it
 
 	lam0=0.55
 	d=lam(nlam)-lam(1)
@@ -36,8 +38,19 @@
 		call output("Av adjusted to: " // dbl2string(Av,'(f5.2)'))
 	endif
 		
-
-
+	Mtot=0d0
+	do izone=1,nzones
+		do ir=1,Zone(izone)%nr
+		do it=1,Zone(izone)%nt
+		do ip=1,Zone(izone)%np
+			Mtot=Mtot+Zone(izone)%C(ir,it,ip)%V*Zone(izone)%C(ir,it,ip)%dens
+		enddo
+		enddo
+		enddo
+	enddo
+	call output("Total dust mass:" // dbl2string(Mtot/Msun,  '(e14.4)') // " Msun")
+	call output("                " // dbl2string(Mtot/Mearth,'(e14.4)') // " Mearth")
+	
 	return
 	end
 	

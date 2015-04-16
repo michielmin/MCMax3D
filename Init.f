@@ -249,6 +249,10 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%fbeam
 		case("abun")
 			read(key%value,*) Zone(key%nr1)%abun(key%nr2)
+		case("thin")
+			read(key%value,*) Zone(key%nr1)%thin
+		case("taufile")
+			Zone(key%nr1)%taufile=trim(key%value)
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -674,7 +678,7 @@ c===============================================================================
 		Zone(i)%amin=0.05
 		Zone(i)%amax=3000d0
 		Zone(i)%apow=3.5
-
+		zone(i)%thin=.false.
 		Zone(i)%fbeam=0d0
 	enddo
 

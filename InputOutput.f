@@ -39,6 +39,19 @@ c-----------------------------------------------------------------------
 	return
 	end
 
+c-----------------------------------------------------------------------
+c-----------------------------------------------------------------------
+
+	subroutine output_erase(string)
+	IMPLICIT NONE
+	character string*(*)
+
+	write(*,'(1a1,a,$)') char(13),trim(string)
+	write(9,'(1a1,a,$)') char(13),trim(string)
+	
+	return
+	end
+
 
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
@@ -153,12 +166,21 @@ c     &			//" ms per photon package. Approx " //
 c     &			trim(dbl2string((stoptime-starttime)*(n-i)/real(i),'(f8.2)'))
 c     &			//" s left. (" //
 c     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
-		call output(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/dble(i),'(f8.3)'))
+		if(i.eq.1) then
+			call output(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/dble(i),'(f8.3)'))
      &			//" ms per photon package. Approx " // 
      &			trim(dbl2string((stoptime_w-starttime_w)*(n-i)/dble(i),'(f8.2)'))
      &			//" s left. (" //
      &			trim(dbl2string(xx,'(f5.1)')) // " %)")
+		else
+			call output_erase(trim(dbl2string(1000d0*(stoptime_w-starttime_w)/dble(i),'(f8.3)'))
+     &			//" ms per photon package. Approx " // 
+     &			trim(dbl2string((stoptime_w-starttime_w)*(n-i)/dble(i),'(f8.2)'))
+     &			//" s left. (" //
+     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
+		endif
 	endif
+	if(i.eq.n) call output("")
 
 	return
 	end
