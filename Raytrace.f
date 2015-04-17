@@ -81,9 +81,9 @@
 				deallocate(im)
 			endif
 			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
+			write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
+			call flush(20)
 		endif
-		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
-		call flush(20)
 	enddo
 	close(unit=20)
 

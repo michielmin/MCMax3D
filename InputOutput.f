@@ -180,7 +180,13 @@ c     &			trim(dbl2string(xx,'(f5.1)')) // " %)")
      &			trim(dbl2string(xx,'(f5.1)')) // " %)")
 		endif
 	endif
-	if(i.eq.n) call output("")
+	if(i.eq.n) then
+		call output("")
+		call output(trim(dbl2string((stoptime_w-starttime_w),'(f8.2)'))
+     &				//" s walltime. " // 
+     &				trim(dbl2string((stoptime-starttime),'(f8.2)'))
+     &				//" s cpu time. ")
+	endif
 
 	return
 	end
