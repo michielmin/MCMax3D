@@ -675,7 +675,7 @@ c avoid zones with exactly the same inner or outer radii
 	read(20,*)
 1	read(20,*,end=2) r,tau0
 	r=r*1d5*1d6
-	if(tau0.lt.1d-5) tau0=1d-5
+	if(tau0.lt.1d-5) tau0=1d-6
 	do while(r.gt.Zone(ii)%R(ir+1))
 		SD(ir,1:np)=tau0
 		ir=ir+1
@@ -714,7 +714,7 @@ c	enddo
 	read(20,*)
 1	read(20,*,end=2) r,tau0
 	r=r*1d5*1d6
-	if(tau0.lt.1d-5) tau0=1d-5
+	if(tau0.lt.1d-5) tau0=1d-6
 	do while(r.gt.Zone(ii)%R(ir+1))
 		SD(ir,1:np)=tau0
 		ir=ir+1

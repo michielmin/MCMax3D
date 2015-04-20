@@ -3,7 +3,7 @@
 	use Constants
 	IMPLICIT NONE
 	real*8 lam0,d,GetKext,radtau,Mtot
-	integer ilam,i,izone,ir,ip,it
+	integer ilam,i,izone,ir,ip,it,is
 
 	lam0=0.55
 	d=lam(nlam)-lam(1)
@@ -13,6 +13,16 @@
 			d=abs(lam0-lam(i))
 			ilam=i
 		endif
+	enddo
+
+	do i=1,npart
+		do is=1,Part(i)%nsize
+		do iT=1,Part(i)%nT
+			call output("Opacity of particle " // trim(int2string(i,"(i4)")) // ":" //
+     &				trim(dbl2string(Part(i)%Kext(is,iT,ilam),"(e14.4)")) //
+     &				" g/cm^2  (" // trim(dbl2string(Part(i)%rv(is),"(e9.4)")) // " cm)")
+		enddo
+		enddo
 	enddo
 	
 	do izone=1,nzones
