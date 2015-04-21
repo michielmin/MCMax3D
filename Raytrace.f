@@ -9,7 +9,7 @@
 	logical simpleobs
 	character*500 MCfile
 
-
+	nerrors=0
 	simpleobs=.false.
 	do ilam=1,nlam
 		if(lam(ilam).ge.MCobs(iobs)%lam1.and.lam(ilam).le.MCobs(iobs)%lam2) then
@@ -1059,7 +1059,9 @@ c beaming
 	enddo
 
 	if(status.gt.0) then
-		call output("Something is wrong... Don't worry I'll try to fix it.")
+c		call output("Something is wrong... Don't worry I'll try to fix it.")
+		nerrors=nerrors+1
+		if(nerrors.gt.100) stop
 		do izone=1,nzones
 			Trac(izone)%recompute=.true.
 		enddo

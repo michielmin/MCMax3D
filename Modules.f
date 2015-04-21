@@ -36,7 +36,7 @@ c===============================================================================
 	real*8 maxR,distance,Av,gammaUVdes
 	character*500 outputdir,particledir
 	character*7 ZoneStructOutput(20)
-	integer nZoneStructOutput
+	integer nZoneStructOutput,nerrors
 !$OMP THREADPRIVATE(idum)
 
 c string converting functions

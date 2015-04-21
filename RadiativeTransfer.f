@@ -149,7 +149,9 @@ c		call tellertje(i,Nphot)
 	enddo
 
 	if(status.gt.0) then
-		call output("Something is wrong... Don't worry I'll try to fix it.")
+c		call output("Something is wrong... Don't worry I'll try to fix it.")
+		nerrors=nerrors+1
+		if(nerrors.gt.100) stop
 		do izone=1,nzones
 			Trac(izone)%recompute=.true.
 		enddo
@@ -472,6 +474,7 @@ c beaming
 	real*8 GetKext
 
 	call output("Initializing radiative transfer")
+	nerrors=0
 	do izone=1,nzones
 		do i1=1,Zone(izone)%n1
 			do i2=1,Zone(izone)%n2
