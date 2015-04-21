@@ -146,6 +146,8 @@ c beaming parameter
 c parameter for beaming towards this zone
 		real*8 fbeam
 		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)
+		character*500 taufile
+		logical thin
 	end type ZoneType
 
 	type SpiralType

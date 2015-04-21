@@ -81,9 +81,9 @@
 				deallocate(im)
 			endif
 			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
+			write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
+			call flush(20)
 		endif
-		write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
-		call flush(20)
 	enddo
 	close(unit=20)
 
@@ -1230,13 +1230,17 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 					iy=x
 
 					if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+!$OMP CRITICAL
 						MCobs(iobs)%image(ix,iy,1)=MCobs(iobs)%image(ix,iy,1)+flux
 						MCobs(iobs)%image(ix,iy,2)=MCobs(iobs)%image(ix,iy,2)+Q
 						MCobs(iobs)%image(ix,iy,3)=MCobs(iobs)%image(ix,iy,3)+U
 						MCobs(iobs)%image(ix,iy,4)=MCobs(iobs)%image(ix,iy,4)+V
+!$OMP END CRITICAL
 					endif
 				enddo
+!$OMP CRITICAL
 				fluxZ(izone)=fluxZ(izone)+flux*real(nint)
+!$OMP END CRITICAL
 			enddo
 		enddo
 !$OMP END DO
