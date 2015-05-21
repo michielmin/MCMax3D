@@ -824,8 +824,6 @@ c beaming
 		call tellertje(100,100)
 	enddo
 		
-	
-	
 	return
 	end
 

@@ -829,8 +829,10 @@ c	enddo
 		phi0=2d0*pi*(real(ip)-0.5)/real(np)
 		do while(phi0.gt.phimin)
 			do i=1,n-1
-				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) goto 1
 			enddo
+			goto 2
+1			continue
 			do ir=1,nr
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
@@ -839,13 +841,15 @@ c	enddo
      &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
-			phi0=phi0-2d0*pi
+2			phi0=phi0-2d0*pi
 		enddo
 		phi0=2d0*pi*(real(ip)-0.5)/real(np)+2d0*pi
 		do while(phi0.lt.phimax)
 			do i=1,n-1
-				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) exit
+				if(sign(1d0,phi0-phi(i))*sign(1d0,phi0-phi(i+1)).lt.0d0) goto 3
 			enddo
+			goto 4
+3			continue
 			do ir=1,nr
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
@@ -854,7 +858,7 @@ c	enddo
      &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
-			phi0=phi0+2d0*pi
+4			phi0=phi0+2d0*pi
 		enddo
 	enddo
 !$OMP END DO
