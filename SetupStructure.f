@@ -554,9 +554,9 @@ c avoid zones with exactly the same inner or outer radii
 	do ir=1,Zone(ii)%nr
 		do ip=1,Zone(ii)%np
 			do i=1,nSpirals
-				H(ir,ip)=H(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Aheight
-				SD(ir,ip)=SD(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Adens
-				alpha(ir,ip)=alpha(ir,ip)+Aspiral(i,ir,ip)*Spiral(i)%Aalpha
+				H(ir,ip)=H(ir,ip)*(1d0+Aspiral(i,ir,ip)*Spiral(i)%Aheight)
+				SD(ir,ip)=SD(ir,ip)*(1d0+Aspiral(i,ir,ip)*Spiral(i)%Adens)
+				alpha(ir,ip)=alpha(ir,ip)*(1d0+Aspiral(i,ir,ip)*Spiral(i)%Aalpha)
 			enddo
 		enddo
 	enddo
