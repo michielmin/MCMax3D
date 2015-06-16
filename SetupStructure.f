@@ -428,6 +428,8 @@ c avoid zones with exactly the same inner or outer radii
 				call SetupDisk(ii)
 			case("SHELL")
 				call SetupShell(ii)
+			case("SPHERE")
+				call SetupSphere(ii)
 			case default
 				call SetupSpecialZone(ii)
 		end select	
@@ -463,13 +465,15 @@ c avoid zones with exactly the same inner or outer radii
 			Zone(ii)%mscale=Mjup
 		case("ME","Me","me","MEARTH","MEarth","Mearth","mearth")
 			Zone(ii)%mscale=Mearth
+		case("MZODI","Mzodi","mzodi","MZodi")
+			Zone(ii)%mscale=MZodi
 		case default
 			call output("Unknown size scaling type")
 	end select
 
-	Zone(ii)%x0=Zone(ii)%x0*Zone(ii)%sscale
-	Zone(ii)%y0=Zone(ii)%y0*Zone(ii)%sscale
-	Zone(ii)%z0=Zone(ii)%z0*Zone(ii)%sscale
+	Zone(ii)%x0=Zone(ii)%x0*AU		!Zone(ii)%sscale
+	Zone(ii)%y0=Zone(ii)%y0*AU		!Zone(ii)%sscale
+	Zone(ii)%z0=Zone(ii)%z0*AU		!Zone(ii)%sscale
 
 	Zone(ii)%Rin=Zone(ii)%Rin*Zone(ii)%sscale
 	Zone(ii)%Rout=Zone(ii)%Rout*Zone(ii)%sscale
@@ -540,6 +544,12 @@ c avoid zones with exactly the same inner or outer radii
 	if(Zone(ii)%denstype.eq.'TAUFILE') then
 		call readtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
 	endif
+
+	open(unit=20,file=trim(outputdir) // "surfacedens" // trim(int2string(ii,'(i0.4)')) // ".dat")
+	do ir=1,Zone(ii)%nr
+		write(20,*) sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))/AU,SD(ir,1)
+	enddo
+	close(unit=20)
 
 	do ir=1,Zone(ii)%nr
 		do ip=1,Zone(ii)%np
@@ -646,6 +656,21 @@ c avoid zones with exactly the same inner or outer radii
 			enddo
 			do ip=1,Zone(ii)%np
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+			enddo
+		enddo
+	enddo
+	Mtot=Zone(ii)%Mdust/Mtot
+	do ir=1,Zone(ii)%nr
+		do it=1,Zone(ii)%nt
+			do ip=1,Zone(ii)%np
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						do ipt=1,Part(i)%nT
+							Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)*Mtot
+						enddo
+					enddo
+				enddo
+				Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Mtot
 			enddo
 		enddo
 	enddo
@@ -837,8 +862,9 @@ c	enddo
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*1.7d0))*
-     &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
+					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
+     &						((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*Spiral(ispiral)%q))*
+     &						exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
 2			phi0=phi0-2d0*pi
@@ -854,8 +880,9 @@ c	enddo
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*1.7d0))*
-     &							exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
+					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
+     &					((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*Spiral(ispiral)%q))*
+     &					exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
 				enddo
 			enddo
 4			phi0=phi0+2d0*pi
@@ -1063,6 +1090,15 @@ c setup initial phi grid
 		enddo
 	enddo
 	
+	return
+	end
+	
+
+	subroutine SetupSphere(ii)
+	IMPLICIT NONE
+	integer ii
+	call SetupShell(ii)
+
 	return
 	end
 	

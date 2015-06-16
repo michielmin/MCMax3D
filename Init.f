@@ -285,6 +285,8 @@ c allocate the arrays
 			read(key%value,*) Spiral(key%nr1)%beta
 		case("w")
 			read(key%value,*) Spiral(key%nr1)%w
+		case("q")
+			read(key%value,*) Spiral(key%nr1)%q
 		case("sign")
 			read(key%value,*) Spiral(key%nr1)%sign
 		case default
@@ -680,6 +682,7 @@ c===============================================================================
 		Zone(i)%apow=3.5
 		zone(i)%thin=.false.
 		Zone(i)%fbeam=0d0
+		Zone(i)%reflect=.false.
 	enddo
 
 	do i=1,npart
@@ -732,6 +735,7 @@ c===============================================================================
 		Spiral(i)%beta=0.4d0		! Value from Muto = 0.4, setting it to negative computes it
 		Spiral(i)%w=5d0				! in AU
 		Spiral(i)%sign=1d0			! which way it rotates
+		Spiral(i)%q=1.7d0			! powerlaw dependence of the amplitude
 	enddo
 		
 	return
