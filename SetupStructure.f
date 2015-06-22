@@ -474,6 +474,7 @@ c avoid zones with exactly the same inner or outer radii
 	Zone(ii)%x0=Zone(ii)%x0*AU		!Zone(ii)%sscale
 	Zone(ii)%y0=Zone(ii)%y0*AU		!Zone(ii)%sscale
 	Zone(ii)%z0=Zone(ii)%z0*AU		!Zone(ii)%sscale
+	Zone(ii)%rvortex=Zone(ii)%rvortex*AU	!Zone(ii)%sscale
 
 	Zone(ii)%Rin=Zone(ii)%Rin*Zone(ii)%sscale
 	Zone(ii)%Rout=Zone(ii)%Rout*Zone(ii)%sscale
@@ -486,6 +487,7 @@ c avoid zones with exactly the same inner or outer radii
 	Zone(ii)%dz=Zone(ii)%dz*Zone(ii)%sscale
 
 	Zone(ii)%Mdust=Zone(ii)%Mdust*Zone(ii)%mscale
+	
 
 	return
 	end
@@ -497,7 +499,7 @@ c avoid zones with exactly the same inner or outer radii
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
-	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:)
+	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:),Avortex(:,:,:,:)
 	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
@@ -520,6 +522,7 @@ c avoid zones with exactly the same inner or outer radii
 	enddo
 
 	allocate(Aspiral(nSpirals,Zone(ii)%nr,Zone(ii)%np))
+	allocate(Avortex(Zone(ii)%nr,Zone(ii)%np,npart,0:maxns))
 	allocate(A(Zone(ii)%nr,Zone(ii)%np))
 	allocate(H(Zone(ii)%nr,Zone(ii)%np))
 	allocate(SD(Zone(ii)%nr,Zone(ii)%np))
@@ -544,6 +547,8 @@ c avoid zones with exactly the same inner or outer radii
 	if(Zone(ii)%denstype.eq.'TAUFILE') then
 		call readtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
 	endif
+
+	call ComputeAvortex(ii,Avortex,SD,H)
 
 	open(unit=20,file=trim(outputdir) // "surfacedens" // trim(int2string(ii,'(i0.4)')) // ".dat")
 	do ir=1,Zone(ii)%nr
@@ -586,6 +591,7 @@ c avoid zones with exactly the same inner or outer radii
 				enddo
 			enddo
 			do ip=1,Zone(ii)%np
+				Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens*Avortex(ir,ip,1,0)
 				Mtot=Mtot+Zone(ii)%C(ir,it,ip)%gasdens*Zone(ii)%C(ir,it,ip)%V
 			enddo
 		enddo
@@ -602,7 +608,7 @@ c avoid zones with exactly the same inner or outer radii
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
-!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha)
+!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha,Avortex)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do ir=1,Zone(ii)%nr
@@ -629,6 +635,13 @@ c avoid zones with exactly the same inner or outer radii
 							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
      &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
 						enddo
+					enddo
+				enddo
+			enddo
+			do ip=1,Zone(ii)%np
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)*Avortex(ir,ip,i,ips)
 					enddo
 				enddo
 			enddo
@@ -791,7 +804,65 @@ c	enddo
 	return
 	end
 	
+
+	subroutine ComputeAvortex(ii,Avortex,SD,H)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,ipart,isize,ip,ir,it
+	real*8 Avortex(Zone(ii)%nr,Zone(ii)%np,npart,0:maxns),scale(npart,0:maxns)
+	real*8 Hv,a,fx,St,wv,SD(Zone(ii)%nr,Zone(ii)%np),H(Zone(ii)%nr,Zone(ii)%np)
+	real*8 phi,RR,a1,a2
 	
+	if(Zone(ii)%rvortex.lt.0d0) then
+		Avortex=1d0
+		return
+	endif
+
+	scale=0d0
+	do ir=1,Zone(ii)%nr
+		do ip=1,Zone(ii)%np
+			RR=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+			phi=360d0*(real(ip)-0.5d0)/real(Zone(ii)%np)
+			do ipart=1,npart
+				do isize=0,Part(ipart)%nsize
+					if(isize.eq.0) then
+						St=0d0
+					else
+						St=Part(ipart)%rv(isize)*Part(ipart)%rho(1)*pi/(2d0*Zone(ii)%gas2dust*SD(ir,ip))
+					endif
+					wv=3d0/(2d0*(Zone(ii)%avortex-1d0))		! Kida
+c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
+					fx=2d0*wv*Zone(ii)%avortex-(2d0*wv**2+3d0)/(1d0+1d0/Zone(ii)%avortex**2)
+					fx=sqrt(fx)
+					Hv=H(ir,ip)*sqrt(delta_St/(St+delta_St))/fx
+					a1=abs(RR-Zone(ii)%rvortex)
+					a2=abs(phi-Zone(ii)%phivortex)
+					if(a2.gt.180d0) a2=360d0-a2
+					a2=a2*pi*RR/180d0/Zone(ii)%avortex
+					a=sqrt(a1**2+a2**2)
+					Avortex(ir,ip,ipart,isize)=exp(-a**2/(2d0*Hv**2))
+					do it=1,Zone(ii)%nt
+						scale(ipart,isize)=scale(ipart,isize)+Avortex(ir,ip,ipart,isize)*Zone(ii)%C(ir,it,ip)%V
+					enddo
+				enddo
+			enddo
+		enddo
+	enddo
+
+	do ir=1,Zone(ii)%nr
+		do ip=1,Zone(ii)%np
+			do ipart=1,npart
+				do isize=0,Part(ipart)%nsize
+					Avortex(ir,ip,ipart,isize)=Avortex(ir,ip,ipart,isize)/scale(ipart,isize)
+				enddo
+			enddo
+		enddo
+	enddo
+			
+	
+	return
+	end
 	
 	subroutine ComputeAspiral(ii,ispiral,Aspiral,nr,np)
 	use GlobalSetup

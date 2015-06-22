@@ -34,7 +34,7 @@ c===============================================================================
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum,abun_in_name,nSpirals
 	logical criticalerror,adjustAv,use_multi,rt_multi
-	real*8 maxR,distance,Av,gammaUVdes
+	real*8 maxR,distance,Av,gammaUVdes,delta_St
 	character*500 outputdir,particledir
 	character*7 ZoneStructOutput(20)
 	integer nZoneStructOutput,nerrors
@@ -149,6 +149,7 @@ c parameter for beaming towards this zone
 		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)
 		character*500 taufile
 		logical thin
+		real*8 avortex,rvortex,phivortex
 	end type ZoneType
 
 	type SpiralType

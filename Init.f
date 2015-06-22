@@ -253,6 +253,12 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%thin
 		case("taufile")
 			Zone(key%nr1)%taufile=trim(key%value)
+		case("avortex","chivortex")
+			read(key%value,*) Zone(key%nr1)%avortex
+		case("rvortex")
+			read(key%value,*) Zone(key%nr1)%rvortex
+		case("phivortex")
+			read(key%value,*) Zone(key%nr1)%phivortex
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -632,6 +638,8 @@ c===============================================================================
 	gammaUVdes=0d0
 	use_multi=.true.
 	rt_multi=.true.
+
+	delta_St=1d0
 	
 	particledir=' '
 	
@@ -683,6 +691,9 @@ c===============================================================================
 		zone(i)%thin=.false.
 		Zone(i)%fbeam=0d0
 		Zone(i)%reflect=.false.
+		Zone(i)%avortex=4d0
+		Zone(i)%rvortex=-1d0
+		Zone(i)%phivortex=0d0
 	enddo
 
 	do i=1,npart
