@@ -499,6 +499,7 @@ c avoid zones with exactly the same inner or outer radii
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
+	real*8 RoundOff, roundfac
 	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:),Avortex(:,:,:,:)
 	delta=2d0
 
@@ -527,17 +528,25 @@ c avoid zones with exactly the same inner or outer radii
 	allocate(H(Zone(ii)%nr,Zone(ii)%np))
 	allocate(SD(Zone(ii)%nr,Zone(ii)%np))
 	allocate(alpha(Zone(ii)%nr,Zone(ii)%np))
-
+	
 	Mtot=0d0
 	Aspiral=0d0
 	do i=1,nSpirals
 		call ComputeAspiral(ii,i,Aspiral,Zone(ii)%nr,Zone(ii)%np)
 	enddo
+	
+	
 	do ir=1,Zone(ii)%nr
 		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+		if(Zone(ii)%roundtype.ne.'NONE') then
+			roundfac=RoundOff(r/Zone(ii)%sscale,Zone(ii)%roundradius,Zone(ii)%roundtype,Zone(ii)%roundindex,Zone(ii)%rounddepth)
+		else
+			roundfac= 1d0
+		endif
+		
 		do ip=1,Zone(ii)%np
 			H(ir,ip)=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-			SD(ir,ip)=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+			SD(ir,ip)=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp)) * roundfac
 			A(ir,ip)=pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2)/real(Zone(ii)%np)
 			alpha(ir,ip)=Zone(ii)%alpha
 			Mtot=Mtot+A(ir,ip)*SD(ir,ip)
@@ -1265,6 +1274,47 @@ c setup initial phi grid
 	return
 	end
 
+c-----------------------------------------------------------------------
+c
+c   This subroutine calculates the shape for a rounded-off gap edge
+c   It returns only a factor which is the decrease in density
+c
+c   + type='POW': a powerlaw surface density between up to rmax,
+c                 proportional to r^-index.
+c
+c   + type='HYDRO':  a gaussian like shape that fits hydro simulations
+c                    of embedded planets (Mulders et al. 2013)
+c 					index is the width parameter (>0)
+c
+c
+c   OUPUT:  scaling factor at radius r
+c
+c-----------------------------------------------------------------------
+
+	real*8 function RoundOff(r,rmax,roundtype,index,depth)
+	IMPLICIT NONE
+	character*10 roundtype
+	real*8 scale,r,rmax,index,depth
+	
+	if(r.ge.rmax) then
+		!  do not apply a scale factor if outside rmax
+		scale= 1d0
+	else if (roundtype.eq.'HYDRO') then
+		!  use a shape from Hydrodynamic simulations
+		scale=exp( -(((1-r/rmax)/index)**3d0))
+	else if (roundtype.eq.'POW') then
+		!  use a powerlaw
+		scale=(rmax/r)**(-index)
+	else
+		call output("Gap shape not recognized")
+		stop
+	endif
+	
+	!  return gap depth
+	RoundOff=max(scale,depth)
+
+	return
+	end
 
 c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
