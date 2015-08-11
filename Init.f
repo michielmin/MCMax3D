@@ -259,6 +259,14 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%rvortex
 		case("phivortex")
 			read(key%value,*) Zone(key%nr1)%phivortex
+		case("roundtype")
+			read(key%value,*) Zone(key%nr1)%roundtype
+		case("roundradius")
+			read(key%value,*) Zone(key%nr1)%roundradius
+		case("roundindex")
+			read(key%value,*) Zone(key%nr1)%roundindex
+		case("rounddepth")
+			read(key%value,*) Zone(key%nr1)%rounddepth
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -694,6 +702,10 @@ c===============================================================================
 		Zone(i)%avortex=4d0
 		Zone(i)%rvortex=-1d0
 		Zone(i)%phivortex=0d0
+		Zone(i)%roundtype='NONE'
+		Zone(i)%roundradius=50d0
+		Zone(i)%roundindex=0.2d0
+		Zone(i)%rounddepth=1d-20
 	enddo
 
 	do i=1,npart
