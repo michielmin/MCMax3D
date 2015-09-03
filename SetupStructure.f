@@ -891,7 +891,11 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 	allocate(rp(nir*nr))
 
 	i=0
-	hr=(Zone(ii)%sh*(Spiral(ispiral)%r/Zone(ii)%Rsh)**Zone(ii)%shpow)/Spiral(ispiral)%r
+	if(Spiral(ispiral)%hr.lt.0d0) then
+		hr=(Zone(ii)%sh*(Spiral(ispiral)%r/Zone(ii)%Rsh)**Zone(ii)%shpow)/Spiral(ispiral)%r
+	else
+		hr=Spiral(ispiral)%hr
+	endif
 
 	if(Spiral(ii)%beta.lt.0d0) then
 		beta=1.5d0-Zone(ii)%shpow

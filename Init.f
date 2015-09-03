@@ -291,6 +291,8 @@ c allocate the arrays
 			read(key%value,*) Spiral(key%nr1)%Aalpha
 		case("r")
 			read(key%value,*) Spiral(key%nr1)%r
+		case("hr")
+			read(key%value,*) Spiral(key%nr1)%hr
 		case("phi")
 			read(key%value,*) Spiral(key%nr1)%phi
 		case("alpha")
@@ -753,6 +755,7 @@ c===============================================================================
 		Spiral(i)%Aheight=0d0		! Amplitude of wave in scaleheight
 		Spiral(i)%Aalpha=0d0		! Amplitude of wave in alpha
 		Spiral(i)%r=5d0				! launching point
+		Spiral(i)%hr=-1d0			! H/R at the launching point, negative means it is computed
 		Spiral(i)%phi=0d0			! launching point
 		Spiral(i)%alpha=1.5d0		! Kepler rotation
 		Spiral(i)%beta=0.4d0		! Value from Muto = 0.4, setting it to negative computes it
