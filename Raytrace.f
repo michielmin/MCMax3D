@@ -771,9 +771,7 @@ c beaming
 !$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
 			iopenmp=omp_get_thread_num()+1
-!$OMP CRITICAL
 			call tellertje(ir+1,Pimage(izone)%nr+2)
-!$OMP END CRITICAL
 			do ip=1,Pimage(izone)%np
 				if(ir.eq.1) then
 					R1=Pimage(izone)%R(ir)
@@ -1153,10 +1151,17 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint
+	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint,nthreads,ithread
+	integer omp_get_max_threads,omp_get_thread_num
 	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars),Q,U,V
+	real*8,allocatable :: image(:,:,:,:),fluxZ_omp(:)
 
-	MCobs(iobs)%image(:,:,1:4)=0d0		! us the wavelength dimension for the Stokes vectors
+	MCobs(iobs)%image(:,:,1:4)=0d0		! use the wavelength dimension for the Stokes vectors
+
+	nthreads=omp_get_max_threads()
+	allocate(image(nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
+	allocate(fluxZ_omp(nthreads))
+	image=0d0
 	
 	do izone=1,nzones+nstars
 		fluxZ(izone)=0d0
@@ -1168,17 +1173,17 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 			call output("Formal solution star " // trim(int2string(izone-nzones,'(i4)')))
 		endif
 
+		fluxZ_omp=0d0
 		call tellertje(1,100)
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V)
-!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ)
+!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread)
+!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
-!$OMP CRITICAL
+			ithread=omp_get_thread_num()+1
 			call tellertje(ir+1,Pimage(izone)%nr+2)
-!$OMP END CRITICAL
 			do ip=1,Pimage(izone)%np
 				if(ir.eq.1) then
 					R1=Pimage(izone)%R(ir)
@@ -1228,23 +1233,24 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 					iy=x
 
 					if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-!$OMP CRITICAL
-						MCobs(iobs)%image(ix,iy,1)=MCobs(iobs)%image(ix,iy,1)+flux
-						MCobs(iobs)%image(ix,iy,2)=MCobs(iobs)%image(ix,iy,2)+Q
-						MCobs(iobs)%image(ix,iy,3)=MCobs(iobs)%image(ix,iy,3)+U
-						MCobs(iobs)%image(ix,iy,4)=MCobs(iobs)%image(ix,iy,4)+V
-!$OMP END CRITICAL
+						image(ithread,ix,iy,1)=image(ithread,ix,iy,1)+flux
+						image(ithread,ix,iy,2)=image(ithread,ix,iy,2)+Q
+						image(ithread,ix,iy,3)=image(ithread,ix,iy,3)+U
+						image(ithread,ix,iy,4)=image(ithread,ix,iy,4)+V
 					endif
 				enddo
-!$OMP CRITICAL
-				fluxZ(izone)=fluxZ(izone)+flux*real(nint)
-!$OMP END CRITICAL
+				fluxZ_omp(ithread)=fluxZ_omp(ithread)+flux*real(nint)
 			enddo
 		enddo
 !$OMP END DO
 !$OMP FLUSH
 !$OMP END PARALLEL
+		fluxZ(izone)=sum(fluxZ_omp(1:nthreads))
 		call tellertje(100,100)
+	enddo
+	do ithread=1,nthreads
+		MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)=MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)+
+     &			image(ithread,1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)
 	enddo
 	
 	return
