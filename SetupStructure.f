@@ -844,7 +844,11 @@ c	enddo
 c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 					fx=2d0*wv*Zone(ii)%avortex-(2d0*wv**2+3d0)/(1d0+1d0/Zone(ii)%avortex**2)
 					fx=sqrt(fx)
-					delta_St=Zone(ii)%alpha/(1d0+St)
+					if(Zone(ii)%dvortex.lt.0d0) then
+						delta_St=Zone(ii)%alpha/(1d0+St)
+					else
+						delta_St=Zone(ii)%dvortex
+					endif
 					Hv=H(ir,ip)*sqrt(delta_St/(St+delta_St))/fx
 					a1=abs(RR-Zone(ii)%rvortex)
 					a2=abs(phi-Zone(ii)%phivortex)

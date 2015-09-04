@@ -259,6 +259,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%rvortex
 		case("phivortex")
 			read(key%value,*) Zone(key%nr1)%phivortex
+		case("dvortex","deltavortex")
+			read(key%value,*) Zone(key%nr1)%dvortex
 		case("roundtype")
 			read(key%value,*) Zone(key%nr1)%roundtype
 		case("roundradius")
@@ -704,6 +706,7 @@ c===============================================================================
 		Zone(i)%avortex=4d0
 		Zone(i)%rvortex=-1d0
 		Zone(i)%phivortex=0d0
+		Zone(i)%dvortex=1d-2
 		Zone(i)%roundtype='NONE'
 		Zone(i)%roundradius=50d0
 		Zone(i)%roundindex=0.2d0

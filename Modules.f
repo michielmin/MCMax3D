@@ -151,7 +151,7 @@ c parameter for beaming towards this zone
 		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)
 		character*500 taufile
 		logical thin
-		real*8 avortex,rvortex,phivortex
+		real*8 avortex,rvortex,phivortex,dvortex
 	end type ZoneType
 
 	type SpiralType
