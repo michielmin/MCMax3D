@@ -64,7 +64,7 @@
      &			MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,3)**2)
 			allocate(im(MCobs(iobs)%npix,MCobs(iobs)%npix,4))
 			im=zscale*MCobs(iobs)%image
-			if(MCobs(iobs)%writeimage) call writefitsfile(MCfile,im,4,MCobs(iobs)%npix)
+			call writefitsfile(MCfile,im,4,MCobs(iobs)%npix)
 			deallocate(im)
 			if(MCobs(iobs)%telescope) then
 				call Convolution(MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:3),MCobs(iobs)%npix,lam(ilam),

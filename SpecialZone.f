@@ -3,9 +3,9 @@
 	use Constants
 	IMPLICIT NONE
 	integer izone,ir,it,ip,i,ips,ipt,it1,it2,ir1,ir2
-	real*8 x,y,z,r,random,w(npart,maxns),theta
-	real*8 Mdot,dphi,t0,dt,vesc,t,drad,dtheta
-	integer nrings
+	real*8 x,y,z,r,random,w(npart,maxns),theta,SD,H
+	real*8 Mdot,dphi,t0,dt,vesc,t,drad,dtheta,Mtot,lam0,d,tau
+	integer nrings,jj,njj,ilam
 	type(ZoneType),pointer :: ZZ
 
 	ZZ => Zone(izone)
@@ -94,6 +94,135 @@ c C(ir,it,ip)%densP(ipart,isize,iT)
 					ZZ%C(ir,it,ip)%dens=1d-30
 					ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%dens*ZZ%C(ir,it,ip)%V
 				endif
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						ZZ%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*ZZ%abun(i)*ZZ%C(ir,it,ip)%dens
+						do ipt=2,Part(i)%nT
+							ZZ%C(ir,it,ip)%densP(i,ips,ipt)=0d0
+						enddo
+					enddo
+				enddo
+				ZZ%C(ir,it,ip)%gasdens=ZZ%C(ir,it,ip)%dens*ZZ%gas2dust
+			enddo
+			enddo
+			enddo
+		case ("BETAPIC")
+			if(ZZ%shape.eq.'CAR') then
+				call output("Beta Pic on a rectangular grid... Let's don't and say we did.")
+				stop
+			endif
+
+			call SetupRadGrid(izone)
+			call SetupThetaGrid(izone)
+			call SetupPhiGrid(izone)
+			call SetupVolume(izone)
+
+			lam0=0.65
+			d=lam(nlam)-lam(1)
+			ilam=1
+			do i=1,nlam
+				if(abs(lam0-lam(i)).lt.d) then
+					d=abs(lam0-lam(i))
+					ilam=i
+				endif
+			enddo
+			tau=0d0
+			do i=1,npart
+				do ips=1,Part(i)%nsize
+					tau=tau+w(i,ips)*ZZ%abun(i)*Part(i)%Ksca(ips,1,ilam)
+				enddo
+			enddo
+
+			Mtot=0d0
+			njj=10
+			do ir=1,ZZ%nr
+			r=sqrt(ZZ%R(ir)*ZZ%R(ir+1))
+			do ip=1,ZZ%np
+			do it=1,ZZ%nt
+				ZZ%C(ir,it,ip)%dens=0d0
+				SD=(ZZ%bp_eta/tau)/sqrt((r/ZZ%Rexp)**(-2d0*ZZ%bp_alpha)+(r/ZZ%Rexp)**(-2d0*ZZ%bp_beta))
+				H=ZZ%bp_A*ZZ%Rexp*(r/ZZ%Rexp)**ZZ%shpow
+				do jj=1,njj
+					theta=ZZ%theta(it)+(ZZ%theta(it+1)-ZZ%theta(it))*real(jj)/real(njj+1)
+					z=abs(r*cos(theta))
+					ZZ%C(ir,it,ip)%dens=ZZ%C(ir,it,ip)%dens+(SD/H)*exp(-(abs(z)/H)**ZZ%bp_p)
+				enddo
+				ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%dens*ZZ%C(ir,it,ip)%V
+				Mtot=Mtot+ZZ%C(ir,it,ip)%M
+			enddo
+			enddo
+			enddo
+			do ir=1,ZZ%nr
+			do it=1,ZZ%nt
+			do ip=1,ZZ%np
+c				ZZ%C(ir,it,ip)%dens=ZZ%C(ir,it,ip)%dens*ZZ%Mdust/Mtot
+c				ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%M*ZZ%Mdust/Mtot
+				if(ZZ%C(ir,it,ip)%dens.lt.1d-30) then
+					ZZ%C(ir,it,ip)%dens=1d-30
+					ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%dens*ZZ%C(ir,it,ip)%V
+				endif
+			enddo
+			enddo
+			enddo
+			do ir=1,ZZ%nr
+			do it=1,ZZ%nt
+			do ip=1,ZZ%np
+				do i=1,npart
+					do ips=1,Part(i)%nsize
+						ZZ%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*ZZ%abun(i)*ZZ%C(ir,it,ip)%dens
+						do ipt=2,Part(i)%nT
+							ZZ%C(ir,it,ip)%densP(i,ips,ipt)=0d0
+						enddo
+					enddo
+				enddo
+				ZZ%C(ir,it,ip)%gasdens=ZZ%C(ir,it,ip)%dens*ZZ%gas2dust
+			enddo
+			enddo
+			enddo
+		case ("PLANETRING")
+			if(ZZ%shape.eq.'CAR') then
+				call output("Rings on a rectangular grid... Let's don't and say we did.")
+				stop
+			endif
+
+			call SetupRadGrid(izone)
+			call SetupThetaGrid(izone)
+			call SetupPhiGrid(izone)
+			call SetupVolume(izone)
+
+			tau=0d0
+			do i=1,npart
+				do ips=1,Part(i)%nsize
+					tau=tau+w(i,ips)*ZZ%abun(i)*3d0/(4d0*Part(i)%rv(ips)*Part(i)%rho(1))
+				enddo
+			enddo
+
+			Mtot=0d0
+			do ir=1,ZZ%nr
+			r=sqrt(ZZ%R(ir)*ZZ%R(ir+1))
+			do ip=1,ZZ%np
+				do it=1,ZZ%nt
+					ZZ%C(ir,it,ip)%dens=0d0
+				enddo
+				it=ZZ%imidplane
+				ZZ%C(ir,it,ip)%dens=ZZ%tau_V*(pi*(ZZ%R(ir+1)**2-ZZ%R(ir)**2)/real(ZZ%np))/(tau*ZZ%C(ir,it,ip)%V)
+				ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%dens*ZZ%C(ir,it,ip)%V
+				Mtot=Mtot+ZZ%C(ir,it,ip)%M
+			enddo
+			enddo
+			do ir=1,ZZ%nr
+			do it=1,ZZ%nt
+			do ip=1,ZZ%np
+				if(ZZ%C(ir,it,ip)%dens.lt.1d-30) then
+					ZZ%C(ir,it,ip)%dens=1d-30
+					ZZ%C(ir,it,ip)%M=ZZ%C(ir,it,ip)%dens*ZZ%C(ir,it,ip)%V
+				endif
+			enddo
+			enddo
+			enddo
+			do ir=1,ZZ%nr
+			do it=1,ZZ%nt
+			do ip=1,ZZ%np
 				do i=1,npart
 					do ips=1,Part(i)%nsize
 						ZZ%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*ZZ%abun(i)*ZZ%C(ir,it,ip)%dens

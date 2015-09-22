@@ -901,10 +901,10 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 		hr=Spiral(ispiral)%hr
 	endif
 
-	if(Spiral(ii)%beta.lt.0d0) then
+	if(Spiral(ispiral)%beta.lt.0d0) then
 		beta=1.5d0-Zone(ii)%shpow
 	else
-		beta=Spiral(ii)%beta
+		beta=Spiral(ispiral)%beta
 	endif
 
 	phimin=1d200
@@ -925,6 +925,7 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 		enddo
 	enddo
 	n=i
+
 
 	call tellertje(1,np)
 !$OMP PARALLEL IF(use_multi)

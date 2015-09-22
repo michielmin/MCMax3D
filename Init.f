@@ -215,6 +215,16 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%gamma_exp
 		case("denspow","sigmapow")
 			read(key%value,*) Zone(key%nr1)%denspow
+		case("bp_alpha")
+			read(key%value,*) Zone(key%nr1)%bp_alpha
+		case("bp_beta")
+			read(key%value,*) Zone(key%nr1)%bp_beta
+		case("bp_p")
+			read(key%value,*) Zone(key%nr1)%bp_p
+		case("bp_a")
+			read(key%value,*) Zone(key%nr1)%bp_A
+		case("bp_eta")
+			read(key%value,*) Zone(key%nr1)%bp_eta
 		case("mdust")
 			read(key%value,*) Zone(key%nr1)%Mdust
 		case("tau","maxtau")
