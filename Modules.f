@@ -158,7 +158,7 @@ c parameter for beaming towards this zone
 	type SpiralType
 c parameters for a spiral wave
 		real*8 Adens,Aheight,Aalpha
-		real*8 r,phi,alpha,beta,w,q,hr
+		real*8 r,phi,alpha,beta,w,q,hr,Rin,Rout
 		integer sign
 	end type SpiralType
 

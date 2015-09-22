@@ -44,6 +44,8 @@ c setup the observation direction
 c spiral waves
 	do i=1,nSpirals
 		Spiral(i)%r=Spiral(i)%r*AU
+		Spiral(i)%Rin=Spiral(i)%Rin*AU
+		Spiral(i)%Rout=Spiral(i)%Rout*AU
 		Spiral(i)%w=Spiral(i)%w*AU
 		Spiral(i)%phi=Spiral(i)%phi*pi/180d0
 	enddo
@@ -952,9 +954,11 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
+					if(r.gt.Spiral(ispiral)%Rin.and.r.lt.Spiral(ispiral)%Rout) then
+						Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
      &						((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*Spiral(ispiral)%q))*
-     &						exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
+     &						exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)
+					endif
 				enddo
 			enddo
 2			phi0=phi0-2d0*pi
@@ -970,9 +974,11 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 				do jj=1,nir
 					f=(real(jj)-0.5)/real(nir)
 					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
-					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
-     &					((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*Spiral(ispiral)%q))*
-     &					exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
+					if(r.gt.Spiral(ispiral)%Rin.and.r.lt.Spiral(ispiral)%Rout) then
+						Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
+     &						((r/Spiral(ispiral)%r)**(sign(1d0,Spiral(ispiral)%r-r)*Spiral(ispiral)%q))*
+     &						exp(-(r-rp(i))**2/Spiral(ispiral)%w**2)/real(nir)				
+					endif
 				enddo
 			enddo
 4			phi0=phi0+2d0*pi

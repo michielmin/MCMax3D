@@ -303,6 +303,10 @@ c allocate the arrays
 			read(key%value,*) Spiral(key%nr1)%Aalpha
 		case("r")
 			read(key%value,*) Spiral(key%nr1)%r
+		case("rin")
+			read(key%value,*) Spiral(key%nr1)%Rin
+		case("rout")
+			read(key%value,*) Spiral(key%nr1)%Rout
 		case("hr")
 			read(key%value,*) Spiral(key%nr1)%hr
 		case("phi")
@@ -775,6 +779,8 @@ c===============================================================================
 		Spiral(i)%w=5d0				! in AU
 		Spiral(i)%sign=1d0			! which way it rotates
 		Spiral(i)%q=1.7d0			! powerlaw dependence of the amplitude
+		Spiral(i)%Rin=0d0			! inner radius of the spiral
+		Spiral(i)%Rout=1d200		! outer radius of the spiral
 	enddo
 		
 	return
