@@ -98,6 +98,8 @@ c allocate the arrays
 			read(key%value,*) use_multi
 		case("rt_multi","rt_openmp")
 			read(key%value,*) rt_multi
+		case("multinphot","multinphotmono")
+			read(key%value,*) MultiNphotMono
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -668,6 +670,8 @@ c===============================================================================
 	delta_St=1d0
 	
 	particledir=' '
+	
+	MultiNphotMono=1
 	
 	do i=1,nstars
 		Star(i)%x=0d0

@@ -76,6 +76,9 @@ c storage speed options
 c beaming parameter
 	real*8,allocatable :: Efnotbeam(:)
 
+c extra photons in raytracing
+	integer MultiNphotMono
+
 	type Mueller
 		real*8 F11(180),F12(180),F22(180)
 		real*8 F33(180),F44(180),F34(180)
