@@ -523,7 +523,7 @@ c------------------------------------------------------------------------
 	use GlobalSetup
 	IMPLICIT NONE
 	type(photon) phot
-	real*8 x,y,z,cost,sint,Q,U,P,cos2t,sin2t,een
+	real*8 x,y,z,cost,sint,Q,U,P,P2,cos2t,sin2t,sPP2
 	
 	P=(phot%sU/phot%sI)**2+(phot%sQ/phot%sI)**2
 
@@ -536,16 +536,15 @@ c------------------------------------------------------------------------
 	
 	cos2t=cost**2-sint**2
 	sin2t=2d0*sint*cost
-
-	een=sqrt(sin2t**2+cos2t**2)
-	sin2t=sin2t/een
-	cos2t=cos2t/een
 	
 	Q=phot%sQ*cos2t+phot%sU*sin2t
 	U=-phot%sQ*sin2t+phot%sU*cos2t
 
-	phot%sU=U
-	phot%sQ=Q
+	P2=(U/phot%sI)**2+(Q/phot%sI)**2
+
+	sPP2=sqrt(P/P2)
+	phot%sU=sPP2*U
+	phot%sQ=sPP2*Q
 	
 	return
 	end
