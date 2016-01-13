@@ -148,9 +148,9 @@ c	call ftgkyj(unit,'mcfost2prodimo',mcfost(1)%mcfost2ProDiMo,comment,stat4)
 		p1%F(1,1,1)%F44(j)=matrix(iread,6,j)
 	enddo
 101	if(lam(i).le.l1.and.lam(i).ge.l0) then
-		p%Kext(isize,iT,i)=p1%Kext(1,1,1)+(lam(i)-l1)*(p0%Kext(1,1,1)-p1%Kext(1,1,1))/(l0-l1)
-		p%Ksca(isize,iT,i)=p1%Ksca(1,1,1)+(lam(i)-l1)*(p0%Ksca(1,1,1)-p1%Ksca(1,1,1))/(l0-l1)
-		p%Kabs(isize,iT,i)=p1%Kabs(1,1,1)+(lam(i)-l1)*(p0%Kabs(1,1,1)-p1%Kabs(1,1,1))/(l0-l1)
+		p%Kext(isize,iT,i)=exp(log(p1%Kext(1,1,1))+log(lam(i)/l1)*log(p0%Kext(1,1,1)/p1%Kext(1,1,1))/log(l0/l1))
+		p%Ksca(isize,iT,i)=exp(log(p1%Ksca(1,1,1))+log(lam(i)/l1)*log(p0%Ksca(1,1,1)/p1%Ksca(1,1,1))/log(l0/l1))
+		p%Kabs(isize,iT,i)=exp(log(p1%Kabs(1,1,1))+log(lam(i)/l1)*log(p0%Kabs(1,1,1)/p1%Kabs(1,1,1))/log(l0/l1))
 		p%F(isize,iT,i)%F11(1:180)=p1%F(1,1,1)%F11(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F11(1:180)-p1%F(1,1,1)%F11(1:180))/(l0-l1)
 		p%F(isize,iT,i)%F12(1:180)=p1%F(1,1,1)%F12(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F12(1:180)-p1%F(1,1,1)%F12(1:180))/(l0-l1)
 		p%F(isize,iT,i)%F22(1:180)=p1%F(1,1,1)%F22(1:180)+(lam(i)-l1)*(p0%F(1,1,1)%F22(1:180)-p1%F(1,1,1)%F22(1:180))/(l0-l1)

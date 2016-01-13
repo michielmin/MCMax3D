@@ -165,8 +165,8 @@ c-----------------------------------------------------------------------
 					call ComputePart(Part(ii),ii,is,iT)
 				enddo
 			enddo
-c		case("PARTFILE")
-c			call ReadParticle(Part(ii),ii)
+		case("PARTFILE")
+			call ReadParticleFits(Part(ii)%file,Part(ii),1,1)
 		case default
 			call output("I did not understand what I was trying to do. Sorry!")
 	end select
