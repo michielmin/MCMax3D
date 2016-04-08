@@ -149,7 +149,7 @@ c		call tellertje(i,Nphot)
 	enddo
 
 	if(status.gt.0) then
-c		call output("Something is wrong... Don't worry I'll try to fix it.")
+		call output("Something is wrong... Don't worry I'll try to fix it.")
 		nerrors=nerrors+1
 		if(nerrors.gt.100) stop
 		do izone=1,nzones
@@ -217,9 +217,16 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 
 	do izone=1,nzones
 		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
-			phot%i1(izone)=Trac(izone)%i1next
-			phot%i2(izone)=Trac(izone)%i2next
-			phot%i3(izone)=Trac(izone)%i3next
+			if(Zone(izone)%warped.and.phot%i1(izone).ne.Trac(izone)%i1next) then
+				phot%i1(izone)=Trac(izone)%i1next
+				call TranslatePhotonWarp(phot,izone)
+				phot%i2(izone)=-1
+				phot%i3(izone)=-1
+			else
+				phot%i1(izone)=Trac(izone)%i1next
+				phot%i2(izone)=Trac(izone)%i2next
+				phot%i3(izone)=Trac(izone)%i3next
+			endif
 
 			if(phot%i1(izone).eq.-1) call determine_i1(phot,izone)
 			if(phot%i2(izone).eq.-1) call determine_i2(phot,izone)

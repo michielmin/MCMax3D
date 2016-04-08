@@ -178,9 +178,19 @@ c allocate the arrays
 		case("z")
 			read(key%value,*) Zone(key%nr1)%z0
 		case("theta")
-			read(key%value,*) Zone(key%nr1)%theta0
+			if(key%nr2.le.1) then
+				read(key%value,*) Zone(key%nr1)%theta0
+			else if(key%nr2.eq.2) then
+				read(key%value,*) Zone(key%nr1)%theta1
+				Zone(key%nr1)%warped=.true.
+			endif
 		case("phi")
-			read(key%value,*) Zone(key%nr1)%phi0
+			if(key%nr2.le.1) then
+				read(key%value,*) Zone(key%nr1)%phi0
+			else if(key%nr2.eq.2) then
+				read(key%value,*) Zone(key%nr1)%phi1
+				Zone(key%nr1)%warped=.true.
+			endif
 		case("xscale")
 			read(key%value,*) Zone(key%nr1)%xscale
 		case("yscale")
@@ -281,6 +291,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%roundindex
 		case("rounddepth")
 			read(key%value,*) Zone(key%nr1)%rounddepth
+		case("warp_pow","warppow","powwarp")
+			read(key%value,*) Zone(key%nr1)%warp_pow
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -694,6 +706,8 @@ c===============================================================================
 		Zone(i)%z0=0d0
 		Zone(i)%theta0=0d0
 		Zone(i)%phi0=0d0
+		Zone(i)%theta1=-500d0
+		Zone(i)%phi1=-500d0
 		Zone(i)%xscale=1d0
 		Zone(i)%yscale=1d0
 		Zone(i)%zscale=1d0
@@ -729,6 +743,8 @@ c===============================================================================
 		Zone(i)%roundradius=50d0
 		Zone(i)%roundindex=0.2d0
 		Zone(i)%rounddepth=1d-20
+		Zone(i)%warped=.false.
+		Zone(i)%warp_pow=1d0
 	enddo
 
 	do i=1,npart

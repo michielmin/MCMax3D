@@ -150,6 +150,9 @@ c extra photons in raytracing
 		real*8 roundradius, roundindex, rounddepth
 		real*8,allocatable :: R(:),theta(:),phi(:),x(:),y(:),z(:),abun(:)
 		real*8,allocatable :: R2(:),cost2(:),tanx(:),tany(:)
+		real*8,allocatable :: t_warp(:),p_warp(:)
+		real*8 theta1,phi1,warp_pow
+		logical warped
 c parameter for beaming towards this zone
 		real*8 fbeam
 		real*8,allocatable :: fbeamS(:),EfbeamS(:),tbeamS(:),ctbeamS(:)

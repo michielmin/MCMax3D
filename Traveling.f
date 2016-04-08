@@ -421,17 +421,30 @@ c		stop
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
-	integer i
+	integer i,j
+	real*8 cosp,sinp,cost,sint
 
 	do i=1,nzones
+		if(Zone(i)%warped) then
+			j=min(max(1,phot%i1(i)),Zone(i)%nr)
+			cost=cos(Zone(i)%t_warp(j))
+			sint=sin(Zone(i)%t_warp(j))
+			cosp=cos(Zone(i)%p_warp(j))
+			sinp=sin(Zone(i)%p_warp(j))
+		else
+			cost=Zone(i)%cost0
+			sint=Zone(i)%sint0
+			cosp=Zone(i)%cosp0
+			sinp=Zone(i)%sinp0
+		endif
 		phot%xzone(i)=phot%x
 		phot%yzone(i)=phot%y
 		phot%zzone(i)=phot%z
 		phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
 		phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
 		phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
-		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
-		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),Zone(i)%cost0,Zone(i)%sint0)
+		call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cosp,-sinp)
+		call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cost,sint)
 		phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
 		phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
 		phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
@@ -449,13 +462,27 @@ c		stop
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
-	integer i
+	integer i,j
+	real*8 cosp,sinp,cost,sint
+
+	if(Zone(i)%warped) then
+		j=min(max(1,phot%i1(i)),Zone(i)%nr)
+		cost=cos(Zone(i)%t_warp(j))
+		sint=sin(Zone(i)%t_warp(j))
+		cosp=cos(Zone(i)%p_warp(j))
+		sinp=sin(Zone(i)%p_warp(j))
+	else
+		cost=Zone(i)%cost0
+		sint=Zone(i)%sint0
+		cosp=Zone(i)%cosp0
+		sinp=Zone(i)%sinp0
+	endif
 
 	phot%x=phot%x*Zone(i)%xscale
 	phot%y=phot%y*Zone(i)%yscale
 	phot%z=phot%z*Zone(i)%zscale
-	call rotateY(phot%x,phot%y,phot%z,Zone(i)%cost0,-Zone(i)%sint0)
-	call rotateZ(phot%x,phot%y,phot%z,Zone(i)%cosp0,Zone(i)%sinp0)
+	call rotateY(phot%x,phot%y,phot%z,cost,-sint)
+	call rotateZ(phot%x,phot%y,phot%z,cosp,sinp)
 	phot%x=phot%x+Zone(i)%x0
 	phot%y=phot%y+Zone(i)%y0
 	phot%z=phot%z+Zone(i)%z0
@@ -468,14 +495,28 @@ c		stop
 	use GlobalSetup
 	IMPLICIT NONE
 	type(Photon) phot
-	integer i
+	integer i,j
+	real*8 cosp,sinp,cost,sint
+	
 
 	do i=1,nzones
+		if(Zone(i)%warped) then
+			j=min(max(1,phot%i1(i)),Zone(i)%nr)
+			cost=cos(Zone(i)%t_warp(j))
+			sint=sin(Zone(i)%t_warp(j))
+			cosp=cos(Zone(i)%p_warp(j))
+			sinp=sin(Zone(i)%p_warp(j))
+		else
+			cost=Zone(i)%cost0
+			sint=Zone(i)%sint0
+			cosp=Zone(i)%cosp0
+			sinp=Zone(i)%sinp0
+		endif
 		phot%vxzone(i)=phot%vx
 		phot%vyzone(i)=phot%vy
 		phot%vzzone(i)=phot%vz
-		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cosp0,-Zone(i)%sinp0)
-		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),Zone(i)%cost0,Zone(i)%sint0)
+		call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cosp,-sinp)
+		call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cost,sint)
 		phot%vxzone(i)=phot%vxzone(i)/Zone(i)%xscale
 		phot%vyzone(i)=phot%vyzone(i)/Zone(i)%yscale
 		phot%vzzone(i)=phot%vzzone(i)/Zone(i)%zscale
@@ -507,4 +548,40 @@ c		stop
 	
 	
 	
+	subroutine TranslatePhotonWarp(phot,i)
+	use GlobalSetup
+	IMPLICIT NONE
+	type(Photon) phot
+	integer i,j
+	real*8 cosp,sinp,cost,sint
+	
+	j=min(max(1,phot%i1(i)),Zone(i)%nr)
+	cost=cos(Zone(i)%t_warp(j))
+	sint=sin(Zone(i)%t_warp(j))
+	cosp=cos(Zone(i)%p_warp(j))
+	sinp=sin(Zone(i)%p_warp(j))
+
+	phot%xzone(i)=phot%x
+	phot%yzone(i)=phot%y
+	phot%zzone(i)=phot%z
+	phot%xzone(i)=phot%xzone(i)-Zone(i)%x0
+	phot%yzone(i)=phot%yzone(i)-Zone(i)%y0
+	phot%zzone(i)=phot%zzone(i)-Zone(i)%z0
+	call rotateZ(phot%xzone(i),phot%yzone(i),phot%zzone(i),cosp,-sinp)
+	call rotateY(phot%xzone(i),phot%yzone(i),phot%zzone(i),cost,sint)
+	phot%xzone(i)=phot%xzone(i)/Zone(i)%xscale
+	phot%yzone(i)=phot%yzone(i)/Zone(i)%yscale
+	phot%zzone(i)=phot%zzone(i)/Zone(i)%zscale
+
+	phot%vxzone(i)=phot%vx
+	phot%vyzone(i)=phot%vy
+	phot%vzzone(i)=phot%vz
+	call rotateZ(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cosp,-sinp)
+	call rotateY(phot%vxzone(i),phot%vyzone(i),phot%vzzone(i),cost,sint)
+	phot%vxzone(i)=phot%vxzone(i)/Zone(i)%xscale
+	phot%vyzone(i)=phot%vyzone(i)/Zone(i)%yscale
+	phot%vzzone(i)=phot%vzzone(i)/Zone(i)%zscale
+
+	return
+	end
 	

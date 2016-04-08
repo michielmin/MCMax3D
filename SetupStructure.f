@@ -327,7 +327,7 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,i1,i2,i3,i
-	real*8 random
+	real*8 random,rr
 	character*500 filename
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
@@ -353,6 +353,10 @@ c-----------------------------------------------------------------------
 			Zone(ii)%n1=Zone(ii)%nr
 			Zone(ii)%n2=Zone(ii)%nt
 			Zone(ii)%n3=Zone(ii)%np
+			if(Zone(ii)%warped) then
+				allocate(Zone(ii)%t_warp(Zone(ii)%nr))
+				allocate(Zone(ii)%p_warp(Zone(ii)%nr))
+			endif
 		case("CAR")
 			allocate(Zone(ii)%C(Zone(ii)%nx,Zone(ii)%ny,Zone(ii)%nz))
 			allocate(Zone(ii)%x(Zone(ii)%nx+1))
@@ -437,6 +441,20 @@ c avoid zones with exactly the same inner or outer radii
 		end select	
 	endif
 
+	if(Zone(ii)%warped) then
+		if(Zone(ii)%theta1.lt.-400d0) Zone(ii)%theta1=Zone(ii)%theta0*180d0/pi
+		if(Zone(ii)%phi1.lt.-400d0) Zone(ii)%phi1=Zone(ii)%phi0*180d0/pi
+		Zone(ii)%theta1=Zone(ii)%theta1*pi/180d0
+		Zone(ii)%phi1=Zone(ii)%phi1*pi/180d0
+		do i=1,Zone(ii)%nr
+			rr=sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))
+			Zone(ii)%t_warp(i)=Zone(ii)%theta0+(Zone(ii)%theta1-Zone(ii)%theta0)*
+     &					((rr-Zone(ii)%Rin)/(Zone(ii)%Rout-Zone(ii)%Rin))**Zone(ii)%warp_pow
+			Zone(ii)%p_warp(i)=Zone(ii)%phi0+(Zone(ii)%phi1-Zone(ii)%phi0)*
+     &					((rr-Zone(ii)%Rin)/(Zone(ii)%Rout-Zone(ii)%Rin))**Zone(ii)%warp_pow
+		enddo
+	endif
+	
 	return
 	end
 	
