@@ -100,6 +100,8 @@ c allocate the arrays
 			read(key%value,*) rt_multi
 		case("multinphot","multinphotmono")
 			read(key%value,*) MultiNphotMono
+		case("hardedge")
+			read(key%value,*) hardedge
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -684,6 +686,7 @@ c===============================================================================
 	particledir=' '
 	
 	MultiNphotMono=1
+	hardedge=.false.
 	
 	do i=1,nstars
 		Star(i)%x=0d0

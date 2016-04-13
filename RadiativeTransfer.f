@@ -72,6 +72,7 @@ c		call tellertje(i,Nphot)
 		if(r.lt.Zone(i)%Rout.and.r.gt.Zone(i)%Rin) then
 			phot%inzone(i)=.true.
 			call determine_i1(phot,i)
+			if(Zone(i)%warped) call TranslatePhotonWarp(phot,i)
 			call determine_i2(phot,i)
 			call determine_i3(phot,i)
 		endif

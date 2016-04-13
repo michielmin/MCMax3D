@@ -637,7 +637,7 @@ c avoid zones with exactly the same inner or outer radii
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,it,jj,njj,theta,r,z,hr,f1,f2a,ha)
-!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha,Avortex)
+!$OMP& SHARED(Zone,npart,Mtot,w,delta,Part,ii,SD,H,alpha,Avortex,hardedge)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do ir=1,Zone(ii)%nr
@@ -661,8 +661,15 @@ c avoid zones with exactly the same inner or outer radii
      &			/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
 							f2a=exp(-(z/ha)**2)
-							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
+							if(hardedge) then
+								if(z.lt.ha*3d0) then
+									Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
+     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1/real(njj)
+								endif
+							else
+								Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
      &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
+							endif
 						enddo
 					enddo
 				enddo
