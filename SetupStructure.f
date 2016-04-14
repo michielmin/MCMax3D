@@ -446,13 +446,16 @@ c avoid zones with exactly the same inner or outer radii
 		if(Zone(ii)%phi1.lt.-400d0) Zone(ii)%phi1=Zone(ii)%phi0*180d0/pi
 		Zone(ii)%theta1=Zone(ii)%theta1*pi/180d0
 		Zone(ii)%phi1=Zone(ii)%phi1*pi/180d0
+		open(unit=20,file=trim(outputdir) // "inclination" // trim(int2string(ii,'(i0.4)')) // ".dat")
 		do i=1,Zone(ii)%nr
 			rr=sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))
 			Zone(ii)%t_warp(i)=Zone(ii)%theta0+(Zone(ii)%theta1-Zone(ii)%theta0)*
      &					((rr-Zone(ii)%Rin)/(Zone(ii)%Rout-Zone(ii)%Rin))**Zone(ii)%warp_pow
 			Zone(ii)%p_warp(i)=Zone(ii)%phi0+(Zone(ii)%phi1-Zone(ii)%phi0)*
      &					((rr-Zone(ii)%Rin)/(Zone(ii)%Rout-Zone(ii)%Rin))**Zone(ii)%warp_pow
+			write(20,*) sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))/AU,Zone(ii)%t_warp(i),Zone(ii)%p_warp(i)
 		enddo
+		close(unit=20)
 	endif
 	
 	return
