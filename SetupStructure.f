@@ -663,16 +663,13 @@ c avoid zones with exactly the same inner or outer radii
      &			Zone(ii)%gas2dust*Mtot*f1
      &			/(Part(i)%rv(ips)*Part(i)%rho(1)))
 							ha=ha*hr/sqrt(1d0+ha**2)
-							f2a=exp(-(z/ha)**2)
 							if(hardedge) then
-								if(z.lt.ha*3d0) then
-									Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
-     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1/real(njj)
-								endif
+								f2a=exp(-(z/(3d0*ha))**10)
 							else
-								Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
-     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
+								f2a=exp(-(z/ha)**2)
 							endif
+							Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=Zone(ii)%C(ir,it,ip)%densP(i,ips,1)+
+     &		Mtot*w(i,ips)*Zone(ii)%abun(i)*f1*f2a/ha/real(njj)
 						enddo
 					enddo
 				enddo
@@ -736,6 +733,25 @@ c avoid zones with exactly the same inner or outer radii
 	deallocate(SD)
 	deallocate(alpha)
 
+	if(opendisk.gt.0d0) then
+		do ir=1,Zone(ii)%nr
+			do it=1,Zone(ii)%nt
+				do ip=1,Zone(ii)%np
+					if(Zone(ii)%phi(ip).lt.opendisk) then
+						do i=1,npart
+							do ips=1,Part(i)%nsize
+								do ipt=1,Part(i)%nT
+									Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)*1d-10
+								enddo
+							enddo
+						enddo
+						Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*1d-10
+						Zone(ii)%C(ir,it,ip)%gasdens=Zone(ii)%C(ir,it,ip)%gasdens*1d-10
+					endif
+				enddo
+			enddo
+		enddo
+	endif
 	
 	return
 	end

@@ -1184,6 +1184,7 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	
 	do izone=1,nzones+nstars
 		fluxZ(izone)=0d0
+		if(MCobs(iobs)%trace(izone)) then
 		if(izone.le.nzones) then
 			istar=0
 			call output("Formal solution zone " // trim(int2string(izone,'(i4)')))
@@ -1266,6 +1267,7 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 !$OMP END PARALLEL
 		fluxZ(izone)=sum(fluxZ_omp(1:nthreads))
 		call tellertje(100,100)
+		endif
 	enddo
 	do ithread=1,nthreads
 		MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)=MCobs(iobs)%image(1:MCobs(iobs)%npix,1:MCobs(iobs)%npix,1:4)+

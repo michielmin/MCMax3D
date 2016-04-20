@@ -64,6 +64,7 @@ c multiwav thingies
 	real*8,allocatable :: column(:,:,:)				! npart,nsize,iT
 !$OMP THREADPRIVATE(specemit,column)
 	real*8 fstop									! limit number of interactions
+	real*8 opendisk
 	
 c storage speed options
 	real*8,allocatable :: KabsTotal(:,:),KscaTotal(:,:)		! nzones,nlam
@@ -180,6 +181,7 @@ c parameters for a spiral wave
 		real*8 D,D2,SpW,width,snoise,fstar		! telescope parameters
 		real*8 xup,yup,zup						! up vector in the image (reference for Polarization)
 		character*100 flag
+		logical,allocatable :: trace(:)
 	end type MCobsType
 	
 	type(ZoneType),allocatable,target :: Zone(:)						! dimension nzones

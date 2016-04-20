@@ -80,7 +80,7 @@ C	 create the new empty FITS file
 			do k=1,ZZ%np
 				array(i,j,k,1,1,1)=sqrt(ZZ%R(i)*ZZ%R(i+1))/AU
 				array(i,j,k,2,1,1)=(ZZ%theta(j)+ZZ%theta(j+1))/2d0
-				array(i,j,k,3,1,1)=(ZZ%phi(j)+ZZ%phi(j+1))/2d0
+				array(i,j,k,3,1,1)=(ZZ%phi(k)+ZZ%phi(k+1))/2d0
 			enddo
 		enddo
 	enddo

@@ -102,6 +102,9 @@ c allocate the arrays
 			read(key%value,*) MultiNphotMono
 		case("hardedge")
 			read(key%value,*) hardedge
+		case("opendisk")
+			read(key%value,*) opendisk
+			opendisk=opendisk*pi/180d0
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -435,6 +438,10 @@ c allocate the arrays
 			read(key%value,*) MCobs(key%nr1)%telescope
 		case("flag")
 			MCobs(key%nr1)%flag=key%value
+		case("tracestar")
+			read(key%value,*) MCobs(key%nr1)%trace(nzones+key%nr2)
+		case("tracezone")
+			read(key%value,*) MCobs(key%nr1)%trace(key%nr2)
 		case("next")
 		case default
 			call output("Unknown MCobs keyword: " // trim(key%key2))
@@ -687,6 +694,7 @@ c===============================================================================
 	
 	MultiNphotMono=1
 	hardedge=.false.
+	opendisk=-1d0
 	
 	do i=1,nstars
 		Star(i)%x=0d0
@@ -864,6 +872,11 @@ c===============================================================================
 	allocate(Part(npart))
 	allocate(Spiral(max(nSpirals,1)))
 	allocate(MCobs(max(nMCobs,1)))
+
+	do i=1,nMCobs
+		allocate(MCobs(i)%trace(nzones+nstars))
+		MCobs(i)%trace=.true.
+	enddo
 
 	do i=1,npart
 		Part(i)%nT=0
