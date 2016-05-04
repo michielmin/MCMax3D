@@ -195,12 +195,12 @@
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(iphot,iopenmp,Erandom,emitfromstar,ispat,i1,i2,i3,istar,izone,x,y,z,r)
 !$OMP& SHARED(phot,iobs,Espat,Star,MCobs,nspat,i1spat,i2spat,i3spat,zspat,Etot,nstars,ilam,NphotMono,
-!$OMP&			starttime,starttime_w,MultiNphotMono)
+!$OMP&			starttime,starttime_w,MultiNphotMono,i)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 	do iphot=1,NphotMono
 c		call tellertje(iphot,NphotMono)
-		call tellertje_time(iphot,NphotMono,starttime,starttime_w)
+		call tellertje_time(iphot+NphotMono*(i-1),NphotMono*MultiNphotMono,starttime,starttime_w)
 		iopenmp=omp_get_thread_num()+1
 		phot(iopenmp)%sI=Etot/real(NphotMono)/real(MultiNphotMono)
 		phot(iopenmp)%sQ=0d0
