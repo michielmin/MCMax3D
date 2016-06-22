@@ -522,7 +522,7 @@ c avoid zones with exactly the same inner or outer radii
 	IMPLICIT NONE
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
-	real*8 RoundOff, roundfac
+	real*8 RoundOff, roundfac, SD_round
 	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:),Avortex(:,:,:,:)
 	delta=2d0
 
@@ -559,6 +559,10 @@ c avoid zones with exactly the same inner or outer radii
 	enddo
 	
 	
+	if(Zone(ii)%roundtype.eq.'ABSPOW') then
+		r=Zone(ii)%roundradius*Zone(ii)%sscale
+		SD_round=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp))
+	endif
 	do ir=1,Zone(ii)%nr
 		r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
 		if(Zone(ii)%roundtype.ne.'NONE') then
@@ -569,13 +573,19 @@ c avoid zones with exactly the same inner or outer radii
 		
 		do ip=1,Zone(ii)%np
 			H(ir,ip)=Zone(ii)%sh*(r/Zone(ii)%Rsh)**Zone(ii)%shpow
-			SD(ir,ip)=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp)) * roundfac
+			if(Zone(ii)%roundtype.eq.'ABSPOW'.and.r.lt.(Zone(ii)%roundradius*Zone(ii)%sscale)) then
+				roundfac=(r-Zone(ii)%Rin)/((Zone(ii)%roundradius*Zone(ii)%sscale)-Zone(ii)%Rin)
+				SD(ir,ip)=SD_round*roundfac**Zone(ii)%roundindex
+			else
+				SD(ir,ip)=r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**(Zone(ii)%gamma_exp)) * roundfac
+			endif
 			A(ir,ip)=pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2)/real(Zone(ii)%np)
 			alpha(ir,ip)=Zone(ii)%alpha
 			Mtot=Mtot+A(ir,ip)*SD(ir,ip)
 		enddo
 	enddo
 	SD=SD*Zone(ii)%Mdust/Mtot
+
 	if(Zone(ii)%denstype.eq.'TAUFILE') then
 		call readtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
 	endif
@@ -1365,6 +1375,8 @@ c-----------------------------------------------------------------------
 	else if (roundtype.eq.'POW') then
 		!  use a powerlaw
 		scale=(rmax/r)**(-index)
+	else if (roundtype.eq.'ABSPOW') then
+		scale= 1d0
 	else
 		call output("Gap shape not recognized")
 		stop
