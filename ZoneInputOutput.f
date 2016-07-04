@@ -268,7 +268,7 @@ C	 create the new empty FITS file
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer nvars,ivars,i,j,k,ipart,is,iT,naxis,nhdu,izone
+	integer nvars,ivars,i,j,k,ipart,is,iT,naxis,nhdu,izone,iread
 	character*7 vars(nvars)
 	character*500 filename
 	logical doalloc,truefalse
@@ -294,7 +294,7 @@ C	 create the new empty FITS file
 	call ftopen(unit,filename,readwrite,blocksize,status)
 	if (status /= 0) then
 		call output("Density file not found")
-		print*,trim(filename)
+		print*,trim(filename),status
 		call output("--------------------------------------------------------")
 		stop
 	endif
@@ -451,14 +451,45 @@ C	 create the new empty FITS file
 			case ('SKIP')
 c	just skip this hdu
 			case default
-				call output("Error in output file specification")
+				call output("Error in input file specification")
 				stop
 		end select
 		deallocate(array)
 	enddo
 
 1	continue
-	
+
+	if(ivars.le.nvars) then
+		iread=ivars
+		do ivars=iread,nvars
+			print*,vars(ivars)
+			select case (vars(ivars))
+				case ('GASDENS')
+					call output("setting gas density according to gas2dust ratio")
+					do i=1,ZZ%nr
+						do j=1,ZZ%nt
+							do k=1,ZZ%np
+								ZZ%C(i,j,k)%gasdens=ZZ%C(i,j,k)%dens*ZZ%gas2dust
+							enddo
+						enddo
+					enddo
+				case ('NPHOT')
+					call output("setting photon statistics to 100")
+					do i=1,ZZ%nr
+						do j=1,ZZ%nt
+							do k=1,ZZ%np
+								ZZ%C(i,j,k)%Ni=100
+							enddo
+						enddo
+					enddo
+				case ('SKIP')
+c	just skip this hdu
+				case default
+					call output("Error missing HDU")
+					stop
+			end select
+		enddo
+	endif
 
 	!  Close the file and free the unit number.
 	call ftclos(unit, status)

@@ -228,6 +228,8 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%iter
 		case("denstype")
 			Zone(key%nr1)%denstype=trim(key%value)
+		case("densfile")
+			Zone(key%nr1)%densfile=trim(key%value)
 		case("gamma_exp")
 			read(key%value,*) Zone(key%nr1)%gamma_exp
 		case("denspow","sigmapow")

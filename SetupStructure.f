@@ -329,6 +329,8 @@ c-----------------------------------------------------------------------
 	integer ii,i1,i2,i3,i
 	real*8 random,rr
 	character*500 filename
+	character*7 ThingsToRead(20)
+	integer nttr
 	
 	call output("Setting up zone nr.: "// trim(int2string(ii,'(i4)')))
 
@@ -397,36 +399,7 @@ c avoid zones with exactly the same inner or outer radii
 	
 	if(Nphot.eq.0) then
 		filename=trim(outputdir) // "Zone" // trim(int2string(ii,'(i0.4)')) // ".fits.gz"
-		call output("Reading file: "// trim(filename))
-		call readstruct_fits(filename,ZoneStructOutput,nZoneStructOutput,ii)
-		Zone(ii)%imidplane=Zone(ii)%nt/2+1
-		do i=1,Zone(ii)%nt+1
-			Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
-		enddo
-		if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
-		if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
-		if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
-		do i=1,Zone(ii)%nr+1
-			Zone(ii)%R2(i)=Zone(ii)%R(i)**2
-		enddo
-		do i=1,Zone(ii)%np+1
-			if(Zone(ii)%phi(i).lt.(pi/4d0)) then
-				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
-				Zone(ii)%tany(i)=1d0
-			else if(Zone(ii)%phi(i).lt.(3d0*pi/4d0)) then
-				Zone(ii)%tanx(i)=-1d0
-				Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
-			else if(Zone(ii)%phi(i).lt.(5d0*pi/4d0)) then
-				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
-				Zone(ii)%tany(i)=1d0
-			else if(Zone(ii)%phi(i).lt.(7d0*pi/4d0)) then
-				Zone(ii)%tanx(i)=-1d0
-				Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
-			else
-				Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
-				Zone(ii)%tany(i)=1d0
-			endif
-		enddo
+		call ReadZoneFile(filename,ii,ZoneStructOutput,nZoneStructOutput)
 	else
 		call output("setup density structure")
 		select case(Zone(ii)%denstype)
@@ -436,6 +409,16 @@ c avoid zones with exactly the same inner or outer radii
 				call SetupShell(ii)
 			case("SPHERE")
 				call SetupSphere(ii)
+			case("FILE")
+				ThingsToRead( 1)='RGRID'
+				ThingsToRead( 2)='TGRID'
+				ThingsToRead( 3)='PGRID'
+				ThingsToRead( 4)='DENS'
+				ThingsToRead( 5)='COMP'
+				ThingsToRead( 6)='GASDENS'
+				nttr=6
+				call ReadZoneFile(Zone(ii)%densfile,ii,ThingsToRead,nttr)
+				call SetupVolume(ii)
 			case default
 				call SetupSpecialZone(ii)
 		end select	
@@ -457,9 +440,62 @@ c avoid zones with exactly the same inner or outer radii
 		enddo
 		close(unit=20)
 	endif
+
+c	ThingsToRead( 1)='RGRID'
+c	ThingsToRead( 2)='TGRID'
+c	ThingsToRead( 3)='PGRID'
+c	ThingsToRead( 4)='DENS'
+c	ThingsToRead( 5)='COMP'
+c	nttr=5
+c	filename=trim(outputdir) // "Setup" // trim(int2string(ii,'(i0.4)')) // ".fits.gz"
+c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	
 	return
 	end
+	
+	
+	subroutine ReadZoneFile(filename,ii,ThingsToRead,nttr)
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,i,nttr
+	character*500 filename
+	character*7 ThingsToRead(nttr)
+	
+	call output("Reading file: "// trim(filename))
+	call readstruct_fits(filename,ThingsToRead,nttr,ii)
+	Zone(ii)%imidplane=Zone(ii)%nt/2+1
+	do i=1,Zone(ii)%nt+1
+		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
+	enddo
+	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
+	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
+	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
+	do i=1,Zone(ii)%nr+1
+		Zone(ii)%R2(i)=Zone(ii)%R(i)**2
+	enddo
+	do i=1,Zone(ii)%np+1
+		if(Zone(ii)%phi(i).lt.(pi/4d0)) then
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		else if(Zone(ii)%phi(i).lt.(3d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=-1d0
+			Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+		else if(Zone(ii)%phi(i).lt.(5d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		else if(Zone(ii)%phi(i).lt.(7d0*pi/4d0)) then
+			Zone(ii)%tanx(i)=-1d0
+			Zone(ii)%tany(i)=-cos(Zone(ii)%phi(i))/sin(Zone(ii)%phi(i))
+		else
+			Zone(ii)%tanx(i)=sin(Zone(ii)%phi(i))/cos(Zone(ii)%phi(i))
+			Zone(ii)%tany(i)=1d0
+		endif
+	enddo
+	
+	return
+	end
+
 	
 	subroutine ScaleZoneInput(ii)
 	use GlobalSetup

@@ -160,6 +160,7 @@ c parameter for beaming towards this zone
 		character*500 taufile
 		logical thin
 		real*8 avortex,rvortex,phivortex,dvortex
+		character*500 densfile
 	end type ZoneType
 
 	type SpiralType
