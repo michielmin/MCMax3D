@@ -270,7 +270,7 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,i
-	real*8 Luminosity,tot,Planck
+	real*8 Luminosity,tot,Planck,r
 	
 	call output("Setting up star: " // trim(int2string(ii,'(i0.4)')))
 	Star(ii)%L=Star(ii)%L*Lsun
@@ -311,9 +311,9 @@ c-----------------------------------------------------------------------
 	Star(ii)%y=Star(ii)%y*AU
 	Star(ii)%z=Star(ii)%z*AU
 
-	if((Star(ii)%x+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%x)+Star(ii)%R)
-	if((Star(ii)%y+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%y)+Star(ii)%R)
-	if((Star(ii)%z+Star(ii)%R).gt.maxR) maxR=(abs(Star(ii)%z)+Star(ii)%R)
+	r=sqrt(Star(ii)%x**2+Star(ii)%y**2+Star(ii)%z**2)
+
+	if((r+Star(ii)%R).gt.maxR) maxR=(r+Star(ii)%R)
 	
 	return
 	end
@@ -461,6 +461,7 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	integer ii,i,nttr
 	character*500 filename
 	character*7 ThingsToRead(nttr)
+	real*8 r
 	
 	call output("Reading file: "// trim(filename))
 	call readstruct_fits(filename,ThingsToRead,nttr,ii)
@@ -468,9 +469,8 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2
 	enddo
-	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
-	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
-	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
+	r=sqrt(Zone(ii)%x0**2+Zone(ii)%y0**2+Zone(ii)%z0**2)
+	if((r+Zone(ii)%Rout).gt.maxR) maxR=(r+Zone(ii)%Rout)
 	do i=1,Zone(ii)%nr+1
 		Zone(ii)%R2(i)=Zone(ii)%R(i)**2
 	enddo
@@ -1087,6 +1087,7 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 	use Constants
 	IMPLICIT NONE
 	integer ii,i,nspan,nlev,j,ir
+	real*8 r
 
 	nspan=Zone(ii)%nr/21
 	nlev=7
@@ -1121,9 +1122,8 @@ c setup initial radial grid
 	enddo		
 	close(unit=20)
 
-	if((Zone(ii)%x0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%x0)+Zone(ii)%Rout)
-	if((Zone(ii)%y0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%y0)+Zone(ii)%Rout)
-	if((Zone(ii)%z0+Zone(ii)%Rout).gt.maxR) maxR=(abs(Zone(ii)%z0)+Zone(ii)%Rout)
+	r=sqrt(Zone(ii)%x0**2+Zone(ii)%y0**2+Zone(ii)%z0**2)
+	if((r+Zone(ii)%Rout).gt.maxR) maxR=(r+Zone(ii)%Rout)
 
 	do i=1,Zone(ii)%nr+1
 		Zone(ii)%R2(i)=Zone(ii)%R(i)**2

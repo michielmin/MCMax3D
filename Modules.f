@@ -175,7 +175,7 @@ c parameters for a spiral wave
 		real*8,allocatable :: image(:,:,:)						! dimension npix,npix,nlam
 		real*8,allocatable :: spec(:)							! dimension nlam
 		real*8 x,y,z,theta,phi,opening,sint,cost,sinp,cosp,maxR,f,fov
-		logical raytrace
+		logical raytrace,mcout
 		real*8 lam1,lam2
 		integer Nphot,nr,np
 		logical telescope,writeimage			! do a telescope sim?
@@ -213,6 +213,7 @@ c parameters for a spiral wave
 		logical,allocatable :: inzone(:,:)
 		type(CellPointer),allocatable :: C(:,:)
 		integer istar,n
+		logical HitZone
 	end type Path
 
 	type PathImage
