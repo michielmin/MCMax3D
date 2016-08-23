@@ -80,7 +80,7 @@ OBJS	      = Modules.o \
 # program name and install location
 PROGRAM       = MCMax3D
 DEST1	      = ${HOME}/bin
-DEST2	      = root@michielmin.nl:/volume1/web/wordpress/wp-content/uploads/download-manager-files
+DEST2	      = admin@michielmin.nl:/volume1/web/wordpress/wp-content/uploads/download-manager-files
 
 # make actions 
 all:		version $(PROGRAM)
