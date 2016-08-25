@@ -46,7 +46,7 @@ c string converting functions
 
 c wavelength grid
 	integer nlam,nzlam
-	real*8 lam1,lam2,zlam1,zlam2
+	real*8 lam1,lam2,zlam1,zlam2,lam_ref
 	real*8,allocatable :: lam(:),nu(:),dnu(:)
 	
 c Planck functions

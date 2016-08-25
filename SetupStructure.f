@@ -862,7 +862,7 @@ c	enddo
 	goto 1
 2	close(unit=20)
 
-	lam0=0.55
+	lam0=lam_ref
 	d=lam(nlam)-lam(1)
 	ilam=1
 	do i=1,nlam
@@ -1343,7 +1343,7 @@ c setup initial phi grid
 	enddo
 
 	if(Zone(ii)%tau_V.gt.0d0) then
-		lam0=0.55
+		lam0=lam_ref
 		d=lam(nlam)-lam(1)
 		ilam=1
 		do i=1,nlam

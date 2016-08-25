@@ -76,6 +76,8 @@ c allocate the arrays
 				case default
 					call output("Unknown zlam value")
 			end select
+		case("lam_ref","ref_lam","lamref","reflam")
+			read(key%value,*) lam_ref
 		case("maxiter")
 			read(key%value,*) maxiter
 		case("gammauvdes")
@@ -679,6 +681,7 @@ c===============================================================================
 	
 	lam1=0.1
 	lam2=10000
+	lam_ref=0.55d0
 	nlam=200
 	zlam1=5
 	zlam2=35
