@@ -326,8 +326,8 @@ c-----------------------------------------------------------------------
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer ii,i1,i2,i3,i
-	real*8 random,rr
+	integer ii,i1,i2,i3,i,j,k,ipart,iT,is
+	real*8 random,rr,tot
 	character*500 filename
 	character*7 ThingsToRead(20)
 	integer nttr
@@ -419,6 +419,28 @@ c avoid zones with exactly the same inner or outer radii
 				nttr=6
 				call ReadZoneFile(Zone(ii)%densfile,ii,ThingsToRead,nttr)
 				call SetupVolume(ii)
+				Zone(ii)%Mdust=0d0
+				do i=1,Zone(ii)%nr
+					do j=1,Zone(ii)%nt
+						do k=1,Zone(ii)%np
+							tot=0d0
+							do ipart=1,npart
+								do is=1,Part(ipart)%nsize
+									do iT=1,Part(ipart)%nT
+										tot=tot+Zone(ii)%C(i,j,k)%densP(ipart,is,iT)
+									enddo
+								enddo
+							enddo
+							if(Zone(ii)%C(i,j,k)%dens.lt.1d-40) Zone(ii)%C(i,j,k)%dens=1d-40
+							if(tot.eq.0d0) then
+								Zone(ii)%C(i,j,k)%densP=Zone(ii)%C(i,j,k)%dens/real(npart)
+							else
+								Zone(ii)%C(i,j,k)%densP=Zone(ii)%C(i,j,k)%densP*Zone(ii)%C(i,j,k)%dens/tot
+							endif
+							Zone(ii)%Mdust=Zone(ii)%Mdust+Zone(ii)%C(i,j,k)%dens*Zone(ii)%C(i,j,k)%V
+						enddo
+					enddo
+				enddo
 			case default
 				call SetupSpecialZone(ii)
 		end select	
@@ -465,6 +487,14 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	
 	call output("Reading file: "// trim(filename))
 	call readstruct_fits(filename,ThingsToRead,nttr,ii)
+	if(Zone(ii)%theta(Zone(ii)%nt).gt.179d0) then
+		call output("theta grid seems to be in degrees")
+		Zone(ii)%theta=Zone(ii)%theta*pi/180d0
+	endif
+	if(Zone(ii)%phi(Zone(ii)%nt).gt.179d0) then
+		call output("phi grid seems to be in degrees")
+		Zone(ii)%phi=Zone(ii)%phi*pi/180d0
+	endif
 	Zone(ii)%imidplane=Zone(ii)%nt/2+1
 	do i=1,Zone(ii)%nt+1
 		Zone(ii)%cost2(i)=cos(Zone(ii)%theta(i))**2

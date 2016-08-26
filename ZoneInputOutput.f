@@ -369,6 +369,8 @@ C	 create the new empty FITS file
 				do i=1,ZZ%nr+1
 					ZZ%R(i)=array(i,1,1,1,1,1)
 				enddo
+				ZZ%Rin=ZZ%R(1)
+				ZZ%Rout=ZZ%R(ZZ%nr+1)
 			case ('TGRID')
 				do i=1,ZZ%nt+1
 					ZZ%theta(i)=array(i,1,1,1,1,1)
