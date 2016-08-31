@@ -344,6 +344,13 @@ c allocate the arrays
 			read(key%value,*) Spiral(key%nr1)%q
 		case("sign")
 			read(key%value,*) Spiral(key%nr1)%sign
+		case("n")
+			read(key%value,*) Spiral(key%nr1)%n
+		case("a")
+			if(key%nr2.eq.1) read(key%value,*) Spiral(key%nr1)%A1
+			if(key%nr2.eq.2) read(key%value,*) Spiral(key%nr1)%A2
+		case("type")
+			Spiral(key%nr1)%type=trim(key%value)
 		case default
 			call output("Unknown spiral keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -820,6 +827,12 @@ c===============================================================================
 		Spiral(i)%q=1.7d0			! powerlaw dependence of the amplitude
 		Spiral(i)%Rin=0d0			! inner radius of the spiral
 		Spiral(i)%Rout=1d200		! outer radius of the spiral
+c for an Archimedean spiral:
+c R = Spiral(i)%A1 + Spiral(i)%A2 * (phi-Spiral(i)%phi)^Spiral(i)%n
+		Spiral(i)%A1=5d0
+		Spiral(i)%A2=1d0
+		Spiral(i)%n=1d0				! for Archimedean spiral
+		Spiral(i)%type='PLANET'		! 'PLANET','ARCH'
 	enddo
 		
 	return

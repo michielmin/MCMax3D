@@ -48,6 +48,8 @@ c spiral waves
 		Spiral(i)%Rout=Spiral(i)%Rout*AU
 		Spiral(i)%w=Spiral(i)%w*AU
 		Spiral(i)%phi=Spiral(i)%phi*pi/180d0
+		Spiral(i)%A1=Spiral(i)%A1*AU
+		Spiral(i)%A2=Spiral(i)%A2*AU
 	enddo
 	
 	call output("==================================================================")
@@ -621,7 +623,11 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	Mtot=0d0
 	Aspiral=0d0
 	do i=1,nSpirals
-		call ComputeAspiral(ii,i,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+		if(Spiral(i)%type(1:6).eq.'PLANET') then
+			call ComputeAspiral(ii,i,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+		else if(Spiral(i)%type(1:4).eq.'ARCH') then
+			call ComputeAspiralArch(ii,i,Aspiral,Zone(ii)%nr,Zone(ii)%np)
+		endif
 	enddo
 	
 	
@@ -1000,6 +1006,64 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 	return
 	end
 	
+	subroutine ComputeAspiralArch(ii,ispiral,Aspiral,nr,np)
+	use GlobalSetup
+	use Constants
+	integer ii,nr,np,ispiral
+	real*8 Aspiral(nSpirals,nr,np),phi,rp,r,f
+	integer nir,nip,ir,ip,iir,iip
+	nir=10
+	nip=10
+
+	call output("Setting up spiral wave " // int2string(ispiral,'(i3)'))
+	
+	Aspiral=0d0
+	call tellertje(1,np)
+!$OMP PARALLEL IF(.false.)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ip,ir,phi,f,r,rp,iir,iip)
+!$OMP& SHARED(Spiral,Zone,np,nip,nr,nir,Aspiral,ii,ispiral)
+!$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
+	do ip=1,np
+!$OMP CRITICAL
+		call tellertje(ip+1,np+2)
+!$OMP END CRITICAL
+		do iip=1,nip
+			phi=Spiral(ispiral)%sign*2d0*pi*(real(ip)-1d0+real(iip-1)/real(nip-1))/real(np)
+			phi=phi-Spiral(ispiral)%phi
+1			do while(phi.lt.0d0)
+				phi=phi+2d0*pi
+			enddo
+			rp=Spiral(ispiral)%A1+Spiral(ispiral)%A2*phi**Spiral(ispiral)%n
+			if(rp.lt.Spiral(ispiral)%Rin) then
+				phi=phi+2d0*pi
+				goto 1
+			endif
+			if(rp.gt.Spiral(ispiral)%Rout.or.rp.gt.Zone(ii)%Rout) goto 2
+			do ir=1,nr
+				do iir=1,nir
+					f=(real(iir)-0.5)/real(nir)
+					r=sqrt(Zone(ii)%R(ir)**(2d0-2d0*f)*Zone(ii)%R(ir+1)**(2d0*f))
+					Aspiral(ispiral,ir,ip)=Aspiral(ispiral,ir,ip)+
+     &					((r/Spiral(ispiral)%A1)**(-Spiral(ispiral)%q))*
+     &					exp(-(r-rp)**2/Spiral(ispiral)%w**2)/real(nir*nip)
+				enddo
+			enddo
+			phi=phi+2d0*pi
+			goto 1
+2			continue
+		enddo
+	enddo
+!$OMP END DO
+!$OMP FLUSH
+!$OMP END PARALLEL
+	call tellertje(np,np)
+
+	return
+	end
+
+
 	subroutine ComputeAspiral(ii,ispiral,Aspiral,nr,np)
 	use GlobalSetup
 	use Constants

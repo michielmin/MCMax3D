@@ -95,7 +95,7 @@
 	
 	return
 	end
-	
+
 	subroutine TraceScattField(iobs,ilam,NphotMono)
 	use GlobalSetup
 	IMPLICIT NONE
@@ -1197,11 +1197,12 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint,nthreads,ithread
+	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint,nthreads,ithread,id
 	integer omp_get_max_threads,omp_get_thread_num
 	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars),Q,U,V
 	real*8,allocatable :: image(:,:,:,:,:),fluxZ_omp(:),imA(:,:,:),imAopenmp(:,:,:,:)
-	logical,allocatable :: imHit(:,:),HitZone(:,:,:)
+	logical,allocatable :: HitZone(:,:,:)
+	integer,allocatable :: imHit(:,:)
 	real*8 frac,minA
 	integer izone0
 
@@ -1232,9 +1233,11 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 		call tellertje(1,100)
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit)
+!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit,id)
 !$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone)
 		allocate(imHit(MCobs(iobs)%npix,MCobs(iobs)%npix))
+		imHit=0
+		id=0
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
@@ -1264,7 +1267,7 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 				Q=-1d23*Q*A/(real(nint)*4d0*pi)
 				U=-1d23*U*A/(real(nint)*4d0*pi)
 				V=1d23*V*A/(real(nint)*4d0*pi)
-				imHit=.false.
+				id=id+1
 				do i=1,nint
 					Rad=R1+random(idum)*(R2-R1)
 					phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
@@ -1281,10 +1284,10 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 						image(izone,ithread,ix,iy,2)=image(izone,ithread,ix,iy,2)+Q
 						image(izone,ithread,ix,iy,3)=image(izone,ithread,ix,iy,3)+U
 						image(izone,ithread,ix,iy,4)=image(izone,ithread,ix,iy,4)+V
-						if(.not.imHit(ix,iy)) then
+						if(imHit(ix,iy).ne.id) then
 							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)
      &							+A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
-							imHit(ix,iy)=.true.
+							imHit(ix,iy)=id
 							HitZone(izone,ix,iy)=.true.
 						endif
 					endif

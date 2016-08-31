@@ -10,8 +10,8 @@
 	call output("Writing Monte Carlo observables")
 	do i=1,nMCobs
 		if(MCobs(i)%mcout) then
-			MCfile=trim(outputdir) // "MCout" // trim(int2string(i,'(i0.4)')) // trim(MCobs(i)%flag) // ".fits.gz"
-			if(MCobs(i)%writeimage) call writefitsfile(MCfile,MCobs(i)%image,nlam,MCobs(i)%npix)
+c			MCfile=trim(outputdir) // "MCout" // trim(int2string(i,'(i0.4)')) // trim(MCobs(i)%flag) // ".fits.gz"
+c			if(MCobs(i)%writeimage) call writefitsfile(MCfile,MCobs(i)%image,nlam,MCobs(i)%npix)
 			MCfile=trim(outputdir) // "MCSpec" // trim(int2string(i,'(i0.4)')) // trim(MCobs(i)%flag) // ".dat"
 			open(unit=20,file=MCfile)
 			do j=1,nlam

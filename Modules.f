@@ -100,7 +100,9 @@ c extra photons in raytracing
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
-		real*8 Escatt,Elam,KabsL,Qscatt,Uscatt,Vscatt			! for the raytracing
+		real*8 Escatt,Elam,Qscatt,Uscatt,Vscatt			! for the raytracing
+		real*8 KabsL,KextL
+		integer iabs,iext
 	end type Cell
 	
 	type Photon
@@ -166,8 +168,9 @@ c parameter for beaming towards this zone
 	type SpiralType
 c parameters for a spiral wave
 		real*8 Adens,Aheight,Aalpha
-		real*8 r,phi,alpha,beta,w,q,hr,Rin,Rout
+		real*8 r,phi,alpha,beta,w,q,hr,Rin,Rout,n,A1,A2
 		integer sign
+		character*10 type
 	end type SpiralType
 
 	type MCobsType
