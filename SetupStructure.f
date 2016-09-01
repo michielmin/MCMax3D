@@ -1017,7 +1017,7 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 
 	call output("Setting up spiral wave " // int2string(ispiral,'(i3)'))
 	
-	Aspiral=0d0
+	Aspiral(ispiral,1:nr,1:np)=0d0
 	call tellertje(1,np)
 !$OMP PARALLEL IF(.false.)
 !$OMP& DEFAULT(NONE)
