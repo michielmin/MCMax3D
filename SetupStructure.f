@@ -378,6 +378,7 @@ c-----------------------------------------------------------------------
 		do i2=1,Zone(ii)%n2
 			do i3=1,Zone(ii)%n3
 				allocate(Zone(ii)%C(i1,i2,i3)%densP(npart,maxns,maxnT))
+				Zone(ii)%C(i1,i2,i3)%lock=.false.
 			enddo
 		enddo
 	enddo

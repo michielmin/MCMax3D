@@ -533,12 +533,6 @@ c This function gives the absorption cross section per cm
 	integer ilam,ipart,iT,isize
 	type(Cell) C
 	
-	if(ilam.eq.C%iabs) then
-		GetKabs=C%KabsL
-		return
-	endif
-	C%iabs=ilam
-	
 	GetKabs=0d0
 	do ipart=1,npart
 		do isize=1,Part(ipart)%nsize
@@ -547,7 +541,6 @@ c This function gives the absorption cross section per cm
 			enddo
 		enddo
 	enddo
-	C%KabsL=GetKabs
 	
 	return
 	end
@@ -560,12 +553,6 @@ c This function gives the extinction cross section per cm
 	integer ilam,ipart,iT,isize
 	type(Cell) C
 
-	if(ilam.eq.C%iext) then
-		GetKext=C%KextL
-		return
-	endif
-	C%iext=ilam
-
 	GetKext=0d0
 	do ipart=1,npart
 		do isize=1,Part(ipart)%nsize
@@ -574,7 +561,6 @@ c This function gives the extinction cross section per cm
 			enddo
 		enddo
 	enddo
-	C%KextL=GetKext
 	
 	return
 	end

@@ -99,7 +99,7 @@ c extra photons in raytracing
 		real*8 Etrace,gasdens,G0
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
-		logical diff,randomwalk
+		logical diff,randomwalk,lock
 		real*8 Escatt,Elam,Qscatt,Uscatt,Vscatt			! for the raytracing
 		real*8 KabsL,KextL
 		integer iabs,iext
