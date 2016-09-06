@@ -167,8 +167,7 @@
 			if(iT.lt.1) iT=1
 			if(iT.gt.nBB) iT=nBB
 			if(BB(ilam,iT).gt.0d0) then
-				C%KabsL=GetKabs(ilam,C)
-				C%Elam=C%KabsL*BB(ilam,iT)*C%V
+				C%Elam=GetKabs(ilam,C)*BB(ilam,iT)*C%V
 				if(C%Elam.gt.0d0) then
 					Etot=Etot+C%Elam
 					nspat=nspat+1
