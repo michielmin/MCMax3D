@@ -1233,7 +1233,7 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
 !$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit,id)
-!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone)
+!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone,transmissiontracing)
 		allocate(imHit(MCobs(iobs)%npix,MCobs(iobs)%npix))
 		imHit=0
 		id=0
@@ -1254,7 +1254,20 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
 				endif
 				
-				call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.true.)
+				if(transmissiontracing) then
+					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.true.)
+				else
+					if(izone.le.nzones) then
+						call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.false.)
+					else
+						call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
+						flux=flux*MCobs(iobs)%fstar
+						Q=0d0
+						U=0d0
+						V=0d0
+					endif
+					Pimage(izone)%P(ir,ip)%HitZone=.true.
+				endif
 				if(Pimage(izone)%P(ir,ip)%HitZone) then
 
 				A=pi*(R2**2-R1**2)/real(Pimage(izone)%np)
@@ -1283,7 +1296,7 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 						image(izone,ithread,ix,iy,2)=image(izone,ithread,ix,iy,2)+Q
 						image(izone,ithread,ix,iy,3)=image(izone,ithread,ix,iy,3)+U
 						image(izone,ithread,ix,iy,4)=image(izone,ithread,ix,iy,4)+V
-						if(imHit(ix,iy).ne.id) then
+						if(transmissiontracing.and.imHit(ix,iy).ne.id) then
 							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)
      &							+A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
 							imHit(ix,iy)=id
@@ -1291,16 +1304,18 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 						endif
 					endif
 				enddo
-				if(izone.le.nzones) then
-					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.false.)
-				else
-					call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
-					flux=flux*MCobs(iobs)%fstar
-					Q=0d0
-					U=0d0
-					V=0d0
+				if(transmissiontracing) then
+					if(izone.le.nzones) then
+						call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.false.)
+					else
+						call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
+						flux=flux*MCobs(iobs)%fstar
+						Q=0d0
+						U=0d0
+						V=0d0
+					endif
 				endif
-				fluxZ_omp(ithread)=fluxZ_omp(ithread)+1d23*flux*A/(4d0*pi)
+				fluxZ_omp(ithread)=fluxZ_omp(ithread)+flux*real(nint)
 				endif
 			enddo
 		enddo
@@ -1313,42 +1328,54 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 		endif
 	enddo
 
-	imA=0d0
-	do izone=1,nzones+nstars
+	if(transmissiontracing) then
+		imA=0d0
+		do izone=1,nzones+nstars
+			do ix=1,MCobs(iobs)%npix
+				do iy=1,MCobs(iobs)%npix
+					if(HitZone(izone,ix,iy)) then
+						do ithread=1,nthreads
+							imA(izone,ix,iy)=imA(izone,ix,iy)+imAopenmp(izone,ithread,ix,iy)
+						enddo
+					endif
+				enddo
+			enddo
+		enddo
+
 		do ix=1,MCobs(iobs)%npix
-			do iy=1,MCobs(iobs)%npix
-				if(HitZone(izone,ix,iy)) then
-					do ithread=1,nthreads
-						imA(izone,ix,iy)=imA(izone,ix,iy)+imAopenmp(izone,ithread,ix,iy)
-					enddo
+		do iy=1,MCobs(iobs)%npix
+			frac=1d0
+1			continue
+			minA=1d200
+			izone0=0
+			do izone=1,nzones+nstars
+				if(HitZone(izone,ix,iy).and.imA(izone,ix,iy).lt.minA) then
+					minA=imA(izone,ix,iy)
+					izone0=izone
 				endif
 			enddo
-		enddo
-	enddo
-
-	do ix=1,MCobs(iobs)%npix
-	do iy=1,MCobs(iobs)%npix
-		frac=1d0
-1		continue
-		minA=1d200
-		izone0=0
-		do izone=1,nzones+nstars
-			if(HitZone(izone,ix,iy).and.imA(izone,ix,iy).lt.minA) then
-				minA=imA(izone,ix,iy)
-				izone0=izone
+			if(izone0.ne.0) then
+				do ithread=1,nthreads
+					MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+frac*image(izone0,ithread,ix,iy,1:4)
+				enddo
+				frac=frac-minA
+				HitZone(izone0,ix,iy)=.false.
+ 				if(frac.gt.0d0) goto 1
 			endif
 		enddo
-		if(izone0.ne.0) then
-			do ithread=1,nthreads
-				MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+frac*image(izone0,ithread,ix,iy,1:4)
+		enddo
+	else
+		do ix=1,MCobs(iobs)%npix
+			do iy=1,MCobs(iobs)%npix
+				MCobs(iobs)%image(ix,iy,1:4)=0d0
+				do izone=1,nzones+nstars
+					do ithread=1,nthreads
+						MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+image(izone,ithread,ix,iy,1:4)
+					enddo
+				enddo
 			enddo
-			frac=frac-minA
-			HitZone(izone0,ix,iy)=.false.
- 			if(frac.gt.0d0) goto 1
-		endif
-	enddo
-	enddo
-
+		enddo
+	endif
 	deallocate(image)
 	deallocate(imA)
 	deallocate(HitZone)

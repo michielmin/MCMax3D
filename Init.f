@@ -107,6 +107,8 @@ c allocate the arrays
 		case("opendisk")
 			read(key%value,*) opendisk
 			opendisk=opendisk*pi/180d0
+		case("transtrace")
+			read(key%value,*) transmissiontracing
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -701,6 +703,7 @@ c===============================================================================
 	gammaUVdes=0d0
 	use_multi=.true.
 	rt_multi=.true.
+	transmissiontracing=.false.
 
 	delta_St=1d0
 	

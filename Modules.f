@@ -33,7 +33,7 @@ c===============================================================================
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum,abun_in_name,nSpirals
-	logical criticalerror,adjustAv,use_multi,rt_multi,hardedge
+	logical criticalerror,adjustAv,use_multi,rt_multi,hardedge,transmissiontracing
 	real*8 maxR,distance,Av,gammaUVdes,delta_St
 	character*500 outputdir,particledir
 	character*7 ZoneStructOutput(20)
@@ -99,10 +99,9 @@ c extra photons in raytracing
 		real*8 Etrace,gasdens,G0
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
-		logical diff,randomwalk,lock
+		logical diff,randomwalk
 		real*8 Escatt,Elam,Qscatt,Uscatt,Vscatt			! for the raytracing
 		real*8 KabsL,KextL
-		integer iabs,iext
 	end type Cell
 	
 	type Photon
@@ -215,7 +214,7 @@ c parameters for a spiral wave
 		real*8,allocatable :: v(:)
 		logical,allocatable :: inzone(:,:)
 		type(CellPointer),allocatable :: C(:,:)
-		integer istar,n
+		integer istar,n,nzones
 		logical HitZone
 	end type Path
 
