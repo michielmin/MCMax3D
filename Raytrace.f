@@ -43,7 +43,8 @@
 	zscale=1d3*(MCobs(iobs)%npix/fov0)**2
 
 	do ilam=1,nlam
-		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
+c		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
+		MCobs(iobs)%spec(ilam)=MCobs(iobs)%spec(ilam)*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
 	enddo
 
 	call SetupPaths(iobs)
@@ -1199,23 +1200,30 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint,nthreads,ithread,id
 	integer omp_get_max_threads,omp_get_thread_num
 	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars),Q,U,V
-	real*8,allocatable :: image(:,:,:,:,:),fluxZ_omp(:),imA(:,:,:),imAopenmp(:,:,:,:)
+	real*8,allocatable :: imageopenmp(:,:,:,:,:),fluxZ_omp(:),imA(:,:,:),imAopenmp(:,:,:,:)
+	real*8,allocatable :: sizeA(:,:,:),sizeAopenmp(:,:,:,:),image(:,:,:,:)
 	logical,allocatable :: HitZone(:,:,:)
 	integer,allocatable :: imHit(:,:)
 	real*8 frac,minA
+	logical hitnow
 	integer izone0
 
 	MCobs(iobs)%image(:,:,1:4)=0d0		! use the wavelength dimension for the Stokes vectors
 
 	nthreads=omp_get_max_threads()
-	allocate(image(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
+	allocate(image(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
+	allocate(imageopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
 	allocate(imA(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
 	allocate(HitZone(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
 	allocate(imAopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix))
+	allocate(sizeAopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix))
+	allocate(sizeA(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
 	allocate(fluxZ_omp(nthreads))
 	image=0d0
 	HitZone=.false.
 	imAopenmp=0d0
+	sizeAopenmp=0d0
+	imageopenmp=0d0
 	
 	do izone=1,nzones+nstars
 		fluxZ(izone)=0d0
@@ -1232,8 +1240,9 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 		call tellertje(1,100)
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit,id)
-!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone,transmissiontracing)
+!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,j,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit,id,hitnow)
+!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone,
+!$OMP&        transmissiontracing,imA,Zone,sizeA,sizeAopenmp,imageopenmp)
 		allocate(imHit(MCobs(iobs)%npix,MCobs(iobs)%npix))
 		imHit=0
 		id=0
@@ -1292,16 +1301,52 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 					iy=x
 
 					if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-						image(izone,ithread,ix,iy,1)=image(izone,ithread,ix,iy,1)+flux
-						image(izone,ithread,ix,iy,2)=image(izone,ithread,ix,iy,2)+Q
-						image(izone,ithread,ix,iy,3)=image(izone,ithread,ix,iy,3)+U
-						image(izone,ithread,ix,iy,4)=image(izone,ithread,ix,iy,4)+V
+					if(transmissiontracing) then
+						if(izone.eq.1) then
+							hitnow=.true.
+						else
+							hitnow=.true.
+							do j=1,izone-1
+								if(Hitzone(j,ix,iy)) hitnow=.false.
+							enddo
+							if(.not.hitnow) then
+								do j=1,izone-1
+									if(HitZone(j,ix,iy).and.sizeA(j,ix,iy).gt.A) then
+										if(((x-Pimage(j)%x)**2+(y-Pimage(j)%y)**2).lt.Pimage(j)%R(Pimage(j)%nr)) then
+!$OMP FLUSH
+											image(j,ix,iy,1:4)=image(j,ix,iy,1:4)*(imA(j,ix,iy)-A/real(nint))/imA(j,ix,iy)
+											imA(j,ix,iy)=imA(j,ix,iy)-A/real(nint)
+											if(imA(j,ix,iy).le.0d0) Hitzone(j,ix,iy)=.false.
+											hitnow=.true.
+										endif
+									endif
+								enddo
+							endif
+						endif
+						if(hitnow) then
+							imageopenmp(izone,ithread,ix,iy,1)=imageopenmp(izone,ithread,ix,iy,1)+flux
+							imageopenmp(izone,ithread,ix,iy,2)=imageopenmp(izone,ithread,ix,iy,2)+Q
+							imageopenmp(izone,ithread,ix,iy,3)=imageopenmp(izone,ithread,ix,iy,3)+U
+							imageopenmp(izone,ithread,ix,iy,4)=imageopenmp(izone,ithread,ix,iy,4)+V
+							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)+A/real(nint)
+							if(imHit(ix,iy).ne.id) then
+								sizeAopenmp(izone,ithread,ix,iy)=sizeAopenmp(izone,ithread,ix,iy)+A
+								imHit(ix,iy)=id
+								HitZone(izone,ix,iy)=.true.
+							endif
+						endif
+					else
+						imageopenmp(izone,ithread,ix,iy,1)=imageopenmp(izone,ithread,ix,iy,1)+flux
+						imageopenmp(izone,ithread,ix,iy,2)=imageopenmp(izone,ithread,ix,iy,2)+Q
+						imageopenmp(izone,ithread,ix,iy,3)=imageopenmp(izone,ithread,ix,iy,3)+U
+						imageopenmp(izone,ithread,ix,iy,4)=imageopenmp(izone,ithread,ix,iy,4)+V
 						if(transmissiontracing.and.imHit(ix,iy).ne.id) then
 							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)
      &							+A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
 							imHit(ix,iy)=id
 							HitZone(izone,ix,iy)=.true.
 						endif
+					endif
 					endif
 				enddo
 				if(transmissiontracing) then
@@ -1325,58 +1370,31 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 !$OMP END PARALLEL
 		fluxZ(izone)=sum(fluxZ_omp(1:nthreads))
 		call tellertje(100,100)
+		do ix=1,MCobs(iobs)%npix
+			do iy=1,MCobs(iobs)%npix
+				imA(izone,ix,iy)=0d0
+				sizeA(izone,ix,iy)=0d0
+				image(izone,ix,iy,1:4)=0d0
+				do ithread=1,nthreads
+					imA(izone,ix,iy)=imA(izone,ix,iy)+imAopenmp(izone,ithread,ix,iy)
+					sizeA(izone,ix,iy)=sizeA(izone,ix,iy)+sizeAopenmp(izone,ithread,ix,iy)
+					image(izone,ix,iy,1:4)=image(izone,ix,iy,1:4)+imageopenmp(izone,ithread,ix,iy,1:4)
+				enddo
+			enddo
+		enddo
 		endif
 	enddo
 
-	if(transmissiontracing) then
-		imA=0d0
-		do izone=1,nzones+nstars
-			do ix=1,MCobs(iobs)%npix
-				do iy=1,MCobs(iobs)%npix
-					if(HitZone(izone,ix,iy)) then
-						do ithread=1,nthreads
-							imA(izone,ix,iy)=imA(izone,ix,iy)+imAopenmp(izone,ithread,ix,iy)
-						enddo
-					endif
-				enddo
-			enddo
-		enddo
-
-		do ix=1,MCobs(iobs)%npix
+	do ix=1,MCobs(iobs)%npix
 		do iy=1,MCobs(iobs)%npix
-			frac=1d0
-1			continue
-			minA=1d200
-			izone0=0
+			MCobs(iobs)%image(ix,iy,1:4)=0d0
 			do izone=1,nzones+nstars
-				if(HitZone(izone,ix,iy).and.imA(izone,ix,iy).lt.minA) then
-					minA=imA(izone,ix,iy)
-					izone0=izone
-				endif
-			enddo
-			if(izone0.ne.0) then
-				do ithread=1,nthreads
-					MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+frac*image(izone0,ithread,ix,iy,1:4)
-				enddo
-				frac=frac-minA
-				HitZone(izone0,ix,iy)=.false.
- 				if(frac.gt.0d0) goto 1
-			endif
-		enddo
-		enddo
-	else
-		do ix=1,MCobs(iobs)%npix
-			do iy=1,MCobs(iobs)%npix
-				MCobs(iobs)%image(ix,iy,1:4)=0d0
-				do izone=1,nzones+nstars
-					do ithread=1,nthreads
-						MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+image(izone,ithread,ix,iy,1:4)
-					enddo
-				enddo
+				MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+image(izone,ix,iy,1:4)
 			enddo
 		enddo
-	endif
+	enddo
 	deallocate(image)
+	deallocate(imageopenmp)
 	deallocate(imA)
 	deallocate(HitZone)
 	deallocate(imAopenmp)

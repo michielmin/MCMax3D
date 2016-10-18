@@ -36,7 +36,11 @@ c setup the observation direction
 		MCobs(i)%yup=-MCobs(i)%sinp*MCobs(i)%cost
 		MCobs(i)%zup=MCobs(i)%sint
 		
-		allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
+		if(MCobs(i)%mcout) then
+			allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,nlam))
+		else
+			allocate(MCobs(i)%image(MCobs(i)%npix,MCobs(i)%npix,4))
+		endif
 		allocate(MCobs(i)%spec(nlam))
 		MCobs(i)%f=2d0*pi*(1d0-MCobs(i)%opening)
 	enddo

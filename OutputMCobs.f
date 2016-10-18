@@ -15,7 +15,7 @@ c			if(MCobs(i)%writeimage) call writefitsfile(MCfile,MCobs(i)%image,nlam,MCobs(
 			MCfile=trim(outputdir) // "MCSpec" // trim(int2string(i,'(i0.4)')) // trim(MCobs(i)%flag) // ".dat"
 			open(unit=20,file=MCfile)
 			do j=1,nlam
-				MCobs(i)%spec(j)=sum(MCobs(i)%image(:,:,j))
+c				MCobs(i)%spec(j)=sum(MCobs(i)%image(:,:,j))
 				write(20,*) lam(j),MCobs(i)%spec(j)*Reddening(lam(j),compute_dlam(lam(j)),Av)/distance**2
 			enddo
 			close(unit=20)
