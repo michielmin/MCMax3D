@@ -216,7 +216,12 @@ c parameters for a spiral wave
 		type(CellPointer),allocatable :: C(:,:)
 		integer istar,n,nzones
 		logical HitZone
+		real*8 x,y
+		real*8 xedge(3),yedge(3)
 	end type Path
+
+	type(Path),allocatable :: TracePaths(:)
+	integer nTracePaths
 
 	type PathImage
 		type(Path),allocatable :: P(:,:)

@@ -75,7 +75,8 @@ OBJS	      = Modules.o \
 				SpecialZone.o \
 				OutputStats.o \
 				ZoneInputOutput.o \
-				EvolveStructure.o
+				EvolveStructure.o \
+				delaunay_lmap_2d.o
 
 # program name and install location
 PROGRAM       = MCMax3D
@@ -96,6 +97,17 @@ upload:		version $(PROGRAM)
 echo:;		@echo $(SUFFIX)
 
 # how to compile program 
+.SUFFIXES : .o .f .f90 .F
+
+.f.o:
+	$(FC) $(LDFLAGS) -c $<
+
+.f90.o:
+	$(FC) $(LDFLAGS) -c $<
+
+.F.o:
+	$(FC) $(LDFLAGS) -c $<
+
 $(PROGRAM):     $(OBJS)
 		$(LINKER) $(LDFLAGS) $(OBJS) $(LIBS) -o $(PROGRAM)
 

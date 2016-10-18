@@ -659,6 +659,10 @@ c beaming
 	type(Photon),allocatable :: phot(:),phot0(:)
 	integer maxnopenmp,iopenmp,omp_get_thread_num,omp_get_max_threads,maxcount
 	logical error
+	integer,allocatable :: t_node(:,:),t_neighbor(:,:)
+	integer matri,nnodes
+	real*8,allocatable :: xy(:,:)
+	real*8 matrix(2,2)
 
 	maxnopenmp=omp_get_max_threads()+1
 	if(.not.use_multi) maxnopenmp=1
@@ -698,6 +702,7 @@ c beaming
 		maxcount=maxcount+Zone(izone)%n1*Zone(izone)%n2*Zone(izone)%n3
 	enddo
 	
+	nnodes=0
 	do izone=1,nzones+nstars
 		if(izone.le.nzones) then
 			Zo => Zone(izone)
@@ -743,12 +748,12 @@ c beaming
 			x=St%x
 			y=St%y
 			z=St%z
-			Pimage(izone)%nr=100
-			Pimage(izone)%np=min(100,MCobs(iobs)%np)
+			Pimage(izone)%nr=150
+			Pimage(izone)%np=min(150,MCobs(iobs)%np)
 			allocate(Pimage(izone)%R(Pimage(izone)%nr))
 			allocate(Pimage(izone)%P(Pimage(izone)%nr,Pimage(izone)%np))
 			do i=1,Pimage(izone)%nr
-				Pimage(izone)%R(i)=St%R*(real(i)-0.99)/real(Pimage(izone)%nr-0.9)
+				Pimage(izone)%R(i)=St%R*(real(i)-0.9)/(real(Pimage(izone)%nr)-0.9)
 			enddo
 		endif
 
@@ -777,65 +782,111 @@ c beaming
      &				// trim(int2string(Pimage(izone)%np,'(i4)')) // " = "  
      &				// trim(int2string(Pimage(izone)%nr*Pimage(izone)%np,'(i8)')))
 		call tellertje(1,100)
-!$OMP PARALLEL IF(use_multi)
-!$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp,error)
-!$OMP& SHARED(Pimage,izone,MCobs,iobs,phot,phot0,maxR,x,y,z,nzones,maxcount)
-!$OMP DO
-!$OMP& SCHEDULE(DYNAMIC, 1)
 		do ir=1,Pimage(izone)%nr
 			iopenmp=omp_get_thread_num()+1
 			call tellertje(ir+1,Pimage(izone)%nr+2)
 			do ip=1,Pimage(izone)%np
+				nnodes=nnodes+1
 				if(ir.eq.1) then
 					R1=Pimage(izone)%R(ir)
 					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
+					R2=R1
 				else if(ir.eq.Pimage(izone)%nr) then
 					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
 					R2=Pimage(izone)%R(ir)
+					R1=R2
 				else
 					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
 					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
 				endif
-2				Rad=R1+random(idum)*(R2-R1)
+				Rad=R1+random(idum)*(R2-R1)
 				phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
 
 				phot(iopenmp)%x=Rad*cos(phi)+x
 				phot(iopenmp)%y=Rad*sin(phi)+y
 				phot(iopenmp)%z=z
 
-				call rotateY(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
-				call rotateZ(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
-				phot(iopenmp)%vx=0d0
-				phot(iopenmp)%vy=0d0
-				phot(iopenmp)%vz=-1d0
-				call rotateY(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
-				call rotateZ(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
-
-				call TranslatePhotonX(phot(iopenmp))
-				call TranslatePhotonV(phot(iopenmp))
-
-				call TravelPhotonX(phot(iopenmp),-3d0*maxR)
-
-				phot0(iopenmp)=phot(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.true.,maxcount,error)
-				if(error) goto 2
-
-				allocate(Pimage(izone)%P(ir,ip)%v(Pimage(izone)%P(ir,ip)%n))
-				allocate(Pimage(izone)%P(ir,ip)%inzone(Pimage(izone)%P(ir,ip)%n,nzones))
-				allocate(Pimage(izone)%P(ir,ip)%C(Pimage(izone)%P(ir,ip)%n,nzones))
-
-				phot(iopenmp)=phot0(iopenmp)
-				call RaytracePath(phot(iopenmp),Pimage(izone)%P(ir,ip),.false.,maxcount,error)
-				if(error) goto 2
+				Pimage(izone)%P(ir,ip)%x=phot(iopenmp)%x
+				Pimage(izone)%P(ir,ip)%y=phot(iopenmp)%y
 			enddo
 		enddo
+		call tellertje(100,100)
+	enddo
+	
+	allocate(xy(2,nnodes))
+	i=0
+	do izone=1,nzones+nstars
+		do ir=1,Pimage(izone)%nr
+			do ip=1,Pimage(izone)%np
+				i=i+1
+				xy(1,i)=Pimage(izone)%P(ir,ip)%x
+				xy(2,i)=Pimage(izone)%P(ir,ip)%y
+			enddo
+		enddo
+	enddo
+	matrix(1,1)=1d0
+	matrix(1,2)=0d0
+	matrix(2,1)=0d0
+	matrix(2,2)=1d0
+	matri=2*nnodes-3
+	allocate(t_node(3,matri))
+	allocate(t_neighbor(3,matri))
+	call dtris2_lmap (nnodes, xy, matrix, nTracePaths, t_node, t_neighbor )
+
+	call output("Number of rays: " // trim(int2string(nTracePaths,'(i8)')))
+
+	allocate(TracePaths(nTracePaths))
+
+!$OMP PARALLEL IF(use_multi)
+!$OMP& DEFAULT(NONE)
+!$OMP& PRIVATE(ir,ip,R1,R2,i,Rad,phi,iopenmp,error)
+!$OMP& SHARED(MCobs,iobs,phot,phot0,maxR,nzones,maxcount,TracePaths,xy,nTracePaths,t_node)
+!$OMP DO
+!$OMP& SCHEDULE(DYNAMIC, 1)
+	do i=1,nTracePaths
+		iopenmp=omp_get_thread_num()+1
+		call tellertje(i+1,nTracePaths+2)
+
+		phot(iopenmp)%x=(xy(1,t_node(1,i))+xy(1,t_node(2,i))+xy(1,t_node(3,i)))/3d0
+		phot(iopenmp)%y=(xy(2,t_node(1,i))+xy(2,t_node(2,i))+xy(2,t_node(3,i)))/3d0
+		phot(iopenmp)%z=0d0
+
+		TracePaths(i)%x=phot(iopenmp)%x
+		TracePaths(i)%y=phot(iopenmp)%y
+		do j=1,3
+			TracePaths(i)%xedge(j)=xy(1,t_node(j,i))
+			TracePaths(i)%yedge(j)=xy(2,t_node(j,i))
+		enddo
+
+		call rotateY(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+		call rotateZ(phot(iopenmp)%x,phot(iopenmp)%y,phot(iopenmp)%z,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+		phot(iopenmp)%vx=0d0
+		phot(iopenmp)%vy=0d0
+		phot(iopenmp)%vz=-1d0
+		call rotateY(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%theta),-sin(MCobs(iobs)%theta))
+		call rotateZ(phot(iopenmp)%vx,phot(iopenmp)%vy,phot(iopenmp)%vz,cos(MCobs(iobs)%phi),sin(MCobs(iobs)%phi))
+
+		call TranslatePhotonX(phot(iopenmp))
+		call TranslatePhotonV(phot(iopenmp))
+
+		call TravelPhotonX(phot(iopenmp),-3d0*maxR)
+
+		phot0(iopenmp)=phot(iopenmp)
+		call RaytracePath(phot(iopenmp),TracePaths(i),.true.,maxcount,error)
+
+		allocate(TracePaths(i)%v(TracePaths(i)%n))
+		allocate(TracePaths(i)%inzone(TracePaths(i)%n,nzones))
+		allocate(TracePaths(i)%C(TracePaths(i)%n,nzones))
+
+		phot(iopenmp)=phot0(iopenmp)
+		call RaytracePath(phot(iopenmp),TracePaths(i),.false.,maxcount,error)
+	enddo
 !$OMP END DO
 !$OMP FLUSH
 !$OMP END PARALLEL
-		call tellertje(100,100)
-	enddo
-		
+	call tellertje(100,100)
+
+
 	return
 	end
 
@@ -936,6 +987,7 @@ c beaming
 			enddo
 		else
 			if(P%inzone(k,izone0)) then
+				P%HitZone=.true.
 				C => P%C(k,izone0)%C
 				iT=(C%T+0.5d0)/dTBB
 				if(iT.lt.1) iT=1
@@ -998,6 +1050,7 @@ c beaming
 	flux=0d0
 
 	if(P%istar.ne.istar0) return
+	P%HitZone=.true.
 	
 	do k=1,P%n
 	
@@ -1200,205 +1253,96 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	integer iobs,ilam,izone,ir,ip,i,j,ix,iy,ii,istar,nint,nthreads,ithread,id
 	integer omp_get_max_threads,omp_get_thread_num
 	real*8 random,phi,x,y,flux,A,R1,R2,Rad,scale(3),fluxZ(nzones+nstars),Q,U,V
-	real*8,allocatable :: imageopenmp(:,:,:,:,:),fluxZ_omp(:),imA(:,:,:),imAopenmp(:,:,:,:)
-	real*8,allocatable :: sizeA(:,:,:),sizeAopenmp(:,:,:,:),image(:,:,:,:)
-	logical,allocatable :: HitZone(:,:,:)
-	integer,allocatable :: imHit(:,:)
-	real*8 frac,minA
-	logical hitnow
-	integer izone0
+	real*8 l1,l2,l3,tot,w1,w2,w3,pl,vv2,vv3,v1v2,v1v3,v2v3,aaa,bbb,v2x,v2y,v3x,v3y
+	real*8,allocatable :: imageopenmp(:,:,:,:,:)
 
 	MCobs(iobs)%image(:,:,1:4)=0d0		! use the wavelength dimension for the Stokes vectors
 
 	nthreads=omp_get_max_threads()
-	allocate(image(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
-	allocate(imageopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
-	allocate(imA(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
-	allocate(HitZone(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
-	allocate(imAopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix))
-	allocate(sizeAopenmp(nzones+nstars,nthreads,MCobs(iobs)%npix,MCobs(iobs)%npix))
-	allocate(sizeA(nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix))
-	allocate(fluxZ_omp(nthreads))
-	image=0d0
-	HitZone=.false.
-	imAopenmp=0d0
-	sizeAopenmp=0d0
+	allocate(imageopenmp(nthreads,nzones+nstars,MCobs(iobs)%npix,MCobs(iobs)%npix,4))
 	imageopenmp=0d0
 	
 	do izone=1,nzones+nstars
-		fluxZ(izone)=0d0
-		if(MCobs(iobs)%trace(izone)) then
-		if(izone.le.nzones) then
-			istar=0
-			call output("Formal solution zone " // trim(int2string(izone,'(i4)')))
-		else
-			istar=izone-nzones
-			call output("Formal solution star " // trim(int2string(izone-nzones,'(i4)')))
-		endif
-
-		fluxZ_omp=0d0
 		call tellertje(1,100)
 !$OMP PARALLEL IF(use_multi)
 !$OMP& DEFAULT(NONE)
-!$OMP& PRIVATE(ir,ip,R1,R2,flux,A,i,j,Rad,phi,x,y,ix,iy,nint,Q,U,V,ithread,imHit,id,hitnow)
-!$OMP& SHARED(Pimage,izone,ilam,MCobs,iobs,nzones,istar,fluxZ_omp,image,imAopenmp,HitZone,
-!$OMP&        transmissiontracing,imA,Zone,sizeA,sizeAopenmp,imageopenmp)
-		allocate(imHit(MCobs(iobs)%npix,MCobs(iobs)%npix))
-		imHit=0
-		id=0
+!$OMP& PRIVATE(ir,flux,A,i,j,x,y,ix,iy,nint,Q,U,V,ithread,w1,w2,w3,tot,pl,l1,l2,l3,istar,
+!$OMP& 			vv2,vv3,v1v2,v1v3,v2v3,aaa,bbb,v2x,v2y,v3x,v3y)
+!$OMP& SHARED(TracePaths,izone,ilam,MCobs,iobs,nTracePaths,transmissiontracing,Zone,imageopenmp,nzones)
 !$OMP DO
 !$OMP& SCHEDULE(DYNAMIC, 1)
-		do ir=1,Pimage(izone)%nr
+		do ir=1,nTracePaths
 			ithread=omp_get_thread_num()+1
-			call tellertje(ir+1,Pimage(izone)%nr+2)
-			do ip=1,Pimage(izone)%np
-				if(ir.eq.1) then
-					R1=Pimage(izone)%R(ir)
-					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
-				else if(ir.eq.Pimage(izone)%nr) then
-					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
-					R2=Pimage(izone)%R(ir)
-				else
-					R1=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir-1))
-					R2=sqrt(Pimage(izone)%R(ir)*Pimage(izone)%R(ir+1))
-				endif
-				
-				if(transmissiontracing) then
-					call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.true.)
-				else
-					if(izone.le.nzones) then
-						call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.false.)
-					else
-						call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
-						flux=flux*MCobs(iobs)%fstar
-						Q=0d0
-						U=0d0
-						V=0d0
-					endif
-					Pimage(izone)%P(ir,ip)%HitZone=.true.
-				endif
-				if(Pimage(izone)%P(ir,ip)%HitZone) then
+			call tellertje(ir+1,nTracePaths+2)
+c			call RaytraceFluxZone(TracePaths(ir),flux,Q,U,V,ilam,izone,.true.)
+			if(izone.le.nzones) then
+				call RaytraceFluxZone(TracePaths(ir),flux,Q,U,V,ilam,izone,.false.)
+			else
+				istar=izone-nzones
+				call RaytraceFluxStar(TracePaths(ir),flux,ilam,istar)
+				flux=flux*MCobs(iobs)%fstar
+				Q=0d0
+				U=0d0
+				V=0d0
+			endif
 
-				A=pi*(R2**2-R1**2)/real(Pimage(izone)%np)
+			if(TracePaths(ir)%HitZone) then
+			l1=sqrt((TracePaths(ir)%xedge(1)-TracePaths(ir)%xedge(2))**2+(TracePaths(ir)%yedge(1)-TracePaths(ir)%yedge(2))**2)
+			l2=sqrt((TracePaths(ir)%xedge(1)-TracePaths(ir)%xedge(3))**2+(TracePaths(ir)%yedge(1)-TracePaths(ir)%yedge(3))**2)
+			l3=sqrt((TracePaths(ir)%xedge(3)-TracePaths(ir)%xedge(2))**2+(TracePaths(ir)%yedge(3)-TracePaths(ir)%yedge(2))**2)
+			pl=(l1+l2+l3)/2d0
+			A=sqrt(pl*(pl-l1)*(pl-l2)*(pl-l3))
 
-				nint=25d0*A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
-				if(nint.lt.25) nint=25
-				if(nint.gt.1000) nint=1000
-				flux=1d23*flux*A/(real(nint)*4d0*pi)
-				Q=-1d23*Q*A/(real(nint)*4d0*pi)
-				U=-1d23*U*A/(real(nint)*4d0*pi)
-				V=1d23*V*A/(real(nint)*4d0*pi)
-				id=id+1
-				do i=1,nint
-					Rad=R1+random(idum)*(R2-R1)
-					phi=2d0*pi*(real(ip-1)+random(idum))/real(Pimage(izone)%np)
-					x=Rad*cos(phi)+Pimage(izone)%x
-					y=Rad*sin(phi)+Pimage(izone)%y
+			nint=25d0*A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
+			if(nint.lt.25) nint=25
+			if(nint.gt.1000) nint=1000
+			flux=1d23*flux*A/(real(nint)*4d0*pi)
+			Q=-1d23*Q*A/(real(nint)*4d0*pi)
+			U=-1d23*U*A/(real(nint)*4d0*pi)
+			V=1d23*V*A/(real(nint)*4d0*pi)
+			do i=1,nint
+1				w1=random(idum)
+				w2=random(idum)
+				if((w1+w2).gt.1d0) goto 1
+				v2x=TracePaths(ir)%xedge(2)-TracePaths(ir)%xedge(1)
+				v3x=TracePaths(ir)%xedge(3)-TracePaths(ir)%xedge(1)
+				v2y=TracePaths(ir)%yedge(2)-TracePaths(ir)%yedge(1)
+				v3y=TracePaths(ir)%yedge(3)-TracePaths(ir)%yedge(1)
+				x=TracePaths(ir)%xedge(1)+w1*v2x+w2*v3x
+				y=TracePaths(ir)%yedge(1)+w1*v2y+w2*v3y
 
-					x=real(MCobs(iobs)%npix)-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
-					y=real(MCobs(iobs)%npix)*(y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
-					ix=y
-					iy=x
-
-					if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
-					if(transmissiontracing) then
-						if(izone.eq.1) then
-							hitnow=.true.
-						else
-							hitnow=.true.
-							do j=1,izone-1
-								if(Hitzone(j,ix,iy)) hitnow=.false.
-							enddo
-							if(.not.hitnow) then
-								do j=1,izone-1
-									if(HitZone(j,ix,iy).and.sizeA(j,ix,iy).gt.A) then
-										if(((x-Pimage(j)%x)**2+(y-Pimage(j)%y)**2).lt.Pimage(j)%R(Pimage(j)%nr)) then
-!$OMP FLUSH
-											image(j,ix,iy,1:4)=image(j,ix,iy,1:4)*(imA(j,ix,iy)-A/real(nint))/imA(j,ix,iy)
-											imA(j,ix,iy)=imA(j,ix,iy)-A/real(nint)
-											if(imA(j,ix,iy).le.0d0) Hitzone(j,ix,iy)=.false.
-											hitnow=.true.
-										endif
-									endif
-								enddo
-							endif
-						endif
-						if(hitnow) then
-							imageopenmp(izone,ithread,ix,iy,1)=imageopenmp(izone,ithread,ix,iy,1)+flux
-							imageopenmp(izone,ithread,ix,iy,2)=imageopenmp(izone,ithread,ix,iy,2)+Q
-							imageopenmp(izone,ithread,ix,iy,3)=imageopenmp(izone,ithread,ix,iy,3)+U
-							imageopenmp(izone,ithread,ix,iy,4)=imageopenmp(izone,ithread,ix,iy,4)+V
-							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)+A/real(nint)
-							if(imHit(ix,iy).ne.id) then
-								sizeAopenmp(izone,ithread,ix,iy)=sizeAopenmp(izone,ithread,ix,iy)+A
-								imHit(ix,iy)=id
-								HitZone(izone,ix,iy)=.true.
-							endif
-						endif
-					else
-						imageopenmp(izone,ithread,ix,iy,1)=imageopenmp(izone,ithread,ix,iy,1)+flux
-						imageopenmp(izone,ithread,ix,iy,2)=imageopenmp(izone,ithread,ix,iy,2)+Q
-						imageopenmp(izone,ithread,ix,iy,3)=imageopenmp(izone,ithread,ix,iy,3)+U
-						imageopenmp(izone,ithread,ix,iy,4)=imageopenmp(izone,ithread,ix,iy,4)+V
-						if(transmissiontracing.and.imHit(ix,iy).ne.id) then
-							imAopenmp(izone,ithread,ix,iy)=imAopenmp(izone,ithread,ix,iy)
-     &							+A*(real(MCobs(iobs)%npix)/(2d0*MCobs(iobs)%maxR))**2
-							imHit(ix,iy)=id
-							HitZone(izone,ix,iy)=.true.
-						endif
-					endif
-					endif
-				enddo
-				if(transmissiontracing) then
-					if(izone.le.nzones) then
-						call RaytraceFluxZone(Pimage(izone)%P(ir,ip),flux,Q,U,V,ilam,izone,.false.)
-					else
-						call RaytraceFluxStar(Pimage(izone)%P(ir,ip),flux,ilam,istar)
-						flux=flux*MCobs(iobs)%fstar
-						Q=0d0
-						U=0d0
-						V=0d0
-					endif
-				endif
-				fluxZ_omp(ithread)=fluxZ_omp(ithread)+flux*real(nint)
+				x=real(MCobs(iobs)%npix)-real(MCobs(iobs)%npix)*(x+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
+				y=real(MCobs(iobs)%npix)*(y+MCobs(iobs)%maxR)/(2d0*MCobs(iobs)%maxR)+1d0
+				ix=y
+				iy=x
+				if(ix.le.MCobs(iobs)%npix.and.iy.le.MCobs(iobs)%npix.and.ix.gt.0.and.iy.gt.0) then
+					imageopenmp(ithread,izone,ix,iy,1)=imageopenmp(ithread,izone,ix,iy,1)+flux
+					imageopenmp(ithread,izone,ix,iy,2)=imageopenmp(ithread,izone,ix,iy,2)+Q
+					imageopenmp(ithread,izone,ix,iy,3)=imageopenmp(ithread,izone,ix,iy,3)+U
+					imageopenmp(ithread,izone,ix,iy,4)=imageopenmp(ithread,izone,ix,iy,4)+V
 				endif
 			enddo
+			endif
 		enddo
 !$OMP END DO
 !$OMP FLUSH
-		deallocate(imHit)
 !$OMP END PARALLEL
-		fluxZ(izone)=sum(fluxZ_omp(1:nthreads))
 		call tellertje(100,100)
-		do ix=1,MCobs(iobs)%npix
-			do iy=1,MCobs(iobs)%npix
-				imA(izone,ix,iy)=0d0
-				sizeA(izone,ix,iy)=0d0
-				image(izone,ix,iy,1:4)=0d0
-				do ithread=1,nthreads
-					imA(izone,ix,iy)=imA(izone,ix,iy)+imAopenmp(izone,ithread,ix,iy)
-					sizeA(izone,ix,iy)=sizeA(izone,ix,iy)+sizeAopenmp(izone,ithread,ix,iy)
-					image(izone,ix,iy,1:4)=image(izone,ix,iy,1:4)+imageopenmp(izone,ithread,ix,iy,1:4)
-				enddo
-			enddo
-		enddo
-		endif
 	enddo
-
+	fluxZ=0d0
 	do ix=1,MCobs(iobs)%npix
 		do iy=1,MCobs(iobs)%npix
 			MCobs(iobs)%image(ix,iy,1:4)=0d0
 			do izone=1,nzones+nstars
-				MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+image(izone,ix,iy,1:4)
+			do ithread=1,nthreads
+				MCobs(iobs)%image(ix,iy,1:4)=MCobs(iobs)%image(ix,iy,1:4)+imageopenmp(ithread,izone,ix,iy,1:4)
+				fluxZ(izone)=fluxZ(izone)+imageopenmp(ithread,izone,ix,iy,1)
+			enddo
 			enddo
 		enddo
 	enddo
-	deallocate(image)
+
 	deallocate(imageopenmp)
-	deallocate(imA)
-	deallocate(HitZone)
-	deallocate(imAopenmp)
-	deallocate(fluxZ_omp)
 	
 	return
 	end
@@ -1407,20 +1351,16 @@ c		call output("Something is wrong... Don't worry I'll try to fix it.")
 	subroutine deallocatePaths
 	use GlobalSetup
 	IMPLICIT NONE
-	integer izone,ir,ip
+	integer i
 	
-	do izone=1,nzones
-		do ir=1,Pimage(izone)%nr
-			do ip=1,Pimage(izone)%np
-				deallocate(Pimage(izone)%P(ir,ip)%inzone)
-				deallocate(Pimage(izone)%P(ir,ip)%C)
-				deallocate(Pimage(izone)%P(ir,ip)%v)
-			enddo
-		enddo
+	do i=1,nTracePaths
+		deallocate(TracePaths(i)%inzone)
+		deallocate(TracePaths(i)%C)
+		deallocate(TracePaths(i)%v)
 	enddo
 	
 2	deallocate(Pimage)
-	
+	deallocate(TracePaths)	
 	return
 	end
 
