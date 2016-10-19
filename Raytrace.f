@@ -82,7 +82,8 @@ c		MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,ilam))*Reddening(lam(ilam),c
 				deallocate(im)
 			endif
 			MCobs(iobs)%spec(ilam)=sum(MCobs(iobs)%image(:,:,1))
-			write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)/distance**2
+			fluxZ=fluxZ*Reddening(lam(ilam),compute_dlam(lam(ilam)),Av)/distance**2
+			write(20,*) lam(ilam),MCobs(iobs)%spec(ilam),fluxZ(1:nzones+nstars)
 			call flush(20)
 		endif
 	enddo
