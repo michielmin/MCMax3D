@@ -213,14 +213,14 @@ c		call tellertje(iphot,NphotMono)
 		emitfromstar=.false.
 		do istar=1,nstars
 			Erandom=Erandom-Star(istar)%F(ilam)
-			if(Erandom.lt.0d0) then
+			if(Erandom.le.0d0) then
 				emitfromstar=.true.
 				goto 1
 			endif
 		enddo
 
 		call hunt(Espat,nspat+1,Erandom,ispat)
-		if(ispat.eq.nspat+1) goto 2
+		if(ispat.ge.nspat+1.or.ispat.le.0) goto 2
 		izone=zspat(ispat)
 		i1=i1spat(ispat)
 		i2=i2spat(ispat)
@@ -290,9 +290,11 @@ c beaming
 		x0=x0/r
 		y0=y0/r
 		z0=z0/r
-		x=random(idum)
+2		x=random(idum)
 		y=random(idum)
 		z=random(idum)
+		r=sqrt(x**2+y**2+z**2)
+		if(r.gt.1d0) goto 2
 		xn=y0*z-z0*y
 		yn=z0*x-x0*z
 		zn=x0*y-y0*x
@@ -1148,7 +1150,7 @@ c beaming
 
 
 	if(status.gt.0) then
-c		call output("Something is wrong... Don't worry I'll try to fix it.")
+		call output("Something is wrong... Don't worry I'll try to fix it.")
 		nerrors=nerrors+1
 		if(nerrors.gt.100) stop
 		do izone=1,nzones

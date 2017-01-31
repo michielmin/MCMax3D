@@ -143,7 +143,7 @@ c extra photons in raytracing
 		character*3 shape			! CAR, SPH, CYL
 		character*10 sscaletype,mscaletype
 		real*8 sscale,mscale
-		character*10 denstype		! DISK, SHELL, SPHERE
+		character*20 denstype		! DISK, SHELL, SPHERE
 		logical iter,reflect
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp,gas2dust
 		real*8 bp_alpha,bp_beta,bp_p,bp_A,bp_eta

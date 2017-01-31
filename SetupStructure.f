@@ -294,7 +294,7 @@ c-----------------------------------------------------------------------
 			call integrate(Star(ii)%F,tot)
 			Star(ii)%F=Star(ii)%L*Star(ii)%F/tot
 		case("FILE")
-			call readstar(Star(ii)%file,lam,Star(ii)%F,nlam)
+			call regridstar(Star(ii)%file,lam,Star(ii)%F,nlam)
 			call integrate(Star(ii)%F,tot)
 			Star(ii)%F=Star(ii)%L*Star(ii)%F/tot
 		case default
@@ -409,7 +409,7 @@ c avoid zones with exactly the same inner or outer radii
 	else
 		call output("setup density structure")
 		select case(Zone(ii)%denstype)
-			case("DISK","TAUFILE")
+			case("DISK","TAUFILE","SURFDENSFILE")
 				call SetupDisk(ii)
 			case("SHELL")
 				call SetupShell(ii)
@@ -595,7 +595,7 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 	integer ii,ir,it,ip,jj,njj,i,ips,ipt
 	real*8 r,z,hr,f1,f2,theta,Mtot,w(npart,maxns),ha,f2a,delta,phi,phi0
 	real*8 RoundOff, roundfac, SD_round
-	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:),Avortex(:,:,:,:)
+	real*8,allocatable :: Aspiral(:,:,:),H(:,:),SD(:,:),A(:,:),alpha(:,:),Avortex(:,:,:,:),Rav(:)
 	delta=2d0
 
 	if(Zone(ii)%shape.eq.'CAR') then
@@ -664,6 +664,24 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 
 	if(Zone(ii)%denstype.eq.'TAUFILE') then
 		call readtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
+	else if(Zone(ii)%denstype.eq.'SURFDENSFILE') then
+		allocate(Rav(Zone(ii)%nr))
+		do ir=1,Zone(ii)%nr
+			Rav(ir)=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))/Zone(ii)%sscale
+		enddo
+		call regridlog(Zone(ii)%densfile,Rav,SD(1:Zone(ii)%nr,1),Zone(ii)%nr)
+		do ip=2,Zone(ii)%np
+			SD(1:Zone(ii)%nr,ip)=SD(1:Zone(ii)%nr,1)
+		enddo
+		deallocate(Rav)
+		Mtot=0d0
+		do ir=1,Zone(ii)%nr
+			do ip=1,Zone(ii)%np
+				Mtot=Mtot+A(ir,ip)*SD(ir,ip)
+			enddo
+		enddo
+c		SD=SD*Zone(ii)%Mdust/Mtot
+		Zone(ii)%Mdust=Mtot
 	endif
 
 	call ComputeAvortex(ii,Avortex,SD,H)
