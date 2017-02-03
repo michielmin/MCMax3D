@@ -101,7 +101,7 @@ c-----------------------------------------------------------------------
 	use GlobalSetup
 	use Constants
 	IMPLICIT NONE
-	real*8 i,nl,j
+	integer i,nl,j
 	
 	allocate(lam(nlam))
 	allocate(nu(nlam))
@@ -114,14 +114,32 @@ c-----------------------------------------------------------------------
 	else
 c	does not seem to work!!! Have to fix this!!!
 		call output("NZLAM OPTION NOT ALWAYS WORKING PROPERLY YET!!!")
-		nl=(nlam-nzlam)
-		do i=1,nl
-			lam(i)=10d0**(log10(lam1)+(log10(lam2)-log10(lam1))*real(i-1)/real(nl-1))
-		enddo
-		j=nl
+c		nl=(nlam-nzlam)
+c		do i=1,nl
+c			lam(i)=10d0**(log10(lam1)+(log10(lam2)-log10(lam1))*real(i-1)/real(nl-1))
+c		enddo
+c		j=nl
+c		do i=1,nzlam
+c			lam(i+j)=10d0**(log10(zlam1)+(log10(zlam2)-log10(zlam1))*real(i-1)/real(nzlam-1))
+c		enddo
+
 		do i=1,nzlam
-			lam(i+j)=10d0**(log10(zlam1)+(log10(zlam2)-log10(zlam1))*real(i-1)/real(nzlam-1))
+			lam(i)=zlam1+(zlam2-zlam1)*real(i-1)/real(nzlam-1)
 		enddo
+		nl=real(nlam-nzlam)*log10(zlam1/lam1)/(log10(lam2/zlam2)+log10(zlam1/lam1))+1
+		if(nl.ge.(nlam-nzlam)) nl=(nlam-nzlam)-1
+		j=nzlam
+		print*,nl
+		do i=1,nl
+			lam(i+j)=10d0**(log10(lam1)+(log10(zlam1)-log10(lam1))*real(i-1)/real(nl))
+		enddo
+		j=j+nl
+		nl=nlam-nl-nzlam	
+		print*,nl
+		do i=1,nl
+			lam(i+j)=10d0**(log10(zlam2)+(log10(lam2)-log10(zlam2))*real(i)/real(nl))
+		enddo
+
 		call sort(lam,nlam)
 	endif
 
