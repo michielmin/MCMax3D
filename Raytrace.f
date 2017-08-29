@@ -287,6 +287,13 @@ c beaming
 		y0=Zone(izone)%y0-Star(istar)%y
 		z0=Zone(izone)%z0-Star(istar)%z
 		r=sqrt(x0**2+y0**2+z0**2)
+		if(r.lt.Zone(izone)%Rout) then
+			if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
+				phot%vx=-phot%vx
+				phot%vy=-phot%vy
+				phot%vz=-phot%vz
+			endif
+		else
 		x0=x0/r
 		y0=y0/r
 		z0=z0/r
@@ -323,6 +330,7 @@ c beaming
 			phot%z=Star(istar)%R*phot%z
 			phot%sI=sI_in
 			goto 1
+		endif
 		endif
 	else
 		if(phot%x*phot%vx+phot%y*phot%vy+phot%z*phot%vz.lt.0d0) then
@@ -702,7 +710,7 @@ c beaming
 
 	maxcount=0
 	do izone=1,nzones
-		maxcount=maxcount+Zone(izone)%n1*Zone(izone)%n2*Zone(izone)%n3
+		maxcount=maxcount+2d0*Zone(izone)%n1*Zone(izone)%n2*Zone(izone)%n3
 	enddo
 	
 	nnodes=0
@@ -877,9 +885,9 @@ c beaming
 		phot0(iopenmp)=phot(iopenmp)
 		call RaytracePath(phot(iopenmp),TracePaths(i),.true.,maxcount,error)
 
-		allocate(TracePaths(i)%v(TracePaths(i)%n))
-		allocate(TracePaths(i)%inzone(TracePaths(i)%n,nzones))
-		allocate(TracePaths(i)%C(TracePaths(i)%n,nzones))
+		allocate(TracePaths(i)%v(TracePaths(i)%n+1))
+		allocate(TracePaths(i)%inzone(TracePaths(i)%n+1,nzones))
+		allocate(TracePaths(i)%C(TracePaths(i)%n+1,nzones))
 
 		phot(iopenmp)=phot0(iopenmp)
 		call RaytracePath(phot(iopenmp),TracePaths(i),.false.,maxcount,error)
@@ -1186,6 +1194,7 @@ c beaming
 	k=k+1
 	if(k.gt.maxcount) then
 		error=.true.
+		if(justcount) P%n=k		
 		return
 	endif
 

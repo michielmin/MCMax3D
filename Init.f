@@ -438,9 +438,11 @@ c allocate the arrays
 					call output("Unknown MCobs:lam value")
 			end select
 		case("d")
-			read(key%value,*) MCobs(key%nr1)%D
-		case("d2")
-			read(key%value,*) MCobs(key%nr1)%D2
+			if(key%nr2.ne.2) then
+				read(key%value,*) MCobs(key%nr1)%D
+			else
+				read(key%value,*) MCobs(key%nr1)%D2
+			endif
 		case("spw")
 			read(key%value,*) MCobs(key%nr1)%SpW
 		case("width")

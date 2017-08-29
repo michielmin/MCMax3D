@@ -21,6 +21,7 @@
 	nsplitpix=0
 	fov=fov0
 
+
 1	nsplitpix=nsplitpix+1
 	n=IMDIM*nsplitpix
 	rscale=real(n)*lam0/(pi*1d6)*(3600d0*180d0/pi)/fov

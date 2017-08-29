@@ -842,11 +842,17 @@ c		SD=SD*Zone(ii)%Mdust/Mtot
 					enddo
 				enddo
 				Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Mtot
+				Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
 			enddo
 		enddo
 	enddo
 	if(Zone(ii)%denstype.eq.'TAUFILE') then
 		call renormtaufile(ii,SD,Zone(ii)%nr,Zone(ii)%np)
+		open(unit=20,file=trim(outputdir) // "surfacedens" // trim(int2string(ii,'(i0.4)')) // ".dat")
+		do ir=1,Zone(ii)%nr
+			write(20,*) sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))/AU,SD(ir,1)
+		enddo
+		close(unit=20)
 	endif
 
 	deallocate(Aspiral)
@@ -920,7 +926,7 @@ c	enddo
 	use GlobalSetup
 	use Constants
 	integer ii,nr,np,ir,ip,ilam,i
-	real*8 SD(nr,np),d,lam0,r,GetKext
+	real*8 SD(nr,np),d,lam0,r,GetKext,A
 	type(Cell),pointer :: C
 	
 	open(unit=20,file=Zone(ii)%taufile,RECL=6000)
@@ -963,6 +969,12 @@ c	enddo
 				C%densP=C%densP*SD(ir,ip)/tau0
 				C%gasdens=C%gasdens*SD(ir,ip)/tau0
 			enddo
+			SD(ir,ip)=0d0
+			do it=1,Zone(ii)%nt
+				SD(ir,ip)=SD(ir,ip)+Zone(ii)%C(ir,it,ip)%M
+			enddo
+			A=pi*(Zone(ii)%R(ir+1)**2-Zone(ii)%R(ir)**2)/real(Zone(ii)%np)
+			SD(ir,ip)=SD(ir,ip)/A
 		enddo
 	enddo
 	
@@ -1235,18 +1247,38 @@ c					wv=sqrt(3d0/(Zone(ii)%avortex**2-1d0))	! GNG
 	endif
 
 c setup initial radial grid
-	do i=1,Zone(ii)%nr+1-nspan*nlev
-		Zone(ii)%R(i)=10d0**(log10(Zone(ii)%Rin)+real(i-1)*log10(Zone(ii)%Rout/Zone(ii)%Rin)/real(Zone(ii)%nr-nspan*nlev))
-	enddo
-	
-	ir=Zone(ii)%nr+1-nspan*nlev
-	do j=1,nlev
-		do i=1,nspan
-			ir=ir+1
-			Zone(ii)%R(ir)=sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))
+	if(Zone(ii)%denstype.ne.'TAUFILE') then
+		do i=1,Zone(ii)%nr+1-nspan*nlev
+			Zone(ii)%R(i)=10d0**(log10(Zone(ii)%Rin)+real(i-1)*log10(Zone(ii)%Rout/Zone(ii)%Rin)/real(Zone(ii)%nr-nspan*nlev))
 		enddo
-		call sort(Zone(ii)%R(1:ir),ir)
-	enddo
+		ir=Zone(ii)%nr+1-nspan*nlev
+		do j=1,nlev
+			do i=1,nspan
+				ir=ir+1
+				Zone(ii)%R(ir)=sqrt(Zone(ii)%R(i)*Zone(ii)%R(i+1))
+			enddo
+			call sort(Zone(ii)%R(1:ir),ir)
+		enddo
+	else
+c linear grid
+		open(unit=20,file=Zone(ii)%taufile,RECL=6000)
+	
+		ir=1
+		read(20,*)
+1		read(20,*,end=2) r
+		r=r*1d5*1d6
+		if(r.lt.Zone(ii)%Rout.and.r.gt.Zone(ii)%Rin) then
+			Zone(ii)%R(ir)=r
+			ir=ir+1
+		endif
+		goto 1
+2		close(unit=20)
+		ir=ir-1
+		do i=1,Zone(ii)%nr+1-ir
+			Zone(ii)%R(i+ir)=Zone(ii)%Rin+real(i-1)*(Zone(ii)%Rout-Zone(ii)%Rin)/real(Zone(ii)%nr-ir)
+		enddo
+		call sort(Zone(ii)%R(1:Zone(ii)%nr+1),Zone(ii)%nr+1)
+	endif
 
 	open(unit=20,file=trim(outputdir) // 'radgrid' // trim(int2string(ii,'(i0.4)')) // '.dat')
 	write(20,'("# radial grid")')
@@ -1287,9 +1319,23 @@ c setup initial radial grid
 	endif
 
 c setup initial theta grid
-	do i=1,Zone(ii)%nt+1
-		Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi/2d0
-	enddo
+	if(Zone(ii)%denstype.ne.'TAUFILE') then
+		do i=1,Zone(ii)%nt+1
+			Zone(ii)%theta(i)=tmax*(2d0*real(i-1)/real(Zone(ii)%nt)-1d0)**3+pi/2d0
+		enddo
+	else
+		Zone(ii)%theta(1)=pi/2d0+atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		Zone(ii)%theta(2)=pi/2d0-atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		Zone(ii)%theta(3)=pi/2d0+2d0*atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		Zone(ii)%theta(4)=pi/2d0-2d0*atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		Zone(ii)%theta(5)=pi/2d0+4d0*atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		Zone(ii)%theta(6)=pi/2d0-4d0*atan(Zone(ii)%sh/Zone(ii)%Rsh)
+		do i=7,Zone(ii)%nt+1
+			Zone(ii)%theta(i)=tmax*(2d0*real(i-7)/real(Zone(ii)%nt-6)-1d0)**3+pi/2d0
+		enddo
+		call sort(Zone(ii)%theta(1:Zone(ii)%nt+1),Zone(ii)%nt+1)
+	endif
+
 
 	Zone(ii)%imidplane=Zone(ii)%nt/2+1
 
