@@ -200,6 +200,9 @@ c		call tellertje(i,Nphot)
 		tau0=-log(random(idum))
 		if(random(idum).lt.fstop) then
 			phot%sI=0d0
+			phot%sQ=0d0
+			phot%sU=0d0
+			phot%sV=0d0
 			goto 3
 		endif
 		phot%sI=phot%sI/(1d0-fstop)
@@ -214,7 +217,13 @@ c		call tellertje(i,Nphot)
 	call AddEtrace(phot,minv)
 	tau0=tau0-phot%Kext*minv
 
-	if(hitstar0) goto 3
+	if(hitstar0) then
+		phot%sI=0d0
+		phot%sQ=0d0
+		phot%sU=0d0
+		phot%sV=0d0
+		goto 3
+	endif
 
 	do izone=1,nzones
 		if(Trac(izone)%v.le.minv.or.izone.eq.imin) then
