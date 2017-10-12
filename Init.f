@@ -10,6 +10,19 @@ c===============================================================================
 	character*1000 command
 	integer i,j,omp_get_max_threads,omp_get_thread_num
 
+c GFORTRAN requires interfaces for those subroutines
+	interface
+		subroutine GetKeywords(firstkey)
+			use GlobalSetup
+			type(SettingKey),target :: firstkey
+		end subroutine
+
+		subroutine CountStuff(firstkey)
+			use GlobalSetup
+  		type(SettingKey),target :: firstkey
+		end subroutine
+	end interface
+
 	call SetZoneStructOutput()
 
 	j=omp_get_max_threads()
