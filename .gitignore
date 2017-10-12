@@ -7,3 +7,6 @@ _*
 gitversion.h
 .DS_Store
 MCMax3D
+/.settings/
+/.cproject
+/.project
