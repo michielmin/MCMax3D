@@ -294,7 +294,7 @@ c-----------------------------------------------------------------------
 	use Constants
 	IMPLICIT NONE
 	integer ii,i
-	real*8 Luminosity,tot,Planck,r
+	real*8 Luminosity,tot,Planck,r,Reddening,compute_dlam
 	
 	call output("Setting up star: " // trim(int2string(ii,'(i0.4)')))
 	Star(ii)%L=Star(ii)%L*Lsun
@@ -327,7 +327,7 @@ c-----------------------------------------------------------------------
 
 	open(unit=20,file=trim(outputdir) // 'star' // trim(int2string(ii,'(i0.4)')) // '.dat')
 	do i=1,nlam
-		write(20,*) lam(i),Star(ii)%F(i)
+		write(20,*) lam(i),1d23*Star(ii)%F(i)*Reddening(lam(i),compute_dlam(lam(i)),Av)/(4d0*pi*(distance*parsec)**2)
 	enddo
 	close(unit=20)
 
@@ -964,10 +964,10 @@ c	enddo
 			enddo
 			do it=1,Zone(ii)%nt
 				C => Zone(ii)%C(ir,it,ip)
-				C%dens=C%dens*SD(ir,ip)/tau0
-				C%M=C%M*SD(ir,ip)/tau0
-				C%densP=C%densP*SD(ir,ip)/tau0
-				C%gasdens=C%gasdens*SD(ir,ip)/tau0
+				C%dens=C%dens*SD(ir,ip)*cos(Zone(ii)%theta0)/tau0
+				C%M=C%M*SD(ir,ip)*cos(Zone(ii)%theta0)/tau0
+				C%densP=C%densP*SD(ir,ip)*cos(Zone(ii)%theta0)/tau0
+				C%gasdens=C%gasdens*SD(ir,ip)*cos(Zone(ii)%theta0)/tau0
 			enddo
 			SD(ir,ip)=0d0
 			do it=1,Zone(ii)%nt
