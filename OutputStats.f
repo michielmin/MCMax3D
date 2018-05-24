@@ -47,8 +47,8 @@
 		enddo
 		call output("Optical depth through zone " // trim(int2string(izone,"(i4)")) // 
      &						":" // trim(dbl2string(Zone(izone)%tau_V,"(e14.4)")))
-
-		open(unit=20,file=trim(outputdir) // "heightR" // trim(int2string(izone,'(i0.4)')) // ".dat",RECL=6000)
+c GFORTRAN increased the record length, otherwise gfortran complains
+		open(unit=20,file=trim(outputdir) // "heightR" // trim(int2string(izone,'(i0.4)')) // ".dat",RECL=10000)
 		allocate(rad(Zone(izone)%np))
 		do it=1,Zone(izone)%nt
 			do ip=1,Zone(izone)%np

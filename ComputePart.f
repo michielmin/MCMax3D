@@ -874,8 +874,9 @@ c don't use the conducting extrapolation since it is not very accurate
 c use loglog extrapolation
 			m0=dcmplx(e1(i-2),e2(i-2))
 			m1=dcmplx(e1(i-1),e2(i-1))
+c GFORTRAN intrinsic function log10 does not like complex numbers, so do it by "hand"
 			do j=i,n
-				m=10d0**(log10(m0)+log10(m1/m0)*log10(grid(i-2)/grid(j))/log10(grid(i-2)/grid(i-1)))
+				m=10d0**(log(m0)/log(10.d0)+log(m1/m0)/log(10.d0)*log10(grid(i-2)/grid(j))/log10(grid(i-2)/grid(i-1)))
 				e1(j)=real(m)
 				e2(j)=dimag(m)
 				e1(j)=10d0**(log10(e1(i-2))+log10(e1(i-1)/e1(i-2))*log10(grid(i-2)/grid(j))/log10(grid(i-2)/grid(i-1)))

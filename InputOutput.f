@@ -113,6 +113,14 @@ c-----------------------------------------------------------------------
 	IMPLICIT NONE
 	integer i,n,f
 	
+c GFORTRAN requires interface for this subroutine
+	interface
+		subroutine outputform(string,form)
+			character string*(*)
+			character,intent(in),optional :: form*(*)
+		end subroutine
+	end interface
+	
 	if(i.eq.1) call output("....................")
 
 	f=int(20d0*dble(i)/dble(n))
@@ -152,7 +160,14 @@ c-----------------------------------------------------------------------
 	IMPLICIT NONE
 	integer i,n,f
 	real*8 starttime,stoptime,xx,starttime_w,stoptime_w,omp_get_wtime
-	character*20 dbl2string
+	
+c GFORTRAN requires interface for this function
+	INTERFACE 
+		character*20 function dbl2string(x,form)
+			real*8 x
+			character,intent(in),optional :: form*(*)
+		end function dbl2string
+	end INTERFACE
 	
 	f=int(20d0*dble(i)/dble(n))
 	
