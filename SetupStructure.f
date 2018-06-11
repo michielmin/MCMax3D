@@ -515,7 +515,7 @@ c	call outputstruct_fits(filename,ThingsToRead,nttr,ii)
 		call output("theta grid seems to be in degrees")
 		Zone(ii)%theta=Zone(ii)%theta*pi/180d0
 	endif
-	if(Zone(ii)%phi(Zone(ii)%nt).gt.179d0) then
+	if(Zone(ii)%phi(Zone(ii)%np).gt.179d0) then
 		call output("phi grid seems to be in degrees")
 		Zone(ii)%phi=Zone(ii)%phi*pi/180d0
 	endif
