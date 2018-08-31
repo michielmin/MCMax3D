@@ -470,6 +470,24 @@ c avoid zones with exactly the same inner or outer radii
 		end select	
 	endif
 
+2	continue
+	do i=1,ii-1
+		if(Zone(ii)%Rin.eq.Zone(i)%Rin.or.Zone(ii)%Rin.eq.Zone(i)%Rout) then
+			Zone(ii)%Rin=(Zone(ii)%Rin+1d-3*random(idum)*Zone(ii)%R(2))/(1d0+1d-3)
+			Zone(ii)%R(1)=Zone(ii)%Rin
+			Zone(ii)%R2(1)=Zone(ii)%R(1)**2
+			call output("Slightly adjusting Rin")
+			goto 2
+		endif
+		if(Zone(ii)%Rout.eq.Zone(i)%Rin.or.Zone(ii)%Rout.eq.Zone(i)%Rout) then
+			Zone(ii)%Rout=(Zone(ii)%Rout+1d-3*random(idum)*Zone(ii)%R(Zone(ii)%R(Zone(ii)%nr)))/(1d0+1d-3)
+			Zone(ii)%R(Zone(ii)%nr+1)=Zone(ii)%Rout
+			Zone(ii)%R2(Zone(ii)%nr+1)=Zone(ii)%R(Zone(ii)%nr+1)**2
+			call output("Slightly adjusting Rout")
+			goto 2
+		endif
+	enddo
+
 	if(Zone(ii)%warped) then
 		if(Zone(ii)%theta1.lt.-400d0) Zone(ii)%theta1=Zone(ii)%theta0*180d0/pi
 		if(Zone(ii)%phi1.lt.-400d0) Zone(ii)%phi1=Zone(ii)%phi0*180d0/pi

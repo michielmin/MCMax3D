@@ -12,6 +12,12 @@
 	type(ZoneType),pointer :: ZZ
 
 	ZZ => Zone(izone)
+
+	open(unit=32,file='midplanedens.dat',RECL=6000)
+	do i=1,ZZ%nr
+		write(32,*) sqrt(ZZ%R(i)*ZZ%R(i+1))/AU,ZZ%C(i,ZZ%nt/2,1)%gasdens
+	enddo
+	close(unit=32)
 	
 	if(filename(len_trim(filename)-4:len_trim(filename)).eq.'.fits') then
 		filename=trim(filename)//'.gz'
