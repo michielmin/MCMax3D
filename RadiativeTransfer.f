@@ -94,6 +94,7 @@ c		call tellertje(i,Nphot)
 	type(Photon) phot
 
 	tau0=-log(random(idum))
+	if(rt_thin) tau0=1d200
 	do izone=1,nzones
 		Trac(izone)%recompute=.true.
 	enddo
@@ -391,11 +392,11 @@ c		call tellertje(i,Nphot)
 	
 	Ltot=0d0
 	do i=1,nstars
-		Ltot=Ltot+Star(i)%L
+		Ltot=Ltot+Star(i)%L*Star(i)%fL
 	enddo
 	r=Ltot*random(idum)
 	do i=1,nstars
-		r=r-Star(i)%L
+		r=r-Star(i)%L*Star(i)%fL
 		if(r.lt.0d0) exit
 	enddo
 
@@ -407,7 +408,7 @@ c		call tellertje(i,Nphot)
 
 	call emit(phot,Star(i)%F,Star(i)%L)
 
-	phot%sI=Ltot/real(Nphot)
+	phot%sI=Ltot/(real(Nphot)*Star(i)%fL)
 	phot%sQ=0d0
 	phot%sU=0d0
 	phot%sV=0d0

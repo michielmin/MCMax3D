@@ -122,6 +122,8 @@ c allocate the arrays
 			opendisk=opendisk*pi/180d0
 		case("transtrace")
 			read(key%value,*) transmissiontracing
+		case("rt_thin","rtthin")
+			read(key%value,*) rt_thin
 		case default
 			call output("Unknown keyword: " // trim(key%key1))
 			criticalerror=.true.
@@ -402,6 +404,8 @@ c allocate the arrays
 			read(key%value,*) Star(key%nr1)%logg
 		case("type")
 			Star(key%nr1)%startype=trim(key%value)
+		case("fl","wl")
+			read(key%value,*) Star(key%nr1)%fL
 		case default
 			call output("Unknown star keyword: " // trim(key%key2))
 			criticalerror=.true.
@@ -719,6 +723,7 @@ c===============================================================================
 	use_multi=.true.
 	rt_multi=.true.
 	transmissiontracing=.false.
+	rt_thin=.false.
 
 	delta_St=1d0
 	

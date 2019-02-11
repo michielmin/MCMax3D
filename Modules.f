@@ -33,7 +33,7 @@ c===============================================================================
 	IMPLICIT NONE
 	integer nzones,nstars,npart,maxns,maxnT,nMCobs
 	integer maxiter,Nphot,idum,abun_in_name,nSpirals
-	logical criticalerror,adjustAv,use_multi,rt_multi,hardedge,transmissiontracing
+	logical criticalerror,adjustAv,use_multi,rt_multi,hardedge,transmissiontracing,rt_thin
 	real*8 maxR,distance,Av,gammaUVdes,delta_St
 	character*500 outputdir,particledir
 	character*7 ZoneStructOutput(20)
@@ -88,7 +88,7 @@ c extra photons in raytracing
 
 	type StarType
 		real*8 x,y,z
-		real*8 L,R,T,logg,M
+		real*8 L,R,T,logg,M,fL
 		character*10 startype
 		character*500 file
 		real*8,allocatable :: F(:)								! dimension nlam
