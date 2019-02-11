@@ -742,6 +742,7 @@ c===============================================================================
 		Star(i)%T=5777d0
 		Star(i)%logg=4d0
 		Star(i)%startype='KURUCZ'
+		Star(i)%fL=1d0
 	enddo
 	
 	do i=1,nzones
