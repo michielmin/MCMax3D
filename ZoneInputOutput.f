@@ -59,6 +59,9 @@ C	 create the new empty FITS file
 
 	call ftpkyd(unit,'Rin',ZZ%Rin/AU,8,'[AU]',status)
 	call ftpkyd(unit,'Rout',ZZ%Rout/AU,8,'[AU]',status)
+	call ftpkyd(unit,'x0',ZZ%x0/AU,8,'[AU]',status)
+	call ftpkyd(unit,'y0',ZZ%y0/AU,8,'[AU]',status)
+	call ftpkyd(unit,'z0',ZZ%z0/AU,8,'[AU]',status)
 
 	call ftpkyj(unit,'nR',ZZ%nr,' ',status)
 	call ftpkyj(unit,'nTheta',ZZ%nt,' ',status)
@@ -235,6 +238,16 @@ C	 create the new empty FITS file
 					do j=1,ZZ%nt
 						do k=1,ZZ%np
 							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%G0
+						enddo
+					enddo
+				enddo
+			case ('AVrad')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%AVrad
 						enddo
 					enddo
 				enddo
@@ -536,7 +549,8 @@ c	just skip this hdu
 	ZoneStructOutput( 9)='VOLUME'
 	ZoneStructOutput(10)='EJv'
 	ZoneStructOutput(11)='G0'
-	nZoneStructOutput=11
+	ZoneStructOutput(12)='AVrad'
+	nZoneStructOutput=12
 
 	return
 	end
