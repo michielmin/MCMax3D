@@ -241,6 +241,16 @@ C	 create the new empty FITS file
 						enddo
 					enddo
 				enddo
+			case ('AVrad')
+				nelements=naxes(1)*naxes(2)*naxes(3)*naxes(4)*naxes(5)*naxes(6)
+				allocate(array(naxes(1),naxes(2),naxes(3),naxes(4),naxes(5),naxes(6)))
+				do i=1,ZZ%nr
+					do j=1,ZZ%nt
+						do k=1,ZZ%np
+							array(i,j,k,1,1,1)=ZZ%C(i,j,k)%AVrad
+						enddo
+					enddo
+				enddo
 			case default
 				call output("Error in output file specification")
 				print*,vars(ivars)
@@ -539,7 +549,8 @@ c	just skip this hdu
 	ZoneStructOutput( 9)='VOLUME'
 	ZoneStructOutput(10)='EJv'
 	ZoneStructOutput(11)='G0'
-	nZoneStructOutput=11
+	ZoneStructOutput(12)='AVrad'
+	nZoneStructOutput=12
 
 	return
 	end

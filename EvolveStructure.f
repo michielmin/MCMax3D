@@ -118,7 +118,7 @@ c-----------------------------------------------------------------------
 	enddo
 			
 	do ilam=1,nlam
-		if(lam(ilam).gt.0.0953.and.lam(ilam).le.0.206) then
+		if(lam(ilam).gt.0.0912.and.lam(ilam).le.0.205) then
 			call TraceScattField(0,ilam,NphotMono)
 
 			do izone=1,nzones
@@ -151,4 +151,59 @@ c-----------------------------------------------------------------------
 	end
 
 
+	subroutine createAV()
+c	Calculates the visual extinction in a simple way.
+c     AV is usefull for doing postprocessing chemistry.
+c     currently only the radial visual extinction (from the star outward)
+c     is calculated
+c
+c     Author: Rab C.
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer izone,ilam
+	real*8 :: tau,dr,drm1
+	real*8 :: GetKext
+	real*8, parameter :: ref_lam=0.55d0
+	real*8, parameter :: avfac=2.5*log10(exp(1.0))
+	integer ir,it,ip
 
+
+c	find the wavelength index for (optical used for AV)
+c     do a simple nearest neighbour interpolation
+	do ilam=1,nlam-1
+		if(ref_lam.gt.lam(ilam).and.ref_lam.le.lam(ilam+1)) then
+			exit
+		endif
+	enddo
+
+
+	do izone=1,nzones
+		do ir=1,Zone(izone)%nr
+c                 cell center radius as defined in subroutine outputstruct_fits
+			dr=sqrt(Zone(izone)%R(ir)*Zone(izone)%R(ir+1))-Zone(izone)%R(ir)
+			if (ir.eq.1) then
+				drm1=0
+			else
+				drm1=Zone(izone)%R(ir)-sqrt(Zone(izone)%R(ir-1)*Zone(izone)%R(ir))
+			endif
+			do it=1,Zone(izone)%nt
+			do ip=1,Zone(izone)%np
+			Zone(izone)%C(ir,it,ip)%AVrad=0.0
+			tau=GetKext(ilam,Zone(izone)%C(ir,it,ip))*dr
+			if (ir.eq.1) then
+				Zone(izone)%C(ir,it,ip)%AVrad=avfac*tau
+			else
+				tau=tau+GetKext(ilam,Zone(izone)%C(ir-1,it,ip))*drm1
+				Zone(izone)%C(ir,it,ip)%AVrad=Zone(izone)%C(ir-1,it,ip)%AVrad+tau*avfac
+			endif
+			!write(*,*) ir,it,ip,"tau",tau
+
+			enddo
+			enddo
+		enddo
+	enddo
+
+	write(*,*) "tauRad",Zone(1)%C(Zone(1)%nr-1,Zone(1)%imidplane,1)%AVrad
+
+	end subroutine
