@@ -59,6 +59,9 @@ C	 create the new empty FITS file
 
 	call ftpkyd(unit,'Rin',ZZ%Rin/AU,8,'[AU]',status)
 	call ftpkyd(unit,'Rout',ZZ%Rout/AU,8,'[AU]',status)
+	call ftpkyd(unit,'x0',ZZ%x0/AU,8,'[AU]',status)
+	call ftpkyd(unit,'y0',ZZ%y0/AU,8,'[AU]',status)
+	call ftpkyd(unit,'z0',ZZ%z0/AU,8,'[AU]',status)
 
 	call ftpkyj(unit,'nR',ZZ%nr,' ',status)
 	call ftpkyj(unit,'nTheta',ZZ%nt,' ',status)
