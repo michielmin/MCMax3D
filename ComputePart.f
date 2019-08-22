@@ -30,6 +30,7 @@
 	real*8,allocatable :: Mief33(:),Mief34(:),Mief44(:)
 	logical truefalse,checkparticlefile,lnkloglog
 	external Carbon_BE_Zubko1996,Mg07Fe03SiO3_Dorschner1995,AstroSilicate
+	external Ice_Warren2008,OrganicsHenning,FeS
 
 	write(tmp,'("mkdir -p ",a)') particledir(1:len_trim(particledir)-1)
 	call system(tmp)
@@ -127,6 +128,47 @@ c changed this to mass fractions (11-05-2010)
 		e2(2,1:nlam)=e2d(1:nlam)
 		deallocate(e1d)
 		deallocate(e2d)
+	else if(p%standard.eq.'DSHARP') then
+		input='DSHARP'
+		ns=p%nsubgrains
+		nf=1
+		maxf=0e0
+		if(maxf.eq.0e0) nf=1
+		allocate(r(ns))
+		allocate(nr(MAXMAT,ns))
+		allocate(f(nf))
+		allocate(wf(nf))
+		nm=4
+		p%porosity=0d0
+		p%blend=.true.
+		rho(1)=0.92
+		rho(2)=3.30
+		rho(3)=4.83
+		rho(4)=1.50
+		frac(1)=0.3642
+		frac(2)=0.1670
+		frac(3)=0.0258
+		frac(4)=0.4430
+		allocate(e1d(nlam))
+		allocate(e2d(nlam))
+		filename(1)='Ice_Warren2008'
+		call RegridDataLNK(Ice_Warren2008,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(1,1:nlam)=e1d(1:nlam)
+		e2(1,1:nlam)=e2d(1:nlam)
+		filename(2)='AstroSilicate'
+		call RegridDataLNK(AstroSilicate,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(2,1:nlam)=e1d(1:nlam)
+		e2(2,1:nlam)=e2d(1:nlam)
+		filename(3)='FeS'
+		call RegridDataLNK(FeS,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(3,1:nlam)=e1d(1:nlam)
+		e2(3,1:nlam)=e2d(1:nlam)
+		filename(4)='OrganicsHenning'
+		call RegridDataLNK(OrganicsHenning,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(4,1:nlam)=e1d(1:nlam)
+		e2(4,1:nlam)=e2d(1:nlam)
+		deallocate(e1d)
+		deallocate(e2d)
 	else if(p%standard.eq.'ASTROSIL') then
 		input='ASTROSIL'
 		ns=p%nsubgrains
@@ -190,15 +232,15 @@ c changed this to mass fractions (11-05-2010)
 	call output("(size, T): (" // trim(int2string(isize,'(i0.4)')) // ","  // trim(int2string(iT,'(i0.4)')) // ")")
 	call output("Size: " // trim(dbl2string(amin,'(f10.3)')) // " - " // trim(dbl2string(amax,'(f10.3)')) // " micron")
 
-	do j=1,nm
-		write(lnkfile,'(a,a,i0.3,".lnk")') trim(particledir),trim(input),j
-		open(unit=30,file=lnkfile,RECL=200)
-		write(30,'("# ",a)') trim(filename(j))
-		do i=1,nlam
-			write(30,*) lam(i),e1(j,i),e2(j,i)
-		enddo
-		close(unit=30)
-	enddo
+c	do j=1,nm
+c		write(lnkfile,'(a,a,i0.3,".lnk")') trim(particledir),trim(input),j
+c		open(unit=30,file=lnkfile,RECL=200)
+c		write(30,'("# ",a)') trim(filename(j))
+c		do i=1,nlam
+c			write(30,*) lam(i),e1(j,i),e2(j,i)
+c		enddo
+c		close(unit=30)
+c	enddo
 
 	if(p%blend) then
 		nm=nm+1
@@ -444,6 +486,42 @@ c changed this to mass fractions (11-05-2010)
 		call RegridDataLNK(Carbon_BE_Zubko1996,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
 		e1(2,1:nlam)=e1d(1:nlam)
 		e2(2,1:nlam)=e2d(1:nlam)
+		deallocate(e1d)
+		deallocate(e2d)
+	else if(p%standard.eq.'DSHARP') then
+		input='DSHARP'
+		ns=p%nsubgrains
+		nf=1
+		maxf=0e0
+		nm=4
+		p%porosity=0d0
+		p%blend=.true.
+		rho(1)=0.92
+		rho(2)=3.30
+		rho(3)=4.83
+		rho(4)=1.50
+		frac(1)=0.3642
+		frac(2)=0.1670
+		frac(3)=0.0258
+		frac(4)=0.4430
+		allocate(e1d(nlam))
+		allocate(e2d(nlam))
+		filename(1)='Ice_Warren2008'
+		call RegridDataLNK(Ice_Warren2008,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(1,1:nlam)=e1d(1:nlam)
+		e2(1,1:nlam)=e2d(1:nlam)
+		filename(2)='AstroSilicate'
+		call RegridDataLNK(AstroSilicate,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(2,1:nlam)=e1d(1:nlam)
+		e2(2,1:nlam)=e2d(1:nlam)
+		filename(3)='FeS'
+		call RegridDataLNK(FeS,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(3,1:nlam)=e1d(1:nlam)
+		e2(3,1:nlam)=e2d(1:nlam)
+		filename(4)='OrganicsHenning'
+		call RegridDataLNK(OrganicsHenning,lam(1:nlam),e1d(1:nlam),e2d(1:nlam),nlam,.true.)
+		e1(4,1:nlam)=e1d(1:nlam)
+		e2(4,1:nlam)=e2d(1:nlam)
 		deallocate(e1d)
 		deallocate(e2d)
 	endif
