@@ -115,7 +115,8 @@ OBJS  = Modules.o \
 				OutputStats.o \
 				ZoneInputOutput.o \
 				EvolveStructure.o \
-				delaunay_lmap_2d.o
+				delaunay_lmap_2d.o \
+				TraceToOutside.o
 
 # program name and install location
 PROGRAM       = MCMax3D
