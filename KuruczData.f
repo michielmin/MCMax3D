@@ -14339,6 +14339,9 @@ c	print*,Tk,loggk
 	write(*,'("Using Kurucz model with:")')
 	write(*,'("     T=",f10.2)') real(kuruczT(i0))
 	write(*,'("  logg=",f10.2)') real(kuruczg(i0))/10d0
+	write(9,'("Using Kurucz model with:")')
+	write(9,'("     T=",f10.2)') real(kuruczT(i0))
+	write(9,'("  logg=",f10.2)') real(kuruczg(i0))/10d0
 
 	i=1
 	k=1
