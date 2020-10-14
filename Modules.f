@@ -96,7 +96,7 @@ c extra photons in raytracing
 
 	type Cell
 		real*8 T,M,V,E,dens		! Temperature, Mass, Volume, Energy absorbed, density
-		real*8 Etrace,gasdens,G0
+		real*8 Etrace,gasdens,G0,AVrad
 		integer Ni				! statistics
 		real*8,allocatable :: densP(:,:,:)						! dimension npart,nsize,nT
 		logical diff,randomwalk
