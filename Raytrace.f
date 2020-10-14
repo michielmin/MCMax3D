@@ -1128,32 +1128,32 @@ c beaming
 		if(phot%inzone(izone)) then
 			select case(Zone(izone)%shape)
 				case("SPH")
-					if(Trac(izone)%recompute) then
+c					if(Trac(izone)%recompute) then
 						call TravelSph(phot,izone,Trac(izone),status)
-					else
-						Trac(izone)%v=Trac(izone)%v-minv
-					endif
+c					else
+c						Trac(izone)%v=Trac(izone)%v-minv
+c					endif
 			end select
 			Trac(izone)%recompute=.false.
 		else
 			select case(Zone(izone)%shape)
 				case("SPH")
-					if(Trac(izone)%recompute) then
+c					if(Trac(izone)%recompute) then
 						call HitSph(phot,izone,Trac(izone))
-					else
-						Trac(izone)%v=Trac(izone)%v-minv
-					endif
+c					else
+c						Trac(izone)%v=Trac(izone)%v-minv
+c					endif
 			end select
 			Trac(izone)%recompute=.false.
 		endif
 	enddo
 	do istar=1,nstars
-		if(TracStar(istar)%recompute) then
+c		if(TracStar(istar)%recompute) then
 			call HitStar(phot,istar,TracStar(istar))
 			TracStar(istar)%recompute=.false.
-		else
-			TracStar(istar)%v=TracStar(istar)%v-minv
-		endif
+c		else
+c			TracStar(istar)%v=TracStar(istar)%v-minv
+c		endif
 	enddo
 
 
