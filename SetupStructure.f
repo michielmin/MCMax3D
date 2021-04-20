@@ -433,6 +433,8 @@ c avoid zones with exactly the same inner or outer radii
 				call SetupShell(ii)
 			case("SPHERE")
 				call SetupSphere(ii)
+			case("CONE")
+				call SetupCone(ii)
 			case("FILE")
 				ThingsToRead( 1)='RGRID'
 				ThingsToRead( 2)='TGRID'
@@ -1578,6 +1580,119 @@ c setup initial phi grid
 	return
 	end
 
+
+
+	subroutine SetupCone(ii)
+c       Added by Carsten Dominik, April 20, 2021
+c       This cone setup is copied from the xhell setup, but we set the sensity
+c	only between tmin1..tmax1 and tmin2..tmax2
+	use GlobalSetup
+	use Constants
+	IMPLICIT NONE
+	integer ii,ir,it,ip,i,ips,ipt,ilam
+	real*8 r,z,hr,f1,f2,Mtot,w(npart,maxns),tau,GetKext,lam0,d
+	real*8 tmin1,tmax1,tmin2,tmax2,theta,fact
+
+	if(Zone(ii)%shape.eq.'CAR'.or.Zone(ii)%shape.eq.'CYL') then
+	   call output("Free advice: a cone is better put on a spherical grid.")
+	   stop
+	endif
+
+	call SetupRadGrid(ii)
+	call SetupThetaGrid(ii)
+	call SetupPhiGrid(ii)
+	call SetupVolume(ii)
+
+c       The angles are given as degree in the input file - convert them
+	tmin1 = Zone(ii)%tmin1*pi/180d0
+	tmax1 = Zone(ii)%tmax1*pi/180d0
+	tmin2 = Zone(ii)%tmin2*pi/180d0
+	tmax2 = Zone(ii)%tmax2*pi/180d0
+
+	Mtot=0d0
+	do i=1,npart
+	   if(Part(i)%nsize.gt.1) then
+	      call SetSizeDis(w(i,1:Part(i)%nsize),i,ii)
+	   else
+	      w(i,1)=1d0
+	   endif
+	enddo
+
+	do ir=1,Zone(ii)%nr
+	   call tellertje(ir,Zone(ii)%nr)
+	   r=sqrt(Zone(ii)%R(ir)*Zone(ii)%R(ir+1))
+	   do it=1,Zone(ii)%nt
+	      theta = Zone(ii)%theta(it)
+c             Determine a factor that will switch the density either on of off.
+	      if (((theta .ge. tmin1) .and. (theta .le. tmax1)) .or. ((theta .ge. tmin2) .and. (theta .le. tmax2))) then
+c                inside the cone - use full density
+		 fact = 1d0
+	      else
+c                outside the cone - decrease density by large factor
+		 fact = 1d-10
+	      endif
+	      do ip=1,Zone(ii)%np
+c                Apply the factor to the dnesity
+		 Zone(ii)%C(ir,it,ip)%dens=fact * r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
+		 Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+	      enddo
+	   enddo
+	enddo
+	do ir=1,Zone(ii)%nr
+	   do it=1,Zone(ii)%nt
+	      do ip=1,Zone(ii)%np
+		 Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%Mdust/Mtot
+		 do i=1,npart
+		    do ips=1,Part(i)%nsize
+		       Zone(ii)%C(ir,it,ip)%densP(i,ips,1)=w(i,ips)*Zone(ii)%abun(i)*Zone(ii)%C(ir,it,ip)%dens
+		       do ipt=2,Part(i)%nT
+			  Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=0d0
+		       enddo
+		    enddo
+		 enddo
+		 Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
+	      enddo
+	   enddo
+	enddo
+
+	if(Zone(ii)%tau_V.gt.0d0) then
+	   lam0=lam_ref
+	   d=lam(nlam)-lam(1)
+	   ilam=1
+	   do i=1,nlam
+	      if(abs(lam0-lam(i)).lt.d) then
+		 d=abs(lam0-lam(i))
+		 ilam=i
+	      endif
+	   enddo
+
+	   tau=0d0
+	   do ir=1,Zone(ii)%nr
+	      tau=tau+GetKext(ilam,Zone(ii)%C(ir,Zone(ii)%imidplane,1))*
+     &			(Zone(ii)%R(ir+1)-Zone(ii)%R(ir))
+	   enddo
+	   do ir=1,Zone(ii)%nr
+	      do it=1,Zone(ii)%nt
+		 do ip=1,Zone(ii)%np
+		    Zone(ii)%C(ir,it,ip)%dens=Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%tau_V/tau
+		    Zone(ii)%C(ir,it,ip)%M=Zone(ii)%C(ir,it,ip)%M*Zone(ii)%tau_V/tau
+		    do i=1,npart
+		       do ips=1,Part(i)%nsize
+			  do ipt=1,Part(i)%nT
+			     Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)=
+     &				Zone(ii)%C(ir,it,ip)%densP(i,ips,ipt)*Zone(ii)%tau_V/tau
+			  enddo
+		       enddo
+		    enddo
+		 enddo
+	      enddo
+	   enddo
+	endif
+
+	return
+	end
+
+	
 c-----------------------------------------------------------------------
 c
 c   This subroutine calculates the shape for a rounded-off gap edge
