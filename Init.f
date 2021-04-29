@@ -319,13 +319,13 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%rounddepth
 		case("warp_pow","warppow","powwarp")
 			read(key%value,*) Zone(key%nr1)%warp_pow
-		case("tmin1")
+		case("tmina")
 			read(key%value,*) Zone(key%nr1)%tmin1
-		case("tmax1")
+		case("tmaxa")
 			read(key%value,*) Zone(key%nr1)%tmax1
-		case("tmin2")
+		case("tminb")
 			read(key%value,*) Zone(key%nr1)%tmin2
-		case("tmax2")
+		case("tmaxb")
 			read(key%value,*) Zone(key%nr1)%tmax2
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
