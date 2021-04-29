@@ -319,6 +319,14 @@ c allocate the arrays
 			read(key%value,*) Zone(key%nr1)%rounddepth
 		case("warp_pow","warppow","powwarp")
 			read(key%value,*) Zone(key%nr1)%warp_pow
+		case("tmin1")
+			read(key%value,*) Zone(key%nr1)%tmin1
+		case("tmax1")
+			read(key%value,*) Zone(key%nr1)%tmax1
+		case("tmin2")
+			read(key%value,*) Zone(key%nr1)%tmin2
+		case("tmax2")
+			read(key%value,*) Zone(key%nr1)%tmax2
 		case default
 			call output("Unknown zone keyword: " // trim(key%key2))
 			criticalerror=.true.
