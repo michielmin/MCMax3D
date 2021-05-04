@@ -146,7 +146,6 @@ c extra photons in raytracing
 		character*20 denstype		! DISK, SHELL, SPHERE
 		logical iter,reflect
 		real*8 denspow,Mdust,alpha,Rexp,sh,Rsh,shpow,gamma_exp,gas2dust
-		real*8 tmin1,tmin2,tmax1,tmax2
 		real*8 bp_alpha,bp_beta,bp_p,bp_A,bp_eta
 		real*8 amin,amax,apow,tau_V
 		character*10 roundtype		! NONE, HYDRO, POW
