@@ -1632,7 +1632,7 @@ c                outside the cone - decrease density by large factor
 		 fact = 1d-10
 	      endif
 	      do ip=1,Zone(ii)%np
-c                Apply the factor to the dnesity
+c                Apply the factor to the density
 		 Zone(ii)%C(ir,it,ip)%dens=fact * r**(-Zone(ii)%denspow)*exp(-(r/Zone(ii)%Rexp)**2)
 		 Mtot=Mtot+Zone(ii)%C(ir,it,ip)%dens*Zone(ii)%C(ir,it,ip)%V
 	      enddo
