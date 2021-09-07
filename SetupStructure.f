@@ -482,7 +482,7 @@ c avoid zones with exactly the same inner or outer radii
 			goto 2
 		endif
 		if(Zone(ii)%Rout.eq.Zone(i)%Rin.or.Zone(ii)%Rout.eq.Zone(i)%Rout) then
-			Zone(ii)%Rout=(Zone(ii)%Rout+1d-3*random(idum)*Zone(ii)%R(Zone(ii)%R(Zone(ii)%nr)))/(1d0+1d-3)
+			Zone(ii)%Rout=(Zone(ii)%Rout+1d-3*random(idum)*Zone(ii)%R(Zone(ii)%nr))/(1d0+1d-3)
 			Zone(ii)%R(Zone(ii)%nr+1)=Zone(ii)%Rout
 			Zone(ii)%R2(Zone(ii)%nr+1)=Zone(ii)%R(Zone(ii)%nr+1)**2
 			call output("Slightly adjusting Rout")
