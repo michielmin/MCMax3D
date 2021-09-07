@@ -64,7 +64,7 @@ c-----------------------------------------------------------------------
 	real*8 rgrain(1:ngrains)
 	real*8 logr_int(1:ngrains+1),r_int(1:ngrains+1)
 	real*8 rmin,rmax
-	real*8 i,j,ii
+	integer i,j,ii
 
       !  Find cell interfaces for grain size grid
       !
